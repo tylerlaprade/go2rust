@@ -9462,7 +9462,16 @@ func writeMapHandleElementValue(out *strings.Builder, expr ast.Expr, elemType ty
 		WriteWrapperSuffix(out)
 		return true
 	}
+	if _, isIdent := inner.(*ast.Ident); isIdent {
+		writeMapHandleCloneForOp(out, expr)
+		return true
+	}
+	// Any other map value, such as holder.M, is read in a block of its own,
+	// so the guard on holder is released before the next element locks it
+	// again: []map[string]int{holder.M, holder.M}.
+	out.WriteString("{ let __map_handle = ")
 	writeMapHandleCloneForOp(out, expr)
+	out.WriteString("; __map_handle }")
 	return true
 }
 

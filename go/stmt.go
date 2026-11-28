@@ -3503,6 +3503,9 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 		TranspileExpression(out, result)
 		return true
 	}
+	if writeDefinedMapFromElementHandle(out, expected, result) {
+		return true
+	}
 	if mapIndexExpressionKeepsHandle(result) {
 		TranspileExpression(out, result)
 		return true
@@ -7044,6 +7047,9 @@ func writeBlankNamedReturnValue(out *strings.Builder, result ast.Expr, expected 
 	if selectorExpressionKeepsHandle(result) {
 		TranspileExpressionContext(out, result, LValue)
 		out.WriteString(".clone()")
+		return
+	}
+	if writeDefinedMapFromElementHandle(out, expected, result) {
 		return
 	}
 	if mapIndexExpressionKeepsHandle(result) {
@@ -12038,10 +12044,12 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 			// and a channel carries the map bare. A value received from a
 			// channel or in a select is already bare.
 			if typeInfo != nil && isUnnamedMapType(typeInfo.GetType(ident)) && rangeKind != "channel_val" && rangeKind != "select_val" {
-				out.WriteString("(*")
+				// The map is copied out in a statement of its own, so its
+				// guard is released before a send that blocks.
+				out.WriteString("{ let __map_value = (*")
 				out.WriteString(rustName)
 				WriteBorrowMethod(out, false)
-				out.WriteString(").clone().unwrap_or_default()")
+				out.WriteString(").clone().unwrap_or_default(); __map_value }")
 				return
 			}
 			// A range over a slice or array can bind a reference to the
@@ -13676,6 +13684,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else if _, ok := result.(*ast.SliceExpr); ok {
 						// Slice expressions already return wrapped values (Arc<Mutex<Option<Vec<T>>>>)
 						TranspileExpression(out, result)
+					} else if writeDefinedMapFromElementHandle(out, returnResultTypeExpr(fnType, i), result) {
+						// return s[0] from a func returning Counts, a defined
+						// map type: the element's handle in a Counts.
 					} else if mapIndexExpressionKeepsHandle(result) {
 						// Map values that are maps/slices/pointers/etc. already return cloneable handles.
 						TranspileExpression(out, result)

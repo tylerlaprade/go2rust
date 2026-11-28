@@ -1153,12 +1153,12 @@ fn main() {
     let mut ch = GoChannel::<BTreeMap<String, Arc<Mutex<Option<i64>>>>>::new_buffered(2 as usize);
     let mut s = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64))))])))), Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("b".to_string(), Arc::new(Mutex::new(Some(2i64))))]))))])));
     { let __range_holder = s.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for v in __range_values.iter() {
-        ch.send((*v.lock().unwrap()).clone().unwrap_or_default());
+        ch.send({ let __map_value = (*v.lock().unwrap()).clone().unwrap_or_default(); __map_value });
     } }
     println!("{} {}", format!("{}", ch.recv().unwrap_or_default().len()), format!("{}", ch.recv().unwrap_or_default().len()));
     let mut mm = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>::from([("o".to_string(), Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("i".to_string(), Arc::new(Mutex::new(Some(1i64))))])))))]))));
     for (_, v) in { let __range_holder = mm.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
-        ch.send((*v.lock().unwrap()).clone().unwrap_or_default());
+        ch.send({ let __map_value = (*v.lock().unwrap()).clone().unwrap_or_default(); __map_value });
     }
     println!("{}", format!("{}", ch.recv().unwrap_or_default().len()));
 }

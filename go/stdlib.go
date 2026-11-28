@@ -3272,7 +3272,30 @@ func writeSliceOfMapsPrintArg(out *strings.Builder, arg ast.Expr, elemType types
 	TrackImport("Display")
 	TrackImport("Ord")
 	out.WriteString("{ let __maps = ")
-	if ident, ok := unwrapParens(arg).(*ast.Ident); ok {
+	if _, named := types.Unalias(typeInfo.GetType(arg)).(*types.Named); named && !formatSliceArgumentIsBareValue(arg) {
+		// A defined slice or array of maps, type Tables [1]map[string]int,
+		// is a newtype over the collection's cell; the maps are in that
+		// cell (#359).
+		if lit, ok := unwrapParens(arg).(*ast.CompositeLit); ok {
+			// A literal is the newtype itself, not a cell around it.
+			out.WriteString("{ let __named_inner = Some((")
+			TranspileExpression(out, lit)
+			out.WriteString(").0.clone()); match __named_inner { Some(__inner) => { let __inner_guard = __inner")
+		} else {
+			out.WriteString("{ let __named_holder = ")
+			if ident, ok := unwrapParens(arg).(*ast.Ident); ok {
+				writeCollectionFormatHandleIdent(out, ident)
+				out.WriteString(".clone()")
+			} else {
+				TranspileExpression(out, arg)
+			}
+			out.WriteString("; let __named_inner = { let __named_guard = __named_holder")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; __named_guard.as_ref().map(|__named| __named.0.clone()) }; match __named_inner { Some(__inner) => { let __inner_guard = __inner")
+		}
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __inner_guard.as_ref().map(|__v| __v.to_vec()).unwrap_or_default() }, None => Default::default() } }")
+	} else if ident, ok := unwrapParens(arg).(*ast.Ident); ok {
 		out.WriteString("(*")
 		writeCollectionFormatHandleIdent(out, ident)
 		WriteBorrowMethod(out, false)

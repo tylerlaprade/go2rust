@@ -8,7 +8,7 @@ use std::any::Any;
 use std::cmp::Ord;
 use std::collections::BTreeMap;
 use std::error::Error as StdError;
-use std::fmt::{Display};
+use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -1087,6 +1087,80 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 pub struct rows_(pub Arc<Mutex<Option<Vec<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>>>>);
 
 
+#[derive(Debug, Clone, Default)]
+pub struct Counts(pub Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>);
+
+impl Display for Counts {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", format_map(&self.0))
+    }
+}
+
+
+#[derive(Debug, Clone, Default)]
+pub struct holder {
+    pub m: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>,
+}
+
+impl holder {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.m.clone();
+        Self {
+            m: __go_clone_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for holder {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", format_map(&self.m));
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct Tables(pub Arc<Mutex<Option<[Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>; 2]>>>);
+
+impl Default for Tables {
+    fn default() -> Self {
+        Tables(Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None::<BTreeMap<String, Arc<Mutex<Option<i64>>>>>)))))))
+    }
+}
+
+impl Tables {
+    pub fn __go_value_clone(&self) -> Self {
+        Tables(Arc::new(Mutex::new(self.0.lock().unwrap().as_ref().map(|__go_array| __go_array.clone()))))
+    }
+}
+
+
+#[derive(Clone, Default)]
+pub struct __ptrSlot_map_string_int {
+    pub get: Arc<Mutex<Option<Arc<dyn Fn() -> Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> + Send + Sync>>>>,
+    pub set: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>) -> () + Send + Sync>>>>,
+}
+
+impl __ptrSlot_map_string_int {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = { let __guard = self.get.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.set.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            get: __go_clone_0_0,
+            set: __go_clone_1_0,
+        }
+    }
+}
+
+impl std::fmt::Display for __ptrSlot_map_string_int {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", "<func>");
+        let __go_fmt_1 = format!("{}", "<func>");
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
+    }
+}
+
+
 pub(crate) struct GoGlobalMapSync<T> {
     slot: std::sync::Mutex<std::sync::Arc<std::sync::Mutex<Option<T>>>>,
 }
@@ -1131,11 +1205,11 @@ fn __go_init_globals() {
     *table_1.lock().unwrap() = Some(BTreeMap::new());
     {
         let mut __go_map = BTreeMap::<String, Arc<Mutex<Option<Vec<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>>>>>::new();
-        let __go_map_key_141 = "row".to_string();
-        let mut __go_map_value_141 = Vec::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>::new();
-        __go_map_value_141.push(Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)));
-        __go_map_value_141.push(Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("bad")))))));
-        __go_map.insert(__go_map_key_141, Arc::new(Mutex::new(Some(__go_map_value_141))));
+        let __go_map_key_5077 = "row".to_string();
+        let mut __go_map_value_5077 = Vec::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>::new();
+        __go_map_value_5077.push(Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)));
+        __go_map_value_5077.push(Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("bad")))))));
+        __go_map.insert(__go_map_key_5077, Arc::new(Mutex::new(Some(__go_map_value_5077))));
         *table_1.lock().unwrap() = Some(__go_map);
     }
 }
@@ -1157,15 +1231,12 @@ fn main() {
     done.recv().unwrap_or_default();
     println!("{} {} {}", format!("{}", ({ let __len = (*{ let __map = { let __map_holder = table_1.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"row".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __nil_result = (*{ let __seq = { let __seq_holder = { let __map = { let __map_holder = table_1.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"row".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __text = match { let __seq = { let __seq_holder = { let __map = { let __map_holder = table_1.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"row".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
-        // append to a named slice of maps keeps the map's handle.
     let mut s: Arc<Mutex<Option<rows_>>> = Arc::new(Mutex::new(Some(Default::default())));
     let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64))))]))));
     { let new_val = { let __base = { let __named_slice = (*s.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.lock().unwrap(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); std::mem::drop(__base_guard); __values.push(m.clone()); Arc::new(Mutex::new(Some(rows_(Arc::new(Mutex::new(Some(__values))))))) }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_val; };
     { let __map_key = "b".to_string(); let __map_value = Arc::new(Mutex::new(Some(2))); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {}", format!("{}", ({ let __len = (*{ let __seq_holder = { let __named_slice = (*s.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", format_map(&{ let __seq_holder = { let __named_slice = (*s.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() })));
 
-        // An existing variable in a mixed short declaration takes the
-        // element's map; a copy of its old map stays as it was.
     let mut ms = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("x".to_string(), Arc::new(Mutex::new(Some(1i64))))]))))])));
     let mut n0 = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("old".to_string(), Arc::new(Mutex::new(Some(0i64))))]))));
     let mut alias = n0.clone();
@@ -1173,8 +1244,6 @@ fn main() {
     { let __map_key = "y".to_string(); let __map_value = Arc::new(Mutex::new(Some(2))); (*n0.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {} {} {}", format!("{}", { let __maps = (*ms.lock().unwrap()).as_ref().map(|__v| __v.to_vec()).unwrap_or_default(); format!("[{}]", __maps.iter().map(|__m| format_map(__m)).collect::<Vec<_>>().join(" ")) }), format!("{}", format_map(&n0)), format!("{}", format_map(&alias)), format!("{}", { let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
-        // A []any element asserted to a map shares the map, and a nil map
-        // stays nil.
     let mut nm: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> = Arc::new(Mutex::new(None));
     let mut values = Arc::new(Mutex::new(Some(vec![Box::new(m.clone()) as Box<dyn Any + Send + Sync>, Box::new(nm.clone()) as Box<dyn Any + Send + Sync>])));
     let mut held = Arc::new(Mutex::new(Some(vec![({
@@ -1193,14 +1262,43 @@ fn main() {
     { let __map_key = "c".to_string(); let __map_value = Arc::new(Mutex::new(Some(3))); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {}", format!("{}", ({ let __len = (*{ let __seq = { let __seq_holder = held.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __nil_result = (*{ let __seq = { let __seq_holder = held.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.lock().unwrap()).is_none(); __nil_result }));
 
-        // A range reads each element when its iteration starts, so a slot
-        // replaced in an earlier iteration yields the new map.
     { let __range_holder = ms2().clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, row) in __range_values.iter().enumerate() {
         println!("{} {}", format!("{}", i), format!("{}", format_map(&row)));
     } }
 
-        // A ...map parameter holds the arguments' handles.
-    println!("{} {} {} {}", format!("{}", take(Arc::new(Mutex::new(Some(vec![make_map().clone()]))))), format!("{}", take(Arc::new(Mutex::new(Some(vec![m.clone(), make_map().clone()]))))), format!("{}", take(Arc::new(Mutex::new(Some(vec![]))))), format!("{}", { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"seen".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    let mut n1 = take(Arc::new(Mutex::new(Some(vec![{ let __map_handle = make_map().clone(); __map_handle }]))));
+    let mut n2 = take(Arc::new(Mutex::new(Some(vec![m.clone(), { let __map_handle = make_map().clone(); __map_handle }]))));
+    let mut n3 = take(Arc::new(Mutex::new(Some(vec![]))));
+    println!("{} {} {} {}", format!("{}", n1), format!("{}", n2), format!("{}", n3), format!("{}", { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"seen".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+
+    let mut h = Arc::new(Mutex::new(Some(holder { m: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64))))])))), ..Default::default() })));
+    let mut pair = Arc::new(Mutex::new(Some(vec![{ let __map_handle = (*h.lock().unwrap().as_ref().unwrap()).m.clone(); __map_handle }, { let __map_handle = (*h.lock().unwrap().as_ref().unwrap()).m.clone(); __map_handle }])));
+    { let __map_key = "b".to_string(); let __map_value = Arc::new(Mutex::new(Some(2))); (*{ let __seq = { let __seq_holder = pair.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_mut().unwrap_or_else(|| panic!("assignment to entry in nil map"))).insert(__map_key, __map_value); };
+    println!("{} {}", format!("{}", ({ let __len = (*{ let __seq = { let __seq_holder = pair.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*h.lock().unwrap().as_ref().unwrap()).m.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
+    println!("{} {}", format!("{}", { let __maps = { let __named_inner = Some((Tables(Arc::new(Mutex::new(Some([Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("x".to_string(), Arc::new(Mutex::new(Some(1i64))))])))), Arc::new(Mutex::new(None::<BTreeMap<String, Arc<Mutex<Option<i64>>>>>))]))))).0.clone()); match __named_inner { Some(__inner) => { let __inner_guard = __inner.lock().unwrap(); __inner_guard.as_ref().map(|__v| __v.to_vec()).unwrap_or_default() }, None => Default::default() } }; format!("[{}]", __maps.iter().map(|__m| format_map(__m)).collect::<Vec<_>>().join(" ")) }), format!("{}", { let __maps = { let __named_holder = s.clone(); let __named_inner = { let __named_guard = __named_holder.lock().unwrap(); __named_guard.as_ref().map(|__named| __named.0.clone()) }; match __named_inner { Some(__inner) => { let __inner_guard = __inner.lock().unwrap(); __inner_guard.as_ref().map(|__v| __v.to_vec()).unwrap_or_default() }, None => Default::default() } }; format!("[{}]", __maps.iter().map(|__m| format_map(__m)).collect::<Vec<_>>().join(" ")) }));
+
+    let mut es = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("x".to_string(), Arc::new(Mutex::new(Some(1i64))))]))))])));
+    let mut p = { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move |__slot_s1: Arc<Mutex<Option<Vec<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>>>>, __slot_i2: Arc<Mutex<Option<i64>>>| -> Arc<Mutex<Option<__ptrSlot_map_string_int>>> {
+        let mut __slot_s1 = Arc::new(Mutex::new((*__slot_s1.lock().unwrap()).clone()));
+        let __slot_i2_closure_clone = __slot_i2.clone(); let __slot_s1_closure_clone = __slot_s1.clone(); return Arc::new(Mutex::new(Some(__ptrSlot_map_string_int {
+            get: Arc::new(Mutex::new(Some({ let __slot_i2_closure_clone_closure_clone = __slot_i2_closure_clone.clone(); let __slot_s1_closure_clone_closure_clone = __slot_s1_closure_clone.clone(); Arc::new(move || -> Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> {
+        { let __seq = { let __seq_holder = __slot_s1_closure_clone_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*__slot_i2_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }
+    }) as Arc<dyn Fn() -> Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> + Send + Sync> }))),
+            set: Arc::new(Mutex::new(Some({ let __slot_i2_closure_clone_closure_clone = __slot_i2_closure_clone.clone(); let __slot_s1_closure_clone_closure_clone = __slot_s1_closure_clone.clone(); Arc::new(move |__slot_v3: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>| {
+        { let __idx = ({ let __v = (*__slot_i2_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = __slot_v3.clone(); (*__slot_s1_closure_clone_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    }) as Arc<dyn Fn(Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>) -> () + Send + Sync> }))),
+            ..Default::default()
+        })));
+    }) as Arc<dyn Fn(Arc<Mutex<Option<Vec<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>>>>, Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<__ptrSlot_map_string_int>>> + Send + Sync>))); let __f: Arc<dyn Fn(Arc<Mutex<Option<Vec<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>>>>, Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<__ptrSlot_map_string_int>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)(es.clone(), Arc::new(Mutex::new(Some(0)))) };
+    let mut viaPtr = { let __f_holder = (*p.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
+    { let __map_key = "y".to_string(); let __map_value = Arc::new(Mutex::new(Some(2))); (*viaPtr.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    let mut c = first_counts(es.clone());
+    { let __map_key = "z".to_string(); let __map_value = Arc::new(Mutex::new(Some(3))); (*{ let __named_map = (*c.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    println!("{} {} {}", format!("{}", ({ let __len = (*viaPtr.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __named_map_holder = c.clone(); let __named_map_guard = __named_map_holder.lock().unwrap(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); std::mem::drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) }), format!("{}", ({ let __len = (*{ let __seq = { let __seq_holder = es.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
+}
+
+pub fn first_counts(s: Arc<Mutex<Option<Vec<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>>>>) -> Arc<Mutex<Option<Counts>>> {
+    Arc::new(Mutex::new(Some(Counts({ let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }))))
 }
 
 pub fn make_map() -> Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> {

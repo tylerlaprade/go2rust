@@ -41,8 +41,37 @@ func main() {
 	}
 
 	// A ...map parameter holds the arguments' handles.
-	fmt.Println(take(makeMap()), take(m, makeMap()), take(), m["seen"])
+	n1 := take(makeMap())
+	n2 := take(m, makeMap())
+	n3 := take()
+	fmt.Println(n1, n2, n3, m["seen"])
+
+	// Two reads of the same field go into one literal, and a defined
+	// slice or array of maps prints as fmt does.
+	h := holder{M: map[string]int{"a": 1}}
+	pair := []map[string]int{h.M, h.M}
+	pair[0]["b"] = 2
+	fmt.Println(len(pair[1]), len(h.M))
+	fmt.Println(Tables{{"x": 1}, nil}, s)
+
+	// A map read through a pointer to an element, and an element returned
+	// as a defined map type, share the element's map.
+	es := []map[string]int{{"x": 1}}
+	p := &es[0]
+	viaPtr := *p
+	viaPtr["y"] = 2
+	c := firstCounts(es)
+	c["z"] = 3
+	fmt.Println(len(viaPtr), len(c), len(es[0]))
 }
+
+type Counts map[string]int
+
+type holder struct{ M map[string]int }
+
+type Tables [2]map[string]int
+
+func firstCounts(s []map[string]int) Counts { return s[0] }
 
 func makeMap() map[string]int { return map[string]int{"k": 1} }
 
