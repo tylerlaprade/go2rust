@@ -850,7 +850,7 @@ pub fn concat(separator: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option
 fn main() {
     go_install_panic_exit();
         // Basic variadic function
-    println!("{} {}", format!("{}", "Sum of no numbers:".to_string()), format!("{}", sum(Rc::new(RefCell::new(Some(vec![]))))));
+    println!("{} {}", format!("{}", "Sum of no numbers:".to_string()), format!("{}", sum(Rc::new(RefCell::new(None)))));
     println!("{} {}", format!("{}", "Sum of 1, 2, 3:".to_string()), format!("{}", sum(Rc::new(RefCell::new(Some(vec![1, 2, 3]))))));
     println!("{} {}", format!("{}", "Sum of 1, 2, 3, 4, 5:".to_string()), format!("{}", sum(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5]))))));
 
@@ -860,21 +860,21 @@ fn main() {
 
         // Variadic with different types
     println!("{} {}", format!("{}", "Average of 1.5, 2.5, 3.5:".to_string()), { let __text = go_float_string((average(Rc::new(RefCell::new(Some(vec![1.5, 2.5, 3.5]))))) as f64, false); __text });
-    println!("{} {}", format!("{}", "Average of no numbers:".to_string()), { let __text = go_float_string((average(Rc::new(RefCell::new(Some(vec![]))))) as f64, false); __text });
+    println!("{} {}", format!("{}", "Average of no numbers:".to_string()), { let __text = go_float_string((average(Rc::new(RefCell::new(None)))) as f64, false); __text });
 
         // Mixed parameters
     print_strings(Rc::new(RefCell::new(Some("Colors".to_string()))), Rc::new(RefCell::new(Some(vec!["red".to_string(), "green".to_string(), "blue".to_string()]))));
     print_strings(Rc::new(RefCell::new(Some("Animals".to_string()))), Rc::new(RefCell::new(Some(vec!["cat".to_string(), "dog".to_string()]))));
-    print_strings(Rc::new(RefCell::new(Some("Empty".to_string()))), Rc::new(RefCell::new(Some(vec![]))));
+    print_strings(Rc::new(RefCell::new(Some("Empty".to_string()))), Rc::new(RefCell::new(None)));
 
         // Variadic with required first parameter
     println!("{} {}", format!("{}", "Min of 5, 2, 8, 1, 9:".to_string()), format!("{}", min(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(vec![2, 8, 1, 9]))))));
-    println!("{} {}", format!("{}", "Min of just 42:".to_string()), format!("{}", min(Rc::new(RefCell::new(Some(42))), Rc::new(RefCell::new(Some(vec![]))))));
+    println!("{} {}", format!("{}", "Min of just 42:".to_string()), format!("{}", min(Rc::new(RefCell::new(Some(42))), Rc::new(RefCell::new(None)))));
 
         // String concatenation
     println!("{} {}", format!("{}", "Concat with comma:".to_string()), format!("{}", (*concat(Rc::new(RefCell::new(Some(", ".to_string()))), Rc::new(RefCell::new(Some(vec!["apple".to_string(), "banana".to_string(), "cherry".to_string()])))).borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "Concat with dash:".to_string()), format!("{}", (*concat(Rc::new(RefCell::new(Some(" - ".to_string()))), Rc::new(RefCell::new(Some(vec!["one".to_string(), "two".to_string(), "three".to_string()])))).borrow().as_ref().unwrap())));
-    println!("{} {}", format!("{}", "Concat empty:".to_string()), format!("{}", (*concat(Rc::new(RefCell::new(Some(", ".to_string()))), Rc::new(RefCell::new(Some(vec![])))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Concat empty:".to_string()), format!("{}", (*concat(Rc::new(RefCell::new(Some(", ".to_string()))), Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
 
         // Using slice with string variadic
     let mut words = Rc::new(RefCell::new(Some(vec!["hello".to_string(), "world".to_string(), "from".to_string(), "go".to_string()])));
