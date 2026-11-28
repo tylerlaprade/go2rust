@@ -1,0 +1,11 @@
+[package]
+name = "nested_any_slice_literals_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "nested_any_slice_literals_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

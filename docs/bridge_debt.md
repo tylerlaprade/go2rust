@@ -333,6 +333,7 @@ against the `// TEMPORARY:` comments of that one file.
 
 - Location: `go/stdlib.go`, `transpilePrintArg` and the collection printers
   it calls (`writeMapDisplayForType`, `writeNestedBasicSlicePrintArg`,
+  `writeNestedAnySlicePrintArg`, `writeMapOfAnySlicesDisplay`,
   `writeSliceOfMapsPrintArg`); `go/imports.go`, the generated Rust helpers
   `go_display_value`, `go_float_string`, `format_map`, `format_map_nil`,
   `format_slice` and `format_any_slice`; `go/any_format.go`,
@@ -344,13 +345,16 @@ against the `// TEMPORARY:` comments of that one file.
   value with `reflect`, so `fmt` cannot be translated from source. These
   printers are the older print mapping in `go/stdlib.go`, which predates this
   registry; the row records them so that each widening is tracked. The
-  latest widening sends a `[]float64` or `[]float32` held as a map value
+  widenings so far send a `[]float64` or `[]float32` held as a map value
   through `go_float_string` (#339), where it printed with Rust's float
-  formatting, and gives `format_any` a case for a dependency's types,
-  exported or not, and for a slice of a defined basic type (#358).
+  formatting, gives `format_any` a case for a dependency's types, exported
+  or not, and for a slice of a defined basic type (#358), and print a
+  slice, an array or a map of `[]any` row by row with `format_any_slice`
+  (#343), where they did not build.
 - Fixture: `tests/map_float_slice_values/`,
   `tests/map_float_slice_values_dependency/`,
-  `tests/dependency_types_in_interfaces/`, `tests/fmt_println/` and
+  `tests/dependency_types_in_interfaces/`,
+  `tests/nested_any_slice_literals/`, `tests/fmt_println/` and
   `tests/defined_collection_display/`.
 - Removal trigger: `fmt` is translated from source, which needs `reflect`,
   and the whole print mapping retires together. Or the stdlib boundary puts

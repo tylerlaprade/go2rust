@@ -76,8 +76,8 @@ fn format_any_at(value: &(dyn Any + Send + Sync), nested: bool) -> String {
 }
 
 fn format_any_slice_values(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>, format_value: fn(&(dyn Any + Send + Sync)) -> String) -> String {
-    let guard = slice.lock().unwrap();
-    if let Some(ref s) = *guard {
+    let __header = { let guard = slice.lock().unwrap(); (*guard).clone() };
+    if let Some(ref s) = __header {
         let formatted: Vec<String> = s.iter().map(|v| format_value(v.as_ref())).collect();
         formatted.join(" ")
     } else {

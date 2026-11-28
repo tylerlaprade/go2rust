@@ -1414,6 +1414,9 @@ func writePackageGlobalMapSliceValueInsert(out *strings.Builder, indent string, 
 		out.WriteString(".push(")
 		if elt == nil {
 			out.WriteString(collectionElementZeroValue(sliceType.Elem()))
+		} else if isEmptyInterfaceType(sliceType.Elem()) {
+			// A []any value boxes its elements, as a []any literal does.
+			writeNestedCollectionLiteralElement(out, elt, sliceType.Elem())
 		} else if writeMapHandleElementValue(out, elt, sliceType.Elem()) {
 			// A map element is its map's handle.
 		} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
@@ -1465,6 +1468,8 @@ func writePackageGlobalNestedSliceLiteralElement(out *strings.Builder, indent st
 		out.WriteString(".push(")
 		if elt == nil {
 			out.WriteString(collectionElementZeroValue(sliceType.Elem()))
+		} else if isEmptyInterfaceType(sliceType.Elem()) {
+			writeNestedCollectionLiteralElement(out, elt, sliceType.Elem())
 		} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
 			TranspileExpression(out, elt)
 		}
@@ -1533,6 +1538,8 @@ func writePackageGlobalSliceLiteralInit(out *strings.Builder, name string, globa
 		out.WriteString("        __go_slice.push(")
 		if elt == nil {
 			out.WriteString(collectionElementZeroValue(sliceType.Elem()))
+		} else if isEmptyInterfaceType(sliceType.Elem()) {
+			writeNestedCollectionLiteralElement(out, elt, sliceType.Elem())
 		} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
 			TranspileExpression(out, elt)
 		}
@@ -1587,6 +1594,8 @@ func writePackageGlobalArrayLiteralInit(out *strings.Builder, name string, globa
 		out.WriteString("        __go_array.push(")
 		if elt == nil {
 			out.WriteString(collectionElementZeroValue(arrayType.Elem()))
+		} else if isEmptyInterfaceType(arrayType.Elem()) {
+			writeNestedCollectionLiteralElement(out, elt, arrayType.Elem())
 		} else if !writeArraySliceLiteralElementValue(out, elt, arrayType.Elem()) && !writeOwnedExpressionValue(out, elt) {
 			TranspileExpression(out, elt)
 		}
