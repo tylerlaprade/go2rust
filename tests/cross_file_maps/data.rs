@@ -30,11 +30,37 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub static Users: GoGlobal<BTreeMap<String, Rc<RefCell<Option<i64>>>>> = GoGlobal::new();
+pub(crate) struct GoGlobalMap<T> {
+    value: std::cell::UnsafeCell<Option<std::rc::Rc<std::cell::RefCell<Option<T>>>>>,
+}
+unsafe impl<T> Sync for GoGlobalMap<T> {}
+impl<T> GoGlobalMap<T> {
+    pub(crate) const fn new() -> Self {
+        Self { value: std::cell::UnsafeCell::new(None) }
+    }
+    fn handle(&'static self) -> &'static std::rc::Rc<std::cell::RefCell<Option<T>>> {
+        unsafe { (*self.value.get()).get_or_insert_with(|| std::rc::Rc::new(std::cell::RefCell::new(None))) }
+    }
+    pub(crate) fn borrow(&'static self) -> &'static Option<T> {
+        unsafe { &*self.handle().as_ptr() }
+    }
+    pub(crate) fn borrow_mut(&'static self) -> &'static mut Option<T> {
+        unsafe { &mut *self.handle().as_ptr() }
+    }
+    pub(crate) fn clone(&'static self) -> std::rc::Rc<std::cell::RefCell<Option<T>>> {
+        self.handle().clone()
+    }
+    // Assigning a map to the variable makes it that map's handle.
+    pub(crate) fn set(&'static self, handle: std::rc::Rc<std::cell::RefCell<Option<T>>>) {
+        unsafe { *self.value.get() = Some(handle) }
+    }
+}
+
+pub static Users: GoGlobalMap<BTreeMap<String, Rc<RefCell<Option<i64>>>>> = GoGlobalMap::new();
 
 pub static Numbers: GoGlobal<Vec<i64>> = GoGlobal::new();
 
-pub static Groups: GoGlobal<BTreeMap<String, Rc<RefCell<Option<Vec<String>>>>>> = GoGlobal::new();
+pub static Groups: GoGlobalMap<BTreeMap<String, Rc<RefCell<Option<Vec<String>>>>>> = GoGlobalMap::new();
 
 pub static Records: GoGlobal<Vec<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Box<dyn Any>>>>>>>>>> = GoGlobal::new();
 
