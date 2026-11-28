@@ -16,6 +16,17 @@ type Board struct {
 
 var grid [2][2]P
 
+// cell's String writes the array it is printed from; fmt prints a copy of
+// the array, taken before any element prints.
+type cell struct{ v int }
+
+var cells [1][2]cell
+
+func (c cell) String() string {
+	cells[0][1].v = 9
+	return fmt.Sprint(c.v)
+}
+
 func main() {
 	fmt.Println(K{})
 	var a [2][1]struct{ y int }
@@ -55,4 +66,8 @@ func main() {
 
 	m := map[struct{ Q [2][1]struct{ y int } }]int{{}: 1}
 	fmt.Println(m)
+
+	cells = [1][2]cell{{{1}, {2}}}
+	fmt.Println(cells)
+	fmt.Println(cells[0][1].v)
 }

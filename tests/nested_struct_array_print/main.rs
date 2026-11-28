@@ -1041,6 +1041,39 @@ impl std::fmt::Display for Board {
 }
 
 
+/// cell's String writes the array it is printed from; fmt prints a copy of
+/// the array, taken before any element prints.
+#[derive(Debug, Clone)]
+pub struct cell {
+    pub v: Rc<RefCell<Option<i64>>>,
+}
+
+impl cell {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = { let __guard = self.v.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            v: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl Default for cell {
+    fn default() -> Self {
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            v: __go_default_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for cell {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.string().borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AnonymousStruct1 {
     pub q: Rc<RefCell<Option<[[AnonymousStruct2; 1]; 2]>>>,
@@ -1132,9 +1165,12 @@ impl<T> GoGlobal<T> {
 
 pub(crate) static grid: GoGlobal<[[P; 2]; 2]> = GoGlobal::new();
 
+pub(crate) static cells: GoGlobal<[[cell; 2]; 1]> = GoGlobal::new();
+
 
 fn __go_init_globals() {
     *grid.borrow_mut() = Some(std::array::from_fn::<_, 2, _>(|_| std::array::from_fn::<_, 2, _>(|_| Default::default())));
+    *cells.borrow_mut() = Some(std::array::from_fn::<_, 1, _>(|_| std::array::from_fn::<_, 2, _>(|_| Default::default())));
 }
 
 
@@ -1150,17 +1186,24 @@ impl Named {
     }
 }
 
+impl cell {
+    pub fn string(&self) -> Rc<RefCell<Option<String>>> {
+        { let new_val = 9; *(*cells.borrow().as_ref().unwrap())[(0) as usize].clone()[(1) as usize].clone().v.borrow_mut() = Some(new_val); };
+        Rc::new(RefCell::new(Some(format!("{}", format!("{}", (*self.v.borrow().as_ref().unwrap()))))))
+    }
+}
+
 fn main() {
     go_install_panic_exit();
     __go_init_all();
     println!("{}", format!("{}", K { q: Rc::new(RefCell::new(Some(std::array::from_fn::<_, 2, _>(|_| std::array::from_fn::<_, 1, _>(|_| Default::default()))))) }));
     let mut a: Rc<RefCell<Option<[[AnonymousStruct2; 1]; 2]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 2, _>(|_| std::array::from_fn::<_, 1, _>(|_| Default::default())))));
-    println!("{}", format!("{}", { let __struct_rows_holder = a.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
+    println!("{}", format!("{}", { let __struct_rows_holder = a.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
 
     let mut b: Rc<RefCell<Option<[[P; 2]; 2]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 2, _>(|_| std::array::from_fn::<_, 2, _>(|_| Default::default())))));
     { let __outer_idx = (1) as usize; let __idx = (0) as usize; let __rhs = P { x: Rc::new(RefCell::new(Some(3))), y: Rc::new(RefCell::new(Some(4))), ..Default::default() }; (*b.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
-    println!("{}", format!("{}", { let __struct_rows_holder = b.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
-    print!("{}|{:#}\n", { let __struct_rows_holder = b.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }, { let __struct_rows_holder = b.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{:#}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } });
+    println!("{}", format!("{}", { let __struct_rows_holder = b.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
+    print!("{}|{:#}\n", { let __struct_rows_holder = b.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }, { let __struct_rows_holder = b.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{:#}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } });
     println!("{}", format!("{}", format_slice_values(&(*b.borrow().as_ref().unwrap())[(1) as usize].clone())));
 
     let mut c = Rc::new(RefCell::new(Some(vec![[P { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }, P { x: Rc::new(RefCell::new(Some(3))), y: Rc::new(RefCell::new(Some(4))), ..Default::default() }], [P { x: Rc::new(RefCell::new(Some(5))), y: Rc::new(RefCell::new(Some(6))), ..Default::default() }, P { x: Rc::new(RefCell::new(Some(7))), y: Rc::new(RefCell::new(Some(8))), ..Default::default() }]])));
@@ -1169,20 +1212,20 @@ fn main() {
 
     let mut g: Rc<RefCell<Option<[[[P; 1]; 2]; 2]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 2, _>(|_| std::array::from_fn::<_, 2, _>(|_| std::array::from_fn::<_, 1, _>(|_| Default::default()))))));
     { let new_val = 9; *(*g.borrow().as_ref().unwrap())[(1) as usize].clone()[(1) as usize].clone()[(0) as usize].clone().x.borrow_mut() = Some(new_val); };
-    println!("{}", format!("{}", { let __struct_rows_holder = g.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("[{}]", __struct_row_2.iter().map(|__struct_row_3| format!("{}", __struct_row_3)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
+    println!("{}", format!("{}", { let __struct_rows_holder = g.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.each_ref().map(|__struct_copy_3| __struct_copy_3.__go_value_clone())))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("[{}]", __struct_row_2.iter().map(|__struct_row_3| format!("{}", __struct_row_3)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
 
     let mut names = Rc::new(RefCell::new(Some([[Named { name: Rc::new(RefCell::new(Some("a".to_string()))), ..Default::default() }, Named { name: Rc::new(RefCell::new(Some("b".to_string()))), ..Default::default() }]])));
-    println!("{}", format!("{}", { let __struct_rows_holder = names.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
+    println!("{}", format!("{}", { let __struct_rows_holder = names.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
 
     { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = P { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(1))), ..Default::default() }; (*grid.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
-    println!("{}", format!("{}", { let __struct_rows_holder = grid.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
+    println!("{}", format!("{}", { let __struct_rows_holder = grid.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
 
     let mut board = Rc::new(RefCell::new(Some(Board { cells: Rc::new(RefCell::new(Some(std::array::from_fn::<_, 2, _>(|_| std::array::from_fn::<_, 2, _>(|_| Default::default()))))) })));
     { let __outer_idx = (1) as usize; let __idx = (1) as usize; let __rhs = P { x: Rc::new(RefCell::new(Some(2))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }; (*(*board.borrow().as_ref().unwrap()).cells.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
-    println!("{}", format!("{}", { let __struct_rows_holder = Rc::new(RefCell::new(Some((*(*board.borrow().as_ref().unwrap()).cells.borrow().as_ref().unwrap()).clone().clone()))); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
+    println!("{}", format!("{}", { let __struct_rows_holder = Rc::new(RefCell::new(Some((*(*board.borrow().as_ref().unwrap()).cells.borrow().as_ref().unwrap()).clone().clone()))); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
     println!("{}", format!("{}", (*board.borrow().as_ref().unwrap())));
 
-    let mut s = Rc::new(RefCell::new(Some(format!("{}", format!("{}", { let __struct_rows_holder = b.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } })))));
+    let mut s = Rc::new(RefCell::new(Some(format!("{}", format!("{}", { let __struct_rows_holder = b.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } })))));
     println!("{} {}", format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*s.borrow().as_ref().unwrap()).len()));
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", { let __struct_rows_holder = c.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } })))).borrow().as_ref().unwrap())));
 
@@ -1191,6 +1234,10 @@ fn main() {
 
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<AnonymousStruct1, Rc<RefCell<Option<i64>>>>::from([(AnonymousStruct1 { ..Default::default() }, Rc::new(RefCell::new(Some(1i64))))]))));
     println!("{}", format!("{}", format_map(&m)));
+
+    { let new_val = Rc::new(RefCell::new(Some([[cell { v: Rc::new(RefCell::new(Some(1))), ..Default::default() }, cell { v: Rc::new(RefCell::new(Some(2))), ..Default::default() }]]))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *cells.borrow_mut() = __moved_val; };
+    println!("{}", format!("{}", { let __struct_rows_holder = cells.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.borrow(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
+    println!("{}", format!("{}", (*(*cells.borrow().as_ref().unwrap())[(0) as usize].clone()[(1) as usize].clone().v.borrow().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {

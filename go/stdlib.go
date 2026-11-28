@@ -3150,7 +3150,7 @@ func writeNestedAnySlicePrintArg(out *strings.Builder, arg ast.Expr, argType typ
 // The arrays are bare Rust arrays, which have no Display, so
 // format_slice cannot print them. The rows are copied out of the handle
 // first, so a String method that reads the collection does not wait on
-// the lock printing would hold.
+// the lock printing would hold; an array is copied as Go copies it.
 func writeNestedStructArrayPrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
 	if argType == nil {
 		return false
@@ -3159,11 +3159,12 @@ func writeNestedStructArrayPrintArg(out *strings.Builder, arg ast.Expr, argType 
 		return false
 	}
 	var outerElem types.Type
+	outerIsArray := false
 	switch seq := types.Unalias(argType).(type) {
 	case *types.Slice:
 		outerElem = seq.Elem()
 	case *types.Array:
-		outerElem = seq.Elem()
+		outerElem, outerIsArray = seq.Elem(), true
 	default:
 		return false
 	}
@@ -3212,7 +3213,26 @@ func writeNestedStructArrayPrintArg(out *strings.Builder, arg ast.Expr, argType 
 	}
 	out.WriteString("; let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => ")
+	if outerIsArray {
+		// An array is copied into the print argument as Go copies it, each
+		// struct by its value, so a String method that writes the array
+		// does not change what prints. A slice shares its elements, in Go
+		// too.
+		var copyRows func(value string, level int) string
+		copyRows = func(value string, level int) string {
+			item := "__struct_copy_" + strconv.Itoa(level)
+			inner := item + ".__go_value_clone()"
+			if level < depth {
+				inner = copyRows(item, level+1)
+			}
+			return value + ".each_ref().map(|" + item + "| " + inner + ")"
+		}
+		out.WriteString("; __struct_rows_guard.as_ref().map(|__struct_rows_src| ")
+		out.WriteString(copyRows("__struct_rows_src", 1))
+		out.WriteString(") }; match __struct_rows_copy { Some(__struct_rows) => ")
+	} else {
+		out.WriteString("; __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => ")
+	}
 	out.WriteString(rows("__struct_rows", 1))
 	out.WriteString(", None => \"[]\".to_string() } }")
 	return true

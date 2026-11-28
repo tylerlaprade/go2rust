@@ -1273,6 +1273,39 @@ impl std::fmt::Display for Board {
 }
 
 
+/// cell's String writes the array it is printed from; fmt prints a copy of
+/// the array, taken before any element prints.
+#[derive(Debug, Clone)]
+pub struct cell {
+    pub v: Arc<Mutex<Option<i64>>>,
+}
+
+impl cell {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = { let __guard = self.v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            v: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl Default for cell {
+    fn default() -> Self {
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            v: __go_default_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for cell {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.string().lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct1 {
     pub q: Arc<Mutex<Option<[[AnonymousStruct2; 1]; 2]>>>,
@@ -1403,9 +1436,12 @@ impl std::fmt::Display for AnonymousStruct2 {
 
 pub(crate) static grid: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<[[P; 2]; 2]>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
+pub(crate) static cells: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<[[cell; 2]; 1]>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+
 
 fn __go_init_globals() {
     *grid.lock().unwrap() = Some(std::array::from_fn::<_, 2, _>(|_| std::array::from_fn::<_, 2, _>(|_| Default::default())));
+    *cells.lock().unwrap() = Some(std::array::from_fn::<_, 1, _>(|_| std::array::from_fn::<_, 2, _>(|_| Default::default())));
 }
 
 
@@ -1418,6 +1454,13 @@ impl Named {
             __s.push_str(&format!("{}", ">".to_string()));
             __s
         })));
+    }
+}
+
+impl cell {
+    pub fn string(&self) -> Arc<Mutex<Option<String>>> {
+        { let new_val = 9; *({ let __seq = { let __seq_holder = cells.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() })[(1) as usize].clone().v.lock().unwrap() = Some(new_val); };
+        Arc::new(Mutex::new(Some(format!("{}", format!("{}", (*self.v.lock().unwrap().as_ref().unwrap()))))))
     }
 }
 
@@ -1438,12 +1481,12 @@ fn main() {
 
     println!("{}", format!("{}", K { q: Arc::new(Mutex::new(Some(std::array::from_fn::<_, 2, _>(|_| std::array::from_fn::<_, 1, _>(|_| Default::default()))))) }));
     let mut a: Arc<Mutex<Option<[[AnonymousStruct2; 1]; 2]>>> = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 2, _>(|_| std::array::from_fn::<_, 1, _>(|_| Default::default())))));
-    println!("{}", format!("{}", { let __struct_rows_holder = a.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
+    println!("{}", format!("{}", { let __struct_rows_holder = a.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
 
     let mut b: Arc<Mutex<Option<[[P; 2]; 2]>>> = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 2, _>(|_| std::array::from_fn::<_, 2, _>(|_| Default::default())))));
     { let __outer_idx = (1) as usize; let __idx = (0) as usize; let __rhs = P { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))), ..Default::default() }; (*b.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
-    println!("{}", format!("{}", { let __struct_rows_holder = b.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
-    print!("{}|{}\n", format!("{}", { let __struct_rows_holder = b.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }), format!("{:#}", { let __struct_rows_holder = b.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{:#}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
+    println!("{}", format!("{}", { let __struct_rows_holder = b.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
+    print!("{}|{}\n", format!("{}", { let __struct_rows_holder = b.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }), format!("{:#}", { let __struct_rows_holder = b.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{:#}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
     println!("{}", format!("{}", format_slice_values(&{ let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() })));
 
     let mut c = Arc::new(Mutex::new(Some(vec![[P { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() }, P { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))), ..Default::default() }], [P { x: Arc::new(Mutex::new(Some(5))), y: Arc::new(Mutex::new(Some(6))), ..Default::default() }, P { x: Arc::new(Mutex::new(Some(7))), y: Arc::new(Mutex::new(Some(8))), ..Default::default() }]])));
@@ -1452,20 +1495,20 @@ fn main() {
 
     let mut g: Arc<Mutex<Option<[[[P; 1]; 2]; 2]>>> = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 2, _>(|_| std::array::from_fn::<_, 2, _>(|_| std::array::from_fn::<_, 1, _>(|_| Default::default()))))));
     { let new_val = 9; *({ let __seq = { let __seq_holder = g.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() })[(1) as usize].clone()[(0) as usize].clone().x.lock().unwrap() = Some(new_val); };
-    println!("{}", format!("{}", { let __struct_rows_holder = g.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("[{}]", __struct_row_2.iter().map(|__struct_row_3| format!("{}", __struct_row_3)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
+    println!("{}", format!("{}", { let __struct_rows_holder = g.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.each_ref().map(|__struct_copy_3| __struct_copy_3.__go_value_clone())))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("[{}]", __struct_row_2.iter().map(|__struct_row_3| format!("{}", __struct_row_3)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
 
     let mut names = Arc::new(Mutex::new(Some([[Named { name: Arc::new(Mutex::new(Some("a".to_string()))), ..Default::default() }, Named { name: Arc::new(Mutex::new(Some("b".to_string()))), ..Default::default() }]])));
-    println!("{}", format!("{}", { let __struct_rows_holder = names.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
+    println!("{}", format!("{}", { let __struct_rows_holder = names.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
 
     { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = P { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(1))), ..Default::default() }; (*grid.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
-    println!("{}", format!("{}", { let __struct_rows_holder = grid.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
+    println!("{}", format!("{}", { let __struct_rows_holder = grid.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
 
     let mut board = Arc::new(Mutex::new(Some(Board { cells: Arc::new(Mutex::new(Some(std::array::from_fn::<_, 2, _>(|_| std::array::from_fn::<_, 2, _>(|_| Default::default()))))) })));
     { let __outer_idx = (1) as usize; let __idx = (1) as usize; let __rhs = P { x: Arc::new(Mutex::new(Some(2))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() }; (*(*board.lock().unwrap().as_ref().unwrap()).cells.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
-    println!("{}", format!("{}", { let __struct_rows_holder = Arc::new(Mutex::new(Some((*{ let __field = (*board.lock().unwrap().as_ref().unwrap()).cells.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone().clone()))); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
+    println!("{}", format!("{}", { let __struct_rows_holder = Arc::new(Mutex::new(Some((*{ let __field = (*board.lock().unwrap().as_ref().unwrap()).cells.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone().clone()))); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
     println!("{}", format!("{}", { let __v = (*board.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }));
 
-    let mut s = Arc::new(Mutex::new(Some(format!("{}", format!("{}", { let __struct_rows_holder = b.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } })))));
+    let mut s = Arc::new(Mutex::new(Some(format!("{}", format!("{}", { let __struct_rows_holder = b.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } })))));
     println!("{} {}", format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ({ let __len = (*s.lock().unwrap().as_ref().unwrap()).len(); __len })));
     println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", { let __struct_rows_holder = c.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } })))).lock().unwrap().as_ref().unwrap())));
 
@@ -1474,6 +1517,10 @@ fn main() {
 
     let mut m = Arc::new(Mutex::new(Some(BTreeMap::<AnonymousStruct1, Arc<Mutex<Option<i64>>>>::from([(AnonymousStruct1 { ..Default::default() }, Arc::new(Mutex::new(Some(1i64))))]))));
     println!("{}", format!("{}", format_map(&m)));
+
+    { let new_val = Arc::new(Mutex::new(Some([[cell { v: Arc::new(Mutex::new(Some(1))), ..Default::default() }, cell { v: Arc::new(Mutex::new(Some(2))), ..Default::default() }]]))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *cells.lock().unwrap() = __moved_val; };
+    println!("{}", format!("{}", { let __struct_rows_holder = cells.clone(); let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder.lock().unwrap(); __struct_rows_guard.as_ref().map(|__struct_rows_src| __struct_rows_src.each_ref().map(|__struct_copy_1| __struct_copy_1.each_ref().map(|__struct_copy_2| __struct_copy_2.__go_value_clone()))) }; match __struct_rows_copy { Some(__struct_rows) => format!("[{}]", __struct_rows.iter().map(|__struct_row_1| format!("[{}]", __struct_row_1.iter().map(|__struct_row_2| format!("{}", __struct_row_2)).collect::<Vec<String>>().join(" "))).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }));
+    println!("{}", format!("{}", (*({ let __seq = { let __seq_holder = cells.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() })[(1) as usize].clone().v.lock().unwrap().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {
