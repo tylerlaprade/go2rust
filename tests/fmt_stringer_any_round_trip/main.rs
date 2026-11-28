@@ -1142,8 +1142,8 @@ fn main() {
     show(Rc::new(RefCell::new(Some({ let __arg_value = match (*s.borrow()).as_ref() { Some(__stringer) => __stringer.__go_into_any(), None => Box::new(GoNilAny) as Box<dyn Any> }; __arg_value }))));
     let mut list = Rc::new(RefCell::new(Some(vec![match (*s.borrow()).as_ref() { Some(__stringer) => __stringer.__go_into_any(), None => Box::new(GoNilAny) as Box<dyn Any> }, match (*st.borrow()).as_ref() { Some(__stringer) => __stringer.__go_into_any(), None => Box::new(GoNilAny) as Box<dyn Any> }])));
     let (mut d, mut ok) = ({
-        let __seq_holder = list.clone();
         let __idx = (0) as usize;
+        let __seq_holder = list.clone();
         let __seq_guard = __seq_holder.borrow();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         if let Some(typed_val) = any_val.downcast_ref::<Celsius>() {
@@ -1154,8 +1154,8 @@ fn main() {
     });
     println!("{} {}", format!("{}", (*d.borrow().as_ref().unwrap())), format!("{}", ok));
     { let (__tmp_0, __tmp_1) = ({
-        let __seq_holder = list.clone();
         let __idx = (1) as usize;
+        let __seq_holder = list.clone();
         let __seq_guard = __seq_holder.borrow();
         match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Rc<RefCell<Option<Counter>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
@@ -1163,7 +1163,7 @@ fn main() {
         }
     }); ok = __tmp_1; };
     println!("{}", format!("{}", ok));
-    print!("{} {} {}\n", match (Rc::new(RefCell::new(Some({ let __seq_holder = list.clone(); let __idx = (0) as usize; let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }, __go_type_name(&**(Rc::new(RefCell::new(Some({ let __seq_holder = list.clone(); let __idx = (0) as usize; let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap()), __go_type_name(&**(Rc::new(RefCell::new(Some({ let __seq_holder = list.clone(); let __idx = (1) as usize; let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap()));
+    print!("{} {} {}\n", match (Rc::new(RefCell::new(Some({ let __idx = (0) as usize; let __seq_holder = list.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }, __go_type_name(&**(Rc::new(RefCell::new(Some({ let __idx = (0) as usize; let __seq_holder = list.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap()), __go_type_name(&**(Rc::new(RefCell::new(Some({ let __idx = (1) as usize; let __seq_holder = list.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap()));
     let mut z: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(match (*st.borrow()).as_ref() { Some(__stringer) => __stringer.__go_into_any(), None => Box::new(GoNilAny) as Box<dyn Any> })));
     {
     let _ts_subject = z.clone();

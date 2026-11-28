@@ -6,6 +6,7 @@ macro_rules! vec {
 }
 use std::any::Any;
 use std::cell::{RefCell};
+use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
@@ -962,6 +963,401 @@ impl std::fmt::Display for point {
 }
 
 
+#[derive(Debug)]
+pub struct slot_(pub Rc<RefCell<Option<i64>>>);
+
+impl Clone for slot_ {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        slot_(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for slot_ {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
+    }
+}
+
+impl Display for slot_ {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0.borrow().as_ref().unwrap())
+    }
+}
+
+impl PartialEq for slot_ {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
+    }
+}
+
+impl PartialEq<i64> for slot_ {
+    fn eq(&self, other: &i64) -> bool {
+        *self.0.borrow().as_ref().unwrap() == *other
+    }
+}
+
+impl PartialOrd for slot_ {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
+    }
+}
+
+impl PartialOrd<i64> for slot_ {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
+        self.0.borrow().as_ref().unwrap().partial_cmp(other)
+    }
+}
+
+impl PartialEq<slot_> for i64 {
+    fn eq(&self, other: &slot_) -> bool {
+        *self == *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl PartialOrd<slot_> for i64 {
+    fn partial_cmp(&self, other: &slot_) -> Option<std::cmp::Ordering> {
+        self.partial_cmp(other.0.borrow().as_ref().unwrap())
+    }
+}
+
+impl std::ops::Add for slot_ {
+    type Output = slot_;
+    fn add(self, other: Self) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Add<i64> for slot_ {
+    type Output = slot_;
+    fn add(self, other: i64) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
+    }
+}
+
+impl std::ops::Add<slot_> for i64 {
+    type Output = slot_;
+    fn add(self, other: slot_) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Sub for slot_ {
+    type Output = slot_;
+    fn sub(self, other: Self) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Sub<i64> for slot_ {
+    type Output = slot_;
+    fn sub(self, other: i64) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
+    }
+}
+
+impl std::ops::Sub<slot_> for i64 {
+    type Output = slot_;
+    fn sub(self, other: slot_) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for slot_ {
+    type Output = slot_;
+    fn mul(self, other: Self) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i64> for slot_ {
+    type Output = slot_;
+    fn mul(self, other: i64) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<slot_> for i64 {
+    type Output = slot_;
+    fn mul(self, other: slot_) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for slot_ {
+    type Output = slot_;
+    fn div(self, other: Self) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i64> for slot_ {
+    type Output = slot_;
+    fn div(self, other: i64) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<slot_> for i64 {
+    type Output = slot_;
+    fn div(self, other: slot_) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for slot_ {
+    type Output = slot_;
+    fn neg(self) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for slot_ {
+    type Output = slot_;
+    fn rem(self, other: Self) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i64> for slot_ {
+    type Output = slot_;
+    fn rem(self, other: i64) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<slot_> for i64 {
+    type Output = slot_;
+    fn rem(self, other: slot_) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitAnd for slot_ {
+    type Output = slot_;
+    fn bitand(self, other: Self) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitAnd<i64> for slot_ {
+    type Output = slot_;
+    fn bitand(self, other: i64) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
+    }
+}
+
+impl std::ops::BitAnd<slot_> for i64 {
+    type Output = slot_;
+    fn bitand(self, other: slot_) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitOr for slot_ {
+    type Output = slot_;
+    fn bitor(self, other: Self) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitOr<i64> for slot_ {
+    type Output = slot_;
+    fn bitor(self, other: i64) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
+    }
+}
+
+impl std::ops::BitOr<slot_> for i64 {
+    type Output = slot_;
+    fn bitor(self, other: slot_) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitXor for slot_ {
+    type Output = slot_;
+    fn bitxor(self, other: Self) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitXor<i64> for slot_ {
+    type Output = slot_;
+    fn bitxor(self, other: i64) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
+    }
+}
+
+impl std::ops::BitXor<slot_> for i64 {
+    type Output = slot_;
+    fn bitxor(self, other: slot_) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Not for slot_ {
+    type Output = slot_;
+    fn not(self) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some(!*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl for slot_ {
+    type Output = slot_;
+    fn shl(self, other: slot_) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (*other.0.borrow().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<i32> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: i32) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<i8> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: i8) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<i16> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: i16) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<i64> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: i64) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<u32> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: u32) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<u8> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: u8) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<u16> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: u16) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<u64> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: u64) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<usize> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: usize) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr for slot_ {
+    type Output = slot_;
+    fn shr(self, other: slot_) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (*other.0.borrow().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<i32> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: i32) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<i8> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: i8) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<i16> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: i16) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<i64> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: i64) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<u32> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: u32) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<u8> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: u8) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<u16> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: u16) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<u64> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: u64) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<usize> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: usize) -> slot_ {
+        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl Eq for slot_ {}
+
+impl Ord for slot_ {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
+
 pub(crate) struct GoGlobal<T> {
     value: std::cell::UnsafeCell<Option<T>>,
 }
@@ -985,16 +1381,25 @@ pub(crate) static trace: GoGlobal<Vec<String>> = GoGlobal::new();
 
 pub(crate) static table_1: GoGlobal<Vec<Vec<Box<dyn Any>>>> = GoGlobal::new();
 
+pub(crate) static swapped: GoGlobal<Vec<Vec<Box<dyn Any>>>> = GoGlobal::new();
+
 
 fn __go_init_globals() {
     *trace.borrow_mut() = Some(Vec::nil());
     *table_1.borrow_mut() = Some(Vec::nil());
+    *swapped.borrow_mut() = Some(Vec::nil());
     {
         let mut __go_slice = Vec::<Vec<Box<dyn Any>>>::with_capacity(2);
         __go_slice.push(vec![Box::new(1i64) as Box<dyn Any>, Box::new("a".to_string()) as Box<dyn Any>]);
         __go_slice.push(vec![Box::new(2i64) as Box<dyn Any>, Box::new("b".to_string()) as Box<dyn Any>]);
         let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());
         *table_1.borrow_mut() = Some(__go_slice);
+    }
+    {
+        let mut __go_slice = Vec::<Vec<Box<dyn Any>>>::with_capacity(1);
+        __go_slice.push(vec![Box::new(1i64) as Box<dyn Any>, Box::new("a".to_string()) as Box<dyn Any>]);
+        let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());
+        *swapped.borrow_mut() = Some(__go_slice);
     }
 }
 
@@ -1018,13 +1423,31 @@ pub fn row(i: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Vec<Box<dyn Any>>>>
     Rc::new(RefCell::new(Some((*table_1.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone())))
 }
 
+pub fn pick_slot(i: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<slot_>>> {
+    { let new_val = { let __collection_holder = { let __append_target = trace.clone(); let __append_value = "slot".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *trace.borrow_mut() = new_val; };
+    Rc::new(RefCell::new(Some(slot_(Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()) as i64)))))))
+}
+
+/// replace swaps in a new first row before it returns the column, as Go
+/// reads the row after both calls.
+pub fn replace(i: Rc<RefCell<Option<i64>>>) -> i64 {
+    { let new_val = { let __collection_holder = { let __append_target = trace.clone(); let __append_value = "replace".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *trace.borrow_mut() = new_val; };
+    { let __idx = (0) as usize; let __rhs = (*Rc::new(RefCell::new(Some(vec![Box::new(10i64) as Box<dyn Any>, Box::new("z".to_string()) as Box<dyn Any>]))).borrow().as_ref().unwrap()).clone(); (*swapped.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    (*i.borrow().as_ref().unwrap())
+}
+
+pub fn reset() {
+    { let new_val = { let __collection_holder = Rc::new(RefCell::new(Some(vec![vec![Box::new(1i64) as Box<dyn Any>, Box::new("a".to_string()) as Box<dyn Any>]]))).clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *swapped.borrow_mut() = new_val; };
+}
+
 fn main() {
     go_install_panic_exit();
     __go_init_all();
     let mut rows = Rc::new(RefCell::new(Some(vec![vec![Box::new(1i64) as Box<dyn Any>, Box::new("a".to_string()) as Box<dyn Any>], vec![Box::new(2i64) as Box<dyn Any>, Box::new("b".to_string()) as Box<dyn Any>]])));
     let mut n = Rc::new(RefCell::new(Some(({
-        let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(1))))) as usize].clone().clone())));
+        let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(1))));
         let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize;
+        let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone())));
         let __seq_guard = __seq_holder.borrow();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
@@ -1033,8 +1456,9 @@ fn main() {
     flush(Rc::new(RefCell::new(Some("assert".to_string()))));
 
     let (mut s, mut ok) = ({
-        let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize].clone().clone())));
+        let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0))));
         let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(1))))) as usize;
+        let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone())));
         let __seq_guard = __seq_holder.borrow();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
@@ -1049,8 +1473,9 @@ fn main() {
     let mut p = Rc::new(RefCell::new(Some(point { x: Rc::new(RefCell::new(Some(7))), ..Default::default() })));
     let mut ptrs = Rc::new(RefCell::new(Some(vec![vec![Box::new(p.clone()) as Box<dyn Any>]])));
     let mut q = ({
-        let __seq_holder = Rc::new(RefCell::new(Some((*ptrs.borrow().as_ref().unwrap())[(pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize].clone().clone())));
+        let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0))));
         let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize;
+        let __seq_holder = Rc::new(RefCell::new(Some((*ptrs.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone())));
         let __seq_guard = __seq_holder.borrow();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<Rc<RefCell<Option<point>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "*main.point")).clone()
@@ -1059,8 +1484,9 @@ fn main() {
     flush(Rc::new(RefCell::new(Some("pointer assert".to_string()))));
 
     let (mut q2, mut ok2) = ({
-        let __seq_holder = Rc::new(RefCell::new(Some((*ptrs.borrow().as_ref().unwrap())[(pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize].clone().clone())));
+        let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0))));
         let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize;
+        let __seq_holder = Rc::new(RefCell::new(Some((*ptrs.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone())));
         let __seq_guard = __seq_holder.borrow();
         match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Rc<RefCell<Option<point>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
@@ -1070,11 +1496,11 @@ fn main() {
     println!("{} {}", format!("{}", (*(*q2.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())), format!("{}", ok2));
     flush(Rc::new(RefCell::new(Some("pointer comma-ok".to_string()))));
 
-    let mut v: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(1))))) as usize].clone().clone()))); let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(1))))) as usize; let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) })));
+    let mut v: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(1)))); let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(1))))) as usize; let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone()))); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) })));
     println!("{}", format!("{}", match v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
     flush(Rc::new(RefCell::new(Some("element copy".to_string()))));
 
-    show(Rc::new(RefCell::new(Some({ let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize].clone().clone()))); let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize; let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }))));
+    show(Rc::new(RefCell::new(Some({ let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0)))); let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize; let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone()))); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }))));
     flush(Rc::new(RefCell::new(Some("argument".to_string()))));
 
     let mut m = Rc::new(RefCell::new(Some(({
@@ -1104,6 +1530,94 @@ fn main() {
     let mut u: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ let __seq_holder = row(Rc::new(RefCell::new(Some(1)))).clone(); let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(1))))) as usize; let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) })));
     println!("{}", format!("{}", match u.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
     flush(Rc::new(RefCell::new(Some("call element copy".to_string()))));
+    reset();
+    let mut r = Rc::new(RefCell::new(Some(({
+        let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0))));
+        let __idx = (replace(Rc::new(RefCell::new(Some(0))))) as usize;
+        let __seq_holder = Rc::new(RefCell::new(Some((*swapped.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone())));
+        let __seq_guard = __seq_holder.borrow();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
+    }))));
+    println!("{}", format!("{}", { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }));
+    flush(Rc::new(RefCell::new(Some("replaced assert".to_string()))));
+
+    reset();
+    let (mut rs, mut rok) = ({
+        let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0))));
+        let __idx = (replace(Rc::new(RefCell::new(Some(1))))) as usize;
+        let __seq_holder = Rc::new(RefCell::new(Some((*swapped.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone())));
+        let __seq_guard = __seq_holder.borrow();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
+            (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
+        } else {
+            (Rc::new(RefCell::new(Some(std::string::String::new()))), false)
+        }
+    });
+    println!("{} {}", format!("{}", { let __v = (*rs.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", rok));
+    flush(Rc::new(RefCell::new(Some("replaced comma-ok".to_string()))));
+
+    reset();
+    let mut ru: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0)))); let __idx = (replace(Rc::new(RefCell::new(Some(1))))) as usize; let __seq_holder = Rc::new(RefCell::new(Some((*swapped.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone()))); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) })));
+    println!("{}", format!("{}", match ru.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
+    flush(Rc::new(RefCell::new(Some("replaced element copy".to_string()))));
+
+    reset();
+    show(Rc::new(RefCell::new(Some({ let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0)))); let __idx = (replace(Rc::new(RefCell::new(Some(0))))) as usize; let __seq_holder = Rc::new(RefCell::new(Some((*swapped.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone()))); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }))));
+    flush(Rc::new(RefCell::new(Some("replaced argument".to_string()))));
+
+    reset();
+    println!("{}", format!("{}", ({
+        let __idx = (replace(Rc::new(RefCell::new(Some(0))))) as usize;
+        let __seq_holder = Rc::new(RefCell::new(Some((*swapped.borrow().as_ref().unwrap())[(0) as usize].clone().clone())));
+        let __seq_guard = __seq_holder.borrow();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
+    })));
+    flush(Rc::new(RefCell::new(Some("replaced constant row".to_string()))));
+
+    let mut cube = Rc::new(RefCell::new(Some(vec![vec![vec![Box::new(1i64) as Box<dyn Any>, Box::new("a".to_string()) as Box<dyn Any>], vec![Box::new(2i64) as Box<dyn Any>, Box::new("b".to_string()) as Box<dyn Any>]]])));
+    println!("{}", format!("{}", ({
+        let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("plane".to_string()))), Rc::new(RefCell::new(Some(0))));
+        let __seq_operand_1 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(1))));
+        let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(1))))) as usize;
+        let __seq_holder = Rc::new(RefCell::new(Some((*cube.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone()[(__seq_operand_1) as usize].clone().clone())));
+        let __seq_guard = __seq_holder.borrow();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "string")).clone()
+    })));
+    flush(Rc::new(RefCell::new(Some("cube".to_string()))));
+
+    println!("{}", format!("{}", ({
+        let __seq_operand_0 = pick_slot(Rc::new(RefCell::new(Some(1))));
+        let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize;
+        let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(*(*__seq_operand_0.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as usize].clone().clone())));
+        let __seq_guard = __seq_holder.borrow();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
+    })));
+    flush(Rc::new(RefCell::new(Some("defined index".to_string()))));
+
+    println!("{}", format!("{}", ({
+        let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0)))) + 1;
+        let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(1))))) as usize;
+        let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone())));
+        let __seq_guard = __seq_holder.borrow();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "string")).clone()
+    })));
+    flush(Rc::new(RefCell::new(Some("index expression".to_string()))));
+
+    let mut byName = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>>::from([("k".to_string(), Rc::new(RefCell::new(Some(vec![Box::new(5i64) as Box<dyn Any>, Box::new("e".to_string()) as Box<dyn Any>]))))]))));
+    println!("{}", format!("{}", ({
+        let __seq_holder = { let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&format!("{}{}", (*Rc::new(RefCell::new(Some({ let __s = &((*Rc::new(RefCell::new(Some(format!("{}{}", format!("{}", pick(Rc::new(RefCell::new(Some("key".to_string()))), Rc::new(RefCell::new(Some(0))))), format!("{}", "".to_string()))))).borrow().as_ref().unwrap()).clone()); let __high = (0) as usize; __s[..__high].to_string() }))).borrow().as_ref().unwrap()), "k".to_string()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone();
+        let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize;
+        let __seq_guard = __seq_holder.borrow();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
+    })));
+    flush(Rc::new(RefCell::new(Some("map row".to_string()))));
 }
 
 pub(crate) fn __go_init_all() {

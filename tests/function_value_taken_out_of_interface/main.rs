@@ -863,8 +863,8 @@ fn main() {
         Rc::new(RefCell::new(Some("hi".to_string())))
     }) as Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>))).clone()) as Box<dyn Any>])));
     let mut say = ({
-        let __seq_holder = items.clone();
         let __idx = (0) as usize;
+        let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.borrow();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<Rc<RefCell<Option<Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "func() string")).clone()
@@ -872,8 +872,8 @@ fn main() {
     let mut say = Rc::new(RefCell::new(GoFuncValue::go_func_value(&say)));
     println!("{}", format!("{}", (*{ let __f: Rc<dyn Fn() -> Rc<RefCell<Option<String>>>> = say.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap())));
     let (mut say2, mut ok) = ({
-        let __seq_holder = items.clone();
         let __idx = (0) as usize;
+        let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.borrow();
         match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Rc<RefCell<Option<Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
@@ -883,8 +883,8 @@ fn main() {
     let mut say2 = Rc::new(RefCell::new(GoFuncValue::go_func_value(&say2)));
     println!("{} {}", format!("{}", (*{ let __f: Rc<dyn Fn() -> Rc<RefCell<Option<String>>>> = say2.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap())), format!("{}", ok));
     { let (__tmp_0, __tmp_1) = ({
-        let __seq_holder = items.clone();
         let __idx = (0) as usize;
+        let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.borrow();
         match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>>>() {
             Some(typed_val) => (typed_val.clone(), true),

@@ -1734,10 +1734,10 @@ fn main() {
     { let new_val = 9; *(*p.lock().unwrap().as_ref().unwrap()).n.lock().unwrap() = Some(new_val); };
     println!("{} {}", format!("{}", { let __any_rows_holder = rows.clone(); let __any_rows_copy = { let __any_rows_guard = __any_rows_holder.lock().unwrap(); __any_rows_guard.as_ref().cloned() }; match __any_rows_copy { Some(__any_rows) => format!("[{}]", __any_rows.iter().map(|__any_row_1| { let __any_row_handle = Arc::new(Mutex::new(Some(__any_row_1.clone()))); format_any_slice(&__any_row_handle) }).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }), format!("{}", format_any_slice(&flat)));
     let mut tallies = Arc::new(Mutex::new(Some(vec![Box::new((*mk_tally().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>, Box::new({ let __slice_holder = Arc::new(Mutex::new(Some(vec![Box::new((*mk_tally().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>]))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any + Send + Sync>])));
-    print!("{} {}\n", format!("{}", format_any_slice(&tallies)), format!("{}", { let __type_name = __go_type_name(&**(Arc::new(Mutex::new(Some({ let __seq_holder = tallies.clone(); let __idx = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).lock().unwrap().as_ref().unwrap()); __type_name }));
+    print!("{} {}\n", format!("{}", format_any_slice(&tallies)), format!("{}", { let __type_name = __go_type_name(&**(Arc::new(Mutex::new(Some({ let __idx = (0) as usize; let __seq_holder = tallies.clone(); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).lock().unwrap().as_ref().unwrap()); __type_name }));
     let (mut v, mut ok) = ({
-        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.clone())));
         let __idx = (1) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.clone())));
         let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         if let Some(typed_val) = any_val.downcast_ref::<i8>() {
@@ -1747,8 +1747,8 @@ fn main() {
         }
     });
     println!("{} {} {}", format!("{}", { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ok), format!("{}", ({
-        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.clone())));
         let __idx = (0) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.clone())));
         let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()

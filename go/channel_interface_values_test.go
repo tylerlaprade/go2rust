@@ -110,7 +110,7 @@ func main() {
 	// A Box<dyn Any> has no Clone; go_any_clone copies it.
 	requireAll(t, rust,
 		"let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) }",
-		"__go_type_name(&**(Rc::new(RefCell::new(Some({ let __seq_holder = mixed.clone(); let __idx = (1) as usize;",
+		"__go_type_name(&**(Rc::new(RefCell::new(Some({ let __idx = (1) as usize; let __seq_holder = mixed.clone();",
 	)
 	if strings.Contains(rust, "[(0) as usize].clone()") {
 		t.Errorf("an []any element is cloned as a Box:\n%s", rust)

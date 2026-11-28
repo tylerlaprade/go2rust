@@ -1535,10 +1535,10 @@ fn main() {
     { let new_val = 9; *(*p.borrow().as_ref().unwrap()).n.borrow_mut() = Some(new_val); };
     println!("{} {}", format!("{}", { let __any_rows_holder = rows.clone(); let __any_rows_copy = { let __any_rows_guard = __any_rows_holder.borrow(); __any_rows_guard.as_ref().cloned() }; match __any_rows_copy { Some(__any_rows) => format!("[{}]", __any_rows.iter().map(|__any_row_1| { let __any_row_handle = Rc::new(RefCell::new(Some(__any_row_1.clone()))); format_any_slice(&__any_row_handle) }).collect::<Vec<String>>().join(" ")), None => "[]".to_string() } }), format!("{}", format_any_slice(&flat)));
     let mut tallies = Rc::new(RefCell::new(Some(vec![Box::new((*mk_tally().borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new({ let __slice_holder = Rc::new(RefCell::new(Some(vec![Box::new((*mk_tally().borrow().as_ref().unwrap()).clone()) as Box<dyn Any>]))).clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any>])));
-    print!("{} {}\n", format_any_slice(&tallies), __go_type_name(&**(Rc::new(RefCell::new(Some({ let __seq_holder = tallies.clone(); let __idx = (0) as usize; let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap()));
+    print!("{} {}\n", format_any_slice(&tallies), __go_type_name(&**(Rc::new(RefCell::new(Some({ let __idx = (0) as usize; let __seq_holder = tallies.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap()));
     let (mut v, mut ok) = ({
-        let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(1) as usize].clone().clone())));
         let __idx = (1) as usize;
+        let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(1) as usize].clone().clone())));
         let __seq_guard = __seq_holder.borrow();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         if let Some(typed_val) = any_val.downcast_ref::<i8>() {
@@ -1548,8 +1548,8 @@ fn main() {
         }
     });
     println!("{} {} {}", format!("{}", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", ok), format!("{}", ({
-        let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(1) as usize].clone().clone())));
         let __idx = (0) as usize;
+        let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(1) as usize].clone().clone())));
         let __seq_guard = __seq_holder.borrow();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()

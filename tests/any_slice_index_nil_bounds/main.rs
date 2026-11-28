@@ -902,7 +902,7 @@ fn main() {
     }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
         let mut values: Rc<RefCell<Option<Vec<Box<dyn Any>>>>> = Rc::new(RefCell::new(None));
-        consume(Rc::new(RefCell::new(Some({ let __seq_holder = values.clone(); let __idx = (0) as usize; let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }))));
+        consume(Rc::new(RefCell::new(Some({ let __idx = (0) as usize; let __seq_holder = values.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }))));
 
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

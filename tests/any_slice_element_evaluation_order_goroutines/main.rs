@@ -5,6 +5,7 @@ macro_rules! vec {
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
 use std::any::Any;
+use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -1197,20 +1198,424 @@ impl std::fmt::Display for point {
 }
 
 
+#[derive(Debug)]
+pub struct slot_(pub Arc<Mutex<Option<i64>>>);
+
+impl Clone for slot_ {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        slot_(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for slot_ {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
+    }
+}
+
+impl Display for slot_ {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0.lock().unwrap().as_ref().unwrap())
+    }
+}
+
+impl PartialEq for slot_ {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left == __right
+    }
+}
+
+impl PartialEq<i64> for slot_ {
+    fn eq(&self, other: &i64) -> bool {
+        *self.0.lock().unwrap().as_ref().unwrap() == *other
+    }
+}
+
+impl PartialOrd for slot_ {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left.partial_cmp(&__right)
+    }
+}
+
+impl PartialOrd<i64> for slot_ {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
+        self.0.lock().unwrap().as_ref().unwrap().partial_cmp(other)
+    }
+}
+
+impl PartialEq<slot_> for i64 {
+    fn eq(&self, other: &slot_) -> bool {
+        *self == *other.0.lock().unwrap().as_ref().unwrap()
+    }
+}
+
+impl PartialOrd<slot_> for i64 {
+    fn partial_cmp(&self, other: &slot_) -> Option<std::cmp::Ordering> {
+        self.partial_cmp(other.0.lock().unwrap().as_ref().unwrap())
+    }
+}
+
+impl std::ops::Add for slot_ {
+    type Output = slot_;
+    fn add(self, other: Self) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Add<i64> for slot_ {
+    type Output = slot_;
+    fn add(self, other: i64) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + other))))
+    }
+}
+
+impl std::ops::Add<slot_> for i64 {
+    type Output = slot_;
+    fn add(self, other: slot_) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(self + *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Sub for slot_ {
+    type Output = slot_;
+    fn sub(self, other: Self) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Sub<i64> for slot_ {
+    type Output = slot_;
+    fn sub(self, other: i64) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - other))))
+    }
+}
+
+impl std::ops::Sub<slot_> for i64 {
+    type Output = slot_;
+    fn sub(self, other: slot_) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(self - *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for slot_ {
+    type Output = slot_;
+    fn mul(self, other: Self) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i64> for slot_ {
+    type Output = slot_;
+    fn mul(self, other: i64) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<slot_> for i64 {
+    type Output = slot_;
+    fn mul(self, other: slot_) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(self * *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for slot_ {
+    type Output = slot_;
+    fn div(self, other: Self) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i64> for slot_ {
+    type Output = slot_;
+    fn div(self, other: i64) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<slot_> for i64 {
+    type Output = slot_;
+    fn div(self, other: slot_) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(self / *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for slot_ {
+    type Output = slot_;
+    fn neg(self) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(-*self.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for slot_ {
+    type Output = slot_;
+    fn rem(self, other: Self) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i64> for slot_ {
+    type Output = slot_;
+    fn rem(self, other: i64) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<slot_> for i64 {
+    type Output = slot_;
+    fn rem(self, other: slot_) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(self % *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitAnd for slot_ {
+    type Output = slot_;
+    fn bitand(self, other: Self) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() & *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitAnd<i64> for slot_ {
+    type Output = slot_;
+    fn bitand(self, other: i64) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() & other))))
+    }
+}
+
+impl std::ops::BitAnd<slot_> for i64 {
+    type Output = slot_;
+    fn bitand(self, other: slot_) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(self & *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitOr for slot_ {
+    type Output = slot_;
+    fn bitor(self, other: Self) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() | *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitOr<i64> for slot_ {
+    type Output = slot_;
+    fn bitor(self, other: i64) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() | other))))
+    }
+}
+
+impl std::ops::BitOr<slot_> for i64 {
+    type Output = slot_;
+    fn bitor(self, other: slot_) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(self | *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitXor for slot_ {
+    type Output = slot_;
+    fn bitxor(self, other: Self) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() ^ *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitXor<i64> for slot_ {
+    type Output = slot_;
+    fn bitxor(self, other: i64) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() ^ other))))
+    }
+}
+
+impl std::ops::BitXor<slot_> for i64 {
+    type Output = slot_;
+    fn bitxor(self, other: slot_) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(self ^ *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Not for slot_ {
+    type Output = slot_;
+    fn not(self) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some(!*self.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl for slot_ {
+    type Output = slot_;
+    fn shl(self, other: slot_) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (*other.0.lock().unwrap().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<i32> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: i32) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<i8> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: i8) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<i16> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: i16) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<i64> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: i64) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<u32> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: u32) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<u8> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: u8) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<u16> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: u16) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<u64> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: u64) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shl<usize> for slot_ {
+    type Output = slot_;
+    fn shl(self, other: usize) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr for slot_ {
+    type Output = slot_;
+    fn shr(self, other: slot_) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (*other.0.lock().unwrap().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<i32> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: i32) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<i8> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: i8) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<i16> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: i16) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<i64> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: i64) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<u32> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: u32) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<u8> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: u8) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<u16> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: u16) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<u64> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: u64) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl std::ops::Shr<usize> for slot_ {
+    type Output = slot_;
+    fn shr(self, other: usize) -> slot_ {
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+    }
+}
+
+impl Eq for slot_ {}
+
+impl Ord for slot_ {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
+
 pub(crate) static trace: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 pub(crate) static table_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<Vec<Box<dyn Any + Send + Sync>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+
+pub(crate) static swapped: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<Vec<Box<dyn Any + Send + Sync>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 
 fn __go_init_globals() {
     *trace.lock().unwrap() = Some(Vec::nil());
     *table_1.lock().unwrap() = Some(Vec::nil());
+    *swapped.lock().unwrap() = Some(Vec::nil());
     {
         let mut __go_slice = Vec::<Vec<Box<dyn Any + Send + Sync>>>::with_capacity(2);
         __go_slice.push(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("a".to_string()) as Box<dyn Any + Send + Sync>]);
         __go_slice.push(vec![Box::new(2i64) as Box<dyn Any + Send + Sync>, Box::new("b".to_string()) as Box<dyn Any + Send + Sync>]);
         let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());
         *table_1.lock().unwrap() = Some(__go_slice);
+    }
+    {
+        let mut __go_slice = Vec::<Vec<Box<dyn Any + Send + Sync>>>::with_capacity(1);
+        __go_slice.push(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("a".to_string()) as Box<dyn Any + Send + Sync>]);
+        let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());
+        *swapped.lock().unwrap() = Some(__go_slice);
     }
 }
 
@@ -1234,6 +1639,23 @@ pub fn row(i: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Vec<Box<dyn Any + Sen
     Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = table_1.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
 }
 
+pub fn pick_slot(i: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<slot_>>> {
+    { let new_val = { let __collection_holder = { let __append_target = trace.clone(); let __append_value = "slot".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *trace.lock().unwrap() = new_val; };
+    Arc::new(Mutex::new(Some(slot_(Arc::new(Mutex::new(Some(({ let __v = (*i.lock().unwrap().as_ref().unwrap()); __v }) as i64)))))))
+}
+
+/// replace swaps in a new first row before it returns the column, as Go
+/// reads the row after both calls.
+pub fn replace(i: Arc<Mutex<Option<i64>>>) -> i64 {
+    { let new_val = { let __collection_holder = { let __append_target = trace.clone(); let __append_value = "replace".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *trace.lock().unwrap() = new_val; };
+    { let __idx = (0) as usize; let __rhs = (*Arc::new(Mutex::new(Some(vec![Box::new(10i64) as Box<dyn Any + Send + Sync>, Box::new("z".to_string()) as Box<dyn Any + Send + Sync>]))).lock().unwrap().as_ref().unwrap()).clone(); (*swapped.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    return { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v };
+}
+
+pub fn reset() {
+    { let new_val = { let __collection_holder = Arc::new(Mutex::new(Some(vec![vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("a".to_string()) as Box<dyn Any + Send + Sync>]]))).clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *swapped.lock().unwrap() = new_val; };
+}
+
 fn main() {
     go_install_panic_exit();
     __go_init_all();
@@ -1251,8 +1673,9 @@ fn main() {
 
     let mut rows = Arc::new(Mutex::new(Some(vec![vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("a".to_string()) as Box<dyn Any + Send + Sync>], vec![Box::new(2i64) as Box<dyn Any + Send + Sync>, Box::new("b".to_string()) as Box<dyn Any + Send + Sync>]])));
     let mut n = Arc::new(Mutex::new(Some(({
-        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(1))))) as usize].clone() }.clone())));
+        let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(1))));
         let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone())));
         let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
@@ -1261,8 +1684,9 @@ fn main() {
     flush(Arc::new(Mutex::new(Some("assert".to_string()))));
 
     let (mut s, mut ok) = ({
-        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize].clone() }.clone())));
+        let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0))));
         let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(1))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone())));
         let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
@@ -1277,8 +1701,9 @@ fn main() {
     let mut p = Arc::new(Mutex::new(Some(point { x: Arc::new(Mutex::new(Some(7))), ..Default::default() })));
     let mut ptrs = Arc::new(Mutex::new(Some(vec![vec![Box::new(p.clone()) as Box<dyn Any + Send + Sync>]])));
     let mut q = ({
-        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = ptrs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize].clone() }.clone())));
+        let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0))));
         let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = ptrs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone())));
         let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<Arc<Mutex<Option<point>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "*main.point")).clone()
@@ -1287,8 +1712,9 @@ fn main() {
     flush(Arc::new(Mutex::new(Some("pointer assert".to_string()))));
 
     let (mut q2, mut ok2) = ({
-        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = ptrs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize].clone() }.clone())));
+        let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0))));
         let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = ptrs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone())));
         let __seq_guard = __seq_holder.lock().unwrap();
         match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Arc<Mutex<Option<point>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
@@ -1298,11 +1724,11 @@ fn main() {
     println!("{} {}", format!("{}", (*{ let __field = (*q2.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", ok2));
     flush(Arc::new(Mutex::new(Some("pointer comma-ok".to_string()))));
 
-    let mut v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({ let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(1))))) as usize].clone() }.clone()))); let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(1))))) as usize; let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) })));
+    let mut v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({ let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(1)))); let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(1))))) as usize; let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone()))); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) })));
     println!("{}", format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
     flush(Arc::new(Mutex::new(Some("element copy".to_string()))));
 
-    show(Arc::new(Mutex::new(Some({ let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize].clone() }.clone()))); let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize; let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }))));
+    show(Arc::new(Mutex::new(Some({ let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0)))); let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize; let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone()))); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }))));
     flush(Arc::new(Mutex::new(Some("argument".to_string()))));
 
     let mut m = Arc::new(Mutex::new(Some(({
@@ -1332,6 +1758,94 @@ fn main() {
     let mut u: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({ let __seq_holder = row(Arc::new(Mutex::new(Some(1)))).clone(); let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(1))))) as usize; let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) })));
     println!("{}", format!("{}", { let __text = match u.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
     flush(Arc::new(Mutex::new(Some("call element copy".to_string()))));
+    reset();
+    let mut r = Arc::new(Mutex::new(Some(({
+        let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0))));
+        let __idx = (replace(Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = swapped.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
+    }))));
+    println!("{}", format!("{}", { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    flush(Arc::new(Mutex::new(Some("replaced assert".to_string()))));
+
+    reset();
+    let (mut rs, mut rok) = ({
+        let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0))));
+        let __idx = (replace(Arc::new(Mutex::new(Some(1))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = swapped.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
+            (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
+        } else {
+            (Arc::new(Mutex::new(Some(std::string::String::new()))), false)
+        }
+    });
+    println!("{} {}", format!("{}", { let __v = (*rs.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", rok));
+    flush(Arc::new(Mutex::new(Some("replaced comma-ok".to_string()))));
+
+    reset();
+    let mut ru: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({ let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0)))); let __idx = (replace(Arc::new(Mutex::new(Some(1))))) as usize; let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = swapped.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone()))); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) })));
+    println!("{}", format!("{}", { let __text = match ru.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
+    flush(Arc::new(Mutex::new(Some("replaced element copy".to_string()))));
+
+    reset();
+    show(Arc::new(Mutex::new(Some({ let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0)))); let __idx = (replace(Arc::new(Mutex::new(Some(0))))) as usize; let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = swapped.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone()))); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }))));
+    flush(Arc::new(Mutex::new(Some("replaced argument".to_string()))));
+
+    reset();
+    println!("{}", format!("{}", ({
+        let __idx = (replace(Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = swapped.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
+    })));
+    flush(Arc::new(Mutex::new(Some("replaced constant row".to_string()))));
+
+    let mut cube = Arc::new(Mutex::new(Some(vec![vec![vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("a".to_string()) as Box<dyn Any + Send + Sync>], vec![Box::new(2i64) as Box<dyn Any + Send + Sync>, Box::new("b".to_string()) as Box<dyn Any + Send + Sync>]]])));
+    println!("{}", format!("{}", ({
+        let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("plane".to_string()))), Arc::new(Mutex::new(Some(0))));
+        let __seq_operand_1 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(1))));
+        let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(1))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some(({ let __seq = { let __seq_holder = cube.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() })[(__seq_operand_1) as usize].clone().clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "string")).clone()
+    })));
+    flush(Arc::new(Mutex::new(Some("cube".to_string()))));
+
+    println!("{}", format!("{}", ({
+        let __seq_operand_0 = pick_slot(Arc::new(Mutex::new(Some(1))));
+        let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[{ let __named_value = (*(*__seq_operand_0.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()); __named_value } as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
+    })));
+    flush(Arc::new(Mutex::new(Some("defined index".to_string()))));
+
+    println!("{}", format!("{}", ({
+        let __seq_operand_0 = { let __tmp_x = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0)))); let __tmp_y = 1; __tmp_x + __tmp_y };
+        let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(1))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "string")).clone()
+    })));
+    flush(Arc::new(Mutex::new(Some("index expression".to_string()))));
+
+    let mut byName = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(vec![Box::new(5i64) as Box<dyn Any + Send + Sync>, Box::new("e".to_string()) as Box<dyn Any + Send + Sync>]))))]))));
+    println!("{}", format!("{}", ({
+        let __seq_holder = { let __map = { let __map_holder = byName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&format!("{}{}", (*Arc::new(Mutex::new(Some({ let __s = &((*Arc::new(Mutex::new(Some(format!("{}{}", format!("{}", pick(Arc::new(Mutex::new(Some("key".to_string()))), Arc::new(Mutex::new(Some(0))))), format!("{}", "".to_string()))))).lock().unwrap().as_ref().unwrap()).clone()); let __high = (0) as usize; __s[..__high].to_string() }))).lock().unwrap().as_ref().unwrap()), "k".to_string()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone();
+        let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
+    })));
+    flush(Arc::new(Mutex::new(Some("map row".to_string()))));
 }
 
 pub(crate) fn __go_init_all() {

@@ -1110,8 +1110,8 @@ fn main() {
     done.recv().unwrap_or_default();
     let mut items = Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(vec![1i64, 2i64]))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(T { n: Arc::new(Mutex::new(Some(3))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64))))])))).clone()) as Box<dyn Any + Send + Sync>])));
     let (mut v, mut ok) = ({
-        let __seq_holder = items.clone();
         let __idx = (0) as usize;
+        let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
         match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
@@ -1121,8 +1121,8 @@ fn main() {
     let mut v = { let __slice_header = GoSliceHeader::go_slice_header(&v); Arc::new(Mutex::new(__slice_header)) };
     println!("{} {}", format!("{}", format_slice(&v)), format!("{}", ok));
     let (mut p, mut ok) = ({
-        let __seq_holder = items.clone();
         let __idx = (1) as usize;
+        let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
         match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Arc<Mutex<Option<T>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
@@ -1131,8 +1131,8 @@ fn main() {
     });
     println!("{} {}", format!("{}", (*{ let __field = (*p.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", ok));
     let (mut m, mut ok) = ({
-        let __seq_holder = items.clone();
         let __idx = (2) as usize;
+        let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
         match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
@@ -1141,8 +1141,8 @@ fn main() {
     });
     println!("{} {}", format!("{}", { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", ok));
     { let (__tmp_0, __tmp_1) = ({
-        let __seq_holder = items.clone();
         let __idx = (0) as usize;
+        let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
         match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
@@ -1151,8 +1151,8 @@ fn main() {
     }); ok = __tmp_1; };
     println!("{}", format!("{}", ok));
     let (mut q, mut ok) = ({
-        let __seq_holder = items.clone();
         let __idx = (0) as usize;
+        let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
         match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Arc<Mutex<Option<T>>>>() {
             Some(typed_val) => (typed_val.clone(), true),

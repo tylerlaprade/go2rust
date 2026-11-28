@@ -5,40 +5,74 @@ import (
 	"testing"
 )
 
-// Reading an element of a []any element evaluates the row before the
-// column, left to right as in Go (#373): the row's holder is bound before
-// the index, and the row is borrowed after both.
+// Reading an element of a []any element makes the row's call before the
+// column's, left to right as in Go, and reads the row after both, as gc
+// does (#373): pickrow() is bound first, then pickcol(), then the row's holder.
 func TestAnySliceElementEvaluatesRowBeforeColumn(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
 import "fmt"
 
-func row() int { return 0 }
+func pickrow() int { return 0 }
 
-func col() int { return 1 }
+func pickcol() int { return 1 }
 
 func main() {
 	rows := [][]any{{1, "a"}}
-	s := rows[row()][col()].(string)
-	t, ok := rows[row()][col()].(string)
-	var v any = rows[row()][col()]
+	s := rows[pickrow()][pickcol()].(string)
+	t, ok := rows[pickrow()][pickcol()].(string)
+	var v any = rows[pickrow()][pickcol()]
 	fmt.Println(s, t, ok, v)
 }
 `)
 	body := rust[strings.Index(rust, "fn main()"):]
-	holders := strings.Count(body, "let __seq_holder = ")
-	if holders < 3 {
-		t.Fatalf("expected a row holder per element read, found %d:\n%s", holders, body)
+	if rows, cols := strings.Count(body, "pickrow()"), strings.Count(body, "pickcol()"); rows != 3 || cols != 3 {
+		t.Fatalf("each read should call pickrow and pickcol once, found %d and %d:\n%s", rows, cols, body)
 	}
-	for rest := body; strings.Contains(rest, "let __seq_holder = "); {
-		start := strings.Index(rest, "let __seq_holder = ")
-		rest = rest[start:]
-		holder := strings.Index(rest, "row()")
-		index := strings.Index(rest, "col()")
+	rest := body
+	for i := 0; i < 3; i++ {
+		row := strings.Index(rest, "pickrow()")
+		col := strings.Index(rest, "pickcol()")
+		holder := strings.Index(rest, "let __seq_holder = ")
 		guard := strings.Index(rest, "let __seq_guard = ")
-		if holder < 0 || index < 0 || guard < 0 || !(holder < index && index < guard) {
-			t.Fatalf("the row must be evaluated before the column, and borrowed after both:\n%s", rest)
+		if !(row < col && col < holder && holder < guard) {
+			t.Fatalf("read %d should call pickrow, then pickcol, then read the row and borrow it:\n%s", i+1, rest)
 		}
-		rest = rest[guard:]
+		rest = rest[guard+1:]
+	}
+}
+
+// A column call that replaces the row is read after it, as gc does: the
+// row's holder is bound from the row's index after both calls.
+func TestAnySliceElementReadsTheRowAfterTheColumnCall(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+var rows = [][]any{{1}}
+
+func pickrow() int { return 0 }
+
+func pickcol() int {
+	rows[0] = []any{2}
+	return 0
+}
+
+func main() {
+	fmt.Println(rows[pickrow()][pickcol()].(int))
+	fmt.Println(rows[0][pickcol()].(int))
+}
+`)
+	body := rust[strings.Index(rust, "fn main()"):]
+	staged := strings.Index(body, "let __seq_operand_0 = pickrow();")
+	if staged < 0 {
+		t.Fatalf("pickrow() should be bound before the column call:\n%s", body)
+	}
+	if !strings.Contains(body[staged:], "[(__seq_operand_0) as usize]") {
+		t.Fatalf("the row should be read with pickrow()'s bound result:\n%s", body)
+	}
+	constant := strings.Index(body[staged+1:], "let __idx = ")
+	if constant < 0 || strings.Index(body[staged+1+constant:], "let __seq_holder = ") < 0 {
+		t.Fatalf("rows[0][pickcol()] should bind the column before the row:\n%s", body)
 	}
 }

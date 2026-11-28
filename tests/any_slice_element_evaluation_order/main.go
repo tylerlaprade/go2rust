@@ -25,6 +25,27 @@ func row(i int) []any {
 	return table[i]
 }
 
+type slot int
+
+func pickSlot(i int) slot {
+	trace = append(trace, "slot")
+	return slot(i)
+}
+
+var swapped = [][]any{{1, "a"}}
+
+// replace swaps in a new first row before it returns the column, as Go
+// reads the row after both calls.
+func replace(i int) int {
+	trace = append(trace, "replace")
+	swapped[0] = []any{10, "z"}
+	return i
+}
+
+func reset() {
+	swapped = [][]any{{1, "a"}}
+}
+
 func main() {
 	rows := [][]any{{1, "a"}, {2, "b"}}
 	n := rows[pick("row", 1)][pick("col", 0)].(int)
@@ -63,4 +84,40 @@ func main() {
 	var u any = row(1)[pick("col", 1)]
 	fmt.Println(u)
 	flush("call element copy")
+	reset()
+	r := swapped[pick("row", 0)][replace(0)].(int)
+	fmt.Println(r)
+	flush("replaced assert")
+
+	reset()
+	rs, rok := swapped[pick("row", 0)][replace(1)].(string)
+	fmt.Println(rs, rok)
+	flush("replaced comma-ok")
+
+	reset()
+	var ru any = swapped[pick("row", 0)][replace(1)]
+	fmt.Println(ru)
+	flush("replaced element copy")
+
+	reset()
+	show(swapped[pick("row", 0)][replace(0)])
+	flush("replaced argument")
+
+	reset()
+	fmt.Println(swapped[0][replace(0)].(int))
+	flush("replaced constant row")
+
+	cube := [][][]any{{{1, "a"}, {2, "b"}}}
+	fmt.Println(cube[pick("plane", 0)][pick("row", 1)][pick("col", 1)].(string))
+	flush("cube")
+
+	fmt.Println(rows[pickSlot(1)][pick("col", 0)].(int))
+	flush("defined index")
+
+	fmt.Println(rows[pick("row", 0)+1][pick("col", 1)].(string))
+	flush("index expression")
+
+	byName := map[string][]any{"k": {5, "e"}}
+	fmt.Println(byName[fmt.Sprint(pick("key", 0), "")[:0]+"k"][pick("col", 0)].(int))
+	flush("map row")
 }

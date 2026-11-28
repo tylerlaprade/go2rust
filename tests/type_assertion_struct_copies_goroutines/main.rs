@@ -1459,8 +1459,8 @@ fn main() {
 
     let mut items = Arc::new(Mutex::new(Some(vec![Box::new(Vec_ { x: Arc::new(Mutex::new(Some(5))), y: Arc::new(Mutex::new(Some(5))), ..Default::default() }) as Box<dyn Any + Send + Sync>, Box::new("x".to_string()) as Box<dyn Any + Send + Sync>])));
     let (mut iv, mut ok) = ({
-        let __seq_holder = items.clone();
         let __idx = (0) as usize;
+        let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         if let Some(typed_val) = any_val.downcast_ref::<Vec_>() {
@@ -1474,5 +1474,5 @@ fn main() {
         return;
     }
     { let new_val = 0; *(*iv.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
-    println!("{} {} {}", format!("{}", { let __text = match (Arc::new(Mutex::new(Some({ let __seq_holder = items.clone(); let __idx = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match (Arc::new(Mutex::new(Some({ let __seq_holder = items.clone(); let __idx = (1) as usize; let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __v = (*iv.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }));
+    println!("{} {} {}", format!("{}", { let __text = match (Arc::new(Mutex::new(Some({ let __idx = (0) as usize; let __seq_holder = items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match (Arc::new(Mutex::new(Some({ let __idx = (1) as usize; let __seq_holder = items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __v = (*iv.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }));
 }

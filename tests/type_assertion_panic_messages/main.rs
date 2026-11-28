@@ -1133,8 +1133,8 @@ fn main() {
     let mut items = Rc::new(RefCell::new(Some(vec![Box::new("a".to_string()) as Box<dyn Any>, Box::new(2.5) as Box<dyn Any>])));
     let items_closure_clone = items.clone(); r#try(Rc::new(RefCell::new(Some(Rc::new(move || {
         let _ = ({
-        let __seq_holder = items_closure_clone.clone();
         let __idx = (1) as usize;
+        let __seq_holder = items_closure_clone.clone();
         let __seq_guard = __seq_holder.borrow();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "string")).clone()

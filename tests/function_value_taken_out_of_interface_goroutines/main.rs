@@ -1131,8 +1131,8 @@ fn main() {
         Arc::new(Mutex::new(Some("hi".to_string())))
     }) as Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>))).clone()) as Box<dyn Any + Send + Sync>])));
     let mut say = ({
-        let __seq_holder = items.clone();
         let __idx = (0) as usize;
+        let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<Arc<Mutex<Option<Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "func() string")).clone()
@@ -1145,8 +1145,8 @@ fn main() {
         )
     }.lock().unwrap().as_ref().unwrap())));
     let (mut say2, mut ok) = ({
-        let __seq_holder = items.clone();
         let __idx = (0) as usize;
+        let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
         match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Arc<Mutex<Option<Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
@@ -1161,8 +1161,8 @@ fn main() {
         )
     }.lock().unwrap().as_ref().unwrap())), format!("{}", ok));
     { let (__tmp_0, __tmp_1) = ({
-        let __seq_holder = items.clone();
         let __idx = (0) as usize;
+        let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
         match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
