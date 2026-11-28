@@ -9694,6 +9694,19 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 				return
 			}
 		}
+		if isRangeVar && isWrappedRangeVarType(rangeLoopVars[ident.Name]) && !rhsIsPointerType(expr) {
+			// A range value over a map is the map's cell for the value
+			// (writeMapRangeValueIterationCopy gives it one of its own), so
+			// "n += v" reads the value out of it, captured or not.
+			out.WriteString("(*")
+			out.WriteString(varName)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+			if !isCopyTypeExpression(expr) && isCloneableNonPointerExpr(expr) {
+				out.WriteString(".clone()")
+			}
+			return
+		}
 		if isLocalConst {
 			if writeConstIdentForCompoundExpected(out, ident, expected, RustIdentForUse(ident)) {
 				return
