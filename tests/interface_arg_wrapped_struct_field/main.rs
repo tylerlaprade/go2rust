@@ -842,8 +842,8 @@ impl std::fmt::Display for LitPtr {
 
 impl Node for LitPtr {
     fn pos(&self) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Lit = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Lit };
+        let __recv = unsafe { &*__recv_ptr };
         Lit::pos(__recv)
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {

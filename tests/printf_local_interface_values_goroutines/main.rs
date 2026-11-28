@@ -960,6 +960,16 @@ impl<T> std::fmt::Debug for GoChannel<T> {
     }
 }
 
+// Two channels are equal when they are the same channel, as == compares
+// them in Go, or both nil.
+impl<T> PartialEq for GoChannel<T> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.is_nil() && other.is_nil()) || std::sync::Arc::ptr_eq(&self.rx, &other.rx)
+    }
+}
+
+impl<T> Eq for GoChannel<T> {}
+
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
@@ -1172,8 +1182,8 @@ impl std::fmt::Display for PersonPtr {
 
 impl Named for PersonPtr {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Person = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Person };
+        let __recv = unsafe { &*__recv_ptr };
         Person::name(__recv)
     }
     fn __go_clone_box_named(&self) -> Box<dyn Named + Send + Sync> {
@@ -1242,8 +1252,8 @@ impl std::fmt::Display for PetPtr {
 
 impl Named for PetPtr {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Pet = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Pet };
+        let __recv = unsafe { &*__recv_ptr };
         Pet::name(__recv)
     }
     fn __go_clone_box_named(&self) -> Box<dyn Named + Send + Sync> {
@@ -1306,8 +1316,8 @@ impl std::fmt::Display for RobotPtr {
 
 impl Named for RobotPtr {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Robot = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Robot };
+        let __recv = unsafe { &*__recv_ptr };
         Robot::name(__recv)
     }
     fn __go_clone_box_named(&self) -> Box<dyn Named + Send + Sync> {

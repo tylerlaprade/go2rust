@@ -1237,8 +1237,8 @@ impl std::fmt::Display for NumPtr {
 
 impl Node for NumPtr {
     fn eval(&self, env: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<f64>>>>>>>) -> (f64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Num = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Num };
+        let __recv = unsafe { &*__recv_ptr };
         Num::eval(__recv, env)
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node + Send + Sync> {
@@ -1308,8 +1308,8 @@ impl std::fmt::Display for VarPtr {
 
 impl Node for VarPtr {
     fn eval(&self, env: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<f64>>>>>>>) -> (f64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Var = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Var };
+        let __recv = unsafe { &*__recv_ptr };
         Var::eval(__recv, env)
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node + Send + Sync> {
@@ -1380,8 +1380,8 @@ impl std::fmt::Display for BinPtr {
 
 impl Node for BinPtr {
     fn eval(&self, env: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<f64>>>>>>>) -> (f64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Bin = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Bin };
+        let __recv = unsafe { &*__recv_ptr };
         Bin::eval(__recv, env)
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node + Send + Sync> {

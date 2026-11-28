@@ -1426,13 +1426,13 @@ impl std::fmt::Display for RectPtr {
 
 impl Shape for RectPtr {
     fn area(&self) -> f64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Rect = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Rect };
+        let __recv = unsafe { &*__recv_ptr };
         Rect::area(__recv)
     }
     fn perimeter(&self) -> f64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Rect = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Rect };
+        let __recv = unsafe { &*__recv_ptr };
         Rect::perimeter(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape + Send + Sync> {
@@ -1512,13 +1512,13 @@ impl std::fmt::Display for CirclePtr {
 
 impl Shape for CirclePtr {
     fn area(&self) -> f64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Circle = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Circle };
+        let __recv = unsafe { &*__recv_ptr };
         Circle::area(__recv)
     }
     fn perimeter(&self) -> f64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Circle = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Circle };
+        let __recv = unsafe { &*__recv_ptr };
         Circle::perimeter(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape + Send + Sync> {

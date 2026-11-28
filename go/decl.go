@@ -4005,20 +4005,7 @@ func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, meth
 		}
 		out.WriteString(" };\n")
 	} else {
-		out.WriteString("        let ")
-		if mutableReceiver {
-			out.WriteString("mut ")
-		}
-		out.WriteString("__recv_guard = self.0")
-		WriteBorrowMethod(out, mutableReceiver)
-		out.WriteString(";\n")
-		out.WriteString("        let __recv = __recv_guard.")
-		if mutableReceiver {
-			out.WriteString("as_mut")
-		} else {
-			out.WriteString("as_ref")
-		}
-		out.WriteString("().unwrap();\n")
+		writePointerWrapperReceiverRef(out, "        ", receiverType, mutableReceiver)
 	}
 	out.WriteString("        ")
 	out.WriteString(receiverType)
@@ -4031,6 +4018,41 @@ func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, meth
 	}
 	out.WriteString(")\n")
 	out.WriteString("    }\n")
+}
+
+// writePointerWrapperReceiverRef binds __recv to the value the pointer newtype
+// self points at, for a method called through an interface. The cell is
+// borrowed only to find the value: a method that waits, as on a mutex the
+// value holds, must not keep another goroutine from reaching the value, as
+// one that calls a method of the same value while holding that mutex does.
+func writePointerWrapperReceiverRef(out *strings.Builder, indent string, receiverType string, mutable bool) {
+	out.WriteString(indent)
+	out.WriteString("let __recv_ptr: ")
+	if mutable {
+		out.WriteString("*mut ")
+	} else {
+		out.WriteString("*const ")
+	}
+	out.WriteString(receiverType)
+	out.WriteString(" = { let ")
+	if mutable {
+		out.WriteString("mut ")
+	}
+	out.WriteString("__recv_guard = self.0")
+	WriteBorrowMethod(out, mutable)
+	if mutable {
+		out.WriteString("; __recv_guard.as_mut().unwrap() as *mut ")
+	} else {
+		out.WriteString("; __recv_guard.as_ref().unwrap() as *const ")
+	}
+	out.WriteString(receiverType)
+	out.WriteString(" };\n")
+	out.WriteString(indent)
+	if mutable {
+		out.WriteString("let __recv = unsafe { &mut *__recv_ptr };\n")
+	} else {
+		out.WriteString("let __recv = unsafe { &*__recv_ptr };\n")
+	}
 }
 
 func writePointerLocalInterfaceSupportImpl(out *strings.Builder, typeName, ifaceName, wrapperName string, ifaceType *types.Interface) {

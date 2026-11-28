@@ -820,8 +820,8 @@ impl std::fmt::Display for itemPtr {
 
 impl Object for itemPtr {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const item = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const item };
+        let __recv = unsafe { &*__recv_ptr };
         item::name(__recv)
     }
     fn __go_clone_box_object(&self) -> Box<dyn Object> {

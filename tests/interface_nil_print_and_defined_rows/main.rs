@@ -1169,8 +1169,8 @@ impl std::fmt::Display for RectPtr {
 
 impl Shape for RectPtr {
     fn area(&self) -> f64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Rect = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Rect };
+        let __recv = unsafe { &*__recv_ptr };
         Rect::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape> {
@@ -1229,8 +1229,8 @@ impl std::fmt::Display for Spare__intPtr {
 
 impl Shape for Spare__intPtr {
     fn area(&self) -> f64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Spare__int = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Spare__int };
+        let __recv = unsafe { &*__recv_ptr };
         Spare__int::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape> {

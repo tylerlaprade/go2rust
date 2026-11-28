@@ -928,8 +928,8 @@ impl std::fmt::Display for PersonPtr {
 
 impl Named for PersonPtr {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Person = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Person };
+        let __recv = unsafe { &*__recv_ptr };
         Person::name(__recv)
     }
     fn __go_clone_box_named(&self) -> Box<dyn Named> {
@@ -998,8 +998,8 @@ impl std::fmt::Display for PetPtr {
 
 impl Named for PetPtr {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Pet = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Pet };
+        let __recv = unsafe { &*__recv_ptr };
         Pet::name(__recv)
     }
     fn __go_clone_box_named(&self) -> Box<dyn Named> {
@@ -1062,8 +1062,8 @@ impl std::fmt::Display for RobotPtr {
 
 impl Named for RobotPtr {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Robot = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Robot };
+        let __recv = unsafe { &*__recv_ptr };
         Robot::name(__recv)
     }
     fn __go_clone_box_named(&self) -> Box<dyn Named> {

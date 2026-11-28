@@ -1371,9 +1371,9 @@ impl Tree__int {
         if false {
         return;
     }
-        __go_nil_recv_tree__int_walk({ let __field = self.left.clone(); __field }, Rc::new(RefCell::new(GoFuncValue::go_func_value(&(visit)))));
+        __go_nil_recv_tree__int_walk({ let __field = self.left.clone(); __field }, Rc::new(RefCell::new({ let __func_value = (*visit.borrow()).clone(); __func_value })));
         { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> ()> = visit.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))) };
-        __go_nil_recv_tree__int_walk({ let __field = self.right.clone(); __field }, Rc::new(RefCell::new(GoFuncValue::go_func_value(&(visit)))));
+        __go_nil_recv_tree__int_walk({ let __field = self.right.clone(); __field }, Rc::new(RefCell::new({ let __func_value = (*visit.borrow()).clone(); __func_value })));
     }
 }
 
@@ -1406,9 +1406,9 @@ impl Tree__string {
         if false {
         return;
     }
-        __go_nil_recv_tree__string_walk({ let __field = self.left.clone(); __field }, Rc::new(RefCell::new(GoFuncValue::go_func_value(&(visit)))));
+        __go_nil_recv_tree__string_walk({ let __field = self.left.clone(); __field }, Rc::new(RefCell::new({ let __func_value = (*visit.borrow()).clone(); __func_value })));
         { let __f: Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> ()> = visit.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))) };
-        __go_nil_recv_tree__string_walk({ let __field = self.right.clone(); __field }, Rc::new(RefCell::new(GoFuncValue::go_func_value(&(visit)))));
+        __go_nil_recv_tree__string_walk({ let __field = self.right.clone(); __field }, Rc::new(RefCell::new({ let __func_value = (*visit.borrow()).clone(); __func_value })));
     }
 }
 
@@ -1594,9 +1594,9 @@ pub fn __go_nil_recv_tree__int_walk(t: Rc<RefCell<Option<Tree__int>>>, visit: Rc
     if { let __nil_result = (*t.borrow()).is_none(); __nil_result } {
         return;
     }
-    __go_nil_recv_tree__int_walk({ let __field = (*t.borrow().as_ref().unwrap()).left.clone(); __field }, Rc::new(RefCell::new(GoFuncValue::go_func_value(&(visit)))));
+    __go_nil_recv_tree__int_walk({ let __field = (*t.borrow().as_ref().unwrap()).left.clone(); __field }, Rc::new(RefCell::new({ let __func_value = (*visit.borrow()).clone(); __func_value })));
     { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> ()> = visit.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*t.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))) };
-    __go_nil_recv_tree__int_walk({ let __field = (*t.borrow().as_ref().unwrap()).right.clone(); __field }, Rc::new(RefCell::new(GoFuncValue::go_func_value(&(visit)))));
+    __go_nil_recv_tree__int_walk({ let __field = (*t.borrow().as_ref().unwrap()).right.clone(); __field }, Rc::new(RefCell::new({ let __func_value = (*visit.borrow()).clone(); __func_value })));
 }
 
 pub fn __go_nil_recv_tree__string_insert(t: Rc<RefCell<Option<Tree__string>>>, v: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Tree__string>>> {
@@ -1615,9 +1615,9 @@ pub fn __go_nil_recv_tree__string_walk(t: Rc<RefCell<Option<Tree__string>>>, vis
     if { let __nil_result = (*t.borrow()).is_none(); __nil_result } {
         return;
     }
-    __go_nil_recv_tree__string_walk({ let __field = (*t.borrow().as_ref().unwrap()).left.clone(); __field }, Rc::new(RefCell::new(GoFuncValue::go_func_value(&(visit)))));
+    __go_nil_recv_tree__string_walk({ let __field = (*t.borrow().as_ref().unwrap()).left.clone(); __field }, Rc::new(RefCell::new({ let __func_value = (*visit.borrow()).clone(); __func_value })));
     { let __f: Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> ()> = visit.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*t.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))) };
-    __go_nil_recv_tree__string_walk({ let __field = (*t.borrow().as_ref().unwrap()).right.clone(); __field }, Rc::new(RefCell::new(GoFuncValue::go_func_value(&(visit)))));
+    __go_nil_recv_tree__string_walk({ let __field = (*t.borrow().as_ref().unwrap()).right.clone(); __field }, Rc::new(RefCell::new({ let __func_value = (*visit.borrow()).clone(); __func_value })));
 }
 
 impl GoValueClone for Node__string {

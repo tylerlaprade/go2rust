@@ -494,8 +494,8 @@ impl std::fmt::Display for upperWriterPtr {
 
 impl Writer for upperWriterPtr {
     fn write(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
-        let mut __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut upperWriter = { let mut __recv_guard = self.0.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut upperWriter };
+        let __recv = unsafe { &mut *__recv_ptr };
         upperWriter::write(__recv, p)
     }
     fn __go_clone_box_writer(&self) -> Box<dyn Writer + Send + Sync> {
@@ -519,8 +519,8 @@ impl Writer for upperWriterPtr {
 
 impl io::r#mod::Writer for upperWriterPtr {
     fn write(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
-        let mut __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut upperWriter = { let mut __recv_guard = self.0.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut upperWriter };
+        let __recv = unsafe { &mut *__recv_ptr };
         upperWriter::write(__recv, p)
     }
     fn __go_clone_box_writer(&self) -> Box<dyn io::r#mod::Writer + Send + Sync> {
@@ -578,13 +578,13 @@ fn main() {
     } }
     println!();
     let mut users = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(User { name: Arc::new(Mutex::new(Some("bob".to_string()))), age: Arc::new(Mutex::new(Some(30))), roles: Arc::new(Mutex::new(None)), ..Default::default() }))), Arc::new(Mutex::new(Some(User { name: Arc::new(Mutex::new(Some("al".to_string()))), age: Arc::new(Mutex::new(Some(25))), roles: Arc::new(Mutex::new(Some(vec!["admin".to_string()]))), ..Default::default() }))), Arc::new(Mutex::new(Some(User { name: Arc::new(Mutex::new(Some("cy".to_string()))), age: Arc::new(Mutex::new(Some(35))), roles: Arc::new(Mutex::new(Some(vec!["dev".to_string(), "ops".to_string()]))), ..Default::default() })))])));
-    let users_closure_clone = users.clone(); { let __sort_target = users_closure_clone.clone(); let __sort_less = Arc::new(Mutex::new(Some(Arc::new(move |i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>| -> bool {
+    let users_closure_clone = users.clone(); { let __sort_target = users_closure_clone.clone(); let __sort_less = Arc::new(Mutex::new(Some({ let users_closure_clone_closure_clone = users_closure_clone.clone(); Arc::new(move |i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>| -> bool {
         return {
-            let __tmp_x = (*(*{ let __seq = { let __seq_holder = users_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).age.lock().unwrap().as_ref().unwrap());
-            let __tmp_y = (*(*{ let __seq = { let __seq_holder = users_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).age.lock().unwrap().as_ref().unwrap());
+            let __tmp_x = (*(*{ let __seq = { let __seq_holder = users_closure_clone_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).age.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*(*{ let __seq = { let __seq_holder = users_closure_clone_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).age.lock().unwrap().as_ref().unwrap());
             __tmp_x < __tmp_y
         };
-    }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i64))), Arc::new(Mutex::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
+    }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync> }))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i64))), Arc::new(Mutex::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     { let __go_print_arg_1 = {
     let __recv = {
         let __seq = { let __seq_holder = users.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned };

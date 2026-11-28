@@ -820,8 +820,8 @@ impl std::fmt::Display for ImplPtr {
 
 impl Spec for ImplPtr {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Impl = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Impl };
+        let __recv = unsafe { &*__recv_ptr };
         Impl::name(__recv)
     }
     fn __go_clone_box_spec(&self) -> Box<dyn Spec> {

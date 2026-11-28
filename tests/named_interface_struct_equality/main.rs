@@ -1181,8 +1181,8 @@ impl std::fmt::Display for NumberPtr {
 
 impl Value for NumberPtr {
     fn value(&self) -> f64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Number = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Number };
+        let __recv = unsafe { &*__recv_ptr };
         Number::value(__recv)
     }
     fn __go_clone_box_value(&self) -> Box<dyn Value> {

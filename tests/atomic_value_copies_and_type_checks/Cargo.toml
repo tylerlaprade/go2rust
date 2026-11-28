@@ -1,0 +1,11 @@
+[package]
+name = "atomic_value_copies_and_type_checks"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "atomic_value_copies_and_type_checks"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

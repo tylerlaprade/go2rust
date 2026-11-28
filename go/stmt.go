@@ -3412,6 +3412,24 @@ func writeCurrentPackagePointerTranspiledInterfaceBox(out *strings.Builder, resu
 	return true
 }
 
+// writeChannelTypeAssertionReturnValue writes return x.(chan T): the
+// assertion gives the channel, which a function returns bare.
+func writeChannelTypeAssertionReturnValue(out *strings.Builder, result ast.Expr) bool {
+	assert, ok := unwrapParens(result).(*ast.TypeAssertExpr)
+	if !ok || assert.Type == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if _, ok := types.Unalias(typeInfo.GetType(assert.Type)).(*types.Chan); !ok {
+		return false
+	}
+	TranspileExpression(out, result)
+	return true
+}
+
 func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
 	interfaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedTypeFromParamExpr(expected))
 	if !ok {
@@ -11441,6 +11459,25 @@ func cloneMutexGuards(guards map[string]string) map[string]string {
 	return cloned
 }
 
+// mergeMutexGuardsAfterIfStmt is mergeMutexGuardsAfterIf for the if
+// statement stmt. A branch that ends the function, or leaves the loop, has
+// no say in the guards held after the statement: in
+// "mu.Lock(); if done { mu.Unlock(); return }; ...; mu.Unlock()" the guard
+// is still held after the if, and the last Unlock drops it.
+func mergeMutexGuardsAfterIfStmt(stmt *ast.IfStmt, before, thenGuards, elseGuards map[string]string) map[string]string {
+	thenEnds := stmt != nil && stmt.Body != nil && stmtListTerminates(stmt.Body.List)
+	elseEnds := stmt != nil && stmt.Else != nil && stmtTerminates(stmt.Else)
+	switch {
+	case thenEnds && elseEnds:
+		return cloneMutexGuards(before)
+	case thenEnds:
+		return mergeMutexGuardsAfterIf(before, elseGuards, elseGuards)
+	case elseEnds:
+		return mergeMutexGuardsAfterIf(before, thenGuards, thenGuards)
+	}
+	return mergeMutexGuardsAfterIf(before, thenGuards, elseGuards)
+}
+
 func mergeMutexGuardsAfterIf(before, thenGuards, elseGuards map[string]string) map[string]string {
 	merged := make(map[string]string)
 	for key, guardName := range before {
@@ -12250,7 +12287,7 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 		transpileElseBranch(out, stmt.Else, fnType, fileSet)
 		elseGuards = cloneMutexGuards(activeMutexGuards)
 	}
-	activeMutexGuards = mergeMutexGuardsAfterIf(beforeGuards, thenGuards, elseGuards)
+	activeMutexGuards = mergeMutexGuardsAfterIfStmt(stmt, beforeGuards, thenGuards, elseGuards)
 	out.WriteString("\n    }")
 }
 
@@ -12945,7 +12982,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			oldCaptureRenames := snapshotCaptureRenames()
 			currentCaptureRenames = mergeCaptureRenames(oldCaptureRenames, captureInfo.CapturedVars)
 			defer func() { currentCaptureRenames = oldCaptureRenames }()
-			defer pushSiblingClosureCaptureClones(captureInfo)()
+			defer pushSiblingClosureCaptureClones(captureInfo, stmt)()
 		}
 	}
 
@@ -13477,6 +13514,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								}
 							}
 						}
+					} else if writeChannelTypeAssertionReturnValue(out, result) {
 					} else if writeLocalInterfaceConcreteReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
 					} else if writeTypeParamNewDerefExpression(out, result) {
 					} else if writePointerReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
@@ -17082,7 +17120,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			elseGuards = cloneMutexGuards(activeMutexGuards)
 		}
-		activeMutexGuards = mergeMutexGuardsAfterIf(beforeGuards, thenGuards, elseGuards)
+		activeMutexGuards = mergeMutexGuardsAfterIfStmt(s, beforeGuards, thenGuards, elseGuards)
 
 	case *ast.SwitchStmt:
 		// Handle init statement if present

@@ -251,8 +251,8 @@ impl std::fmt::Display for errReaderPtr {
 
 impl io::r#mod::Reader for errReaderPtr {
     fn read(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
-        let mut __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut errReader = { let mut __recv_guard = self.0.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut errReader };
+        let __recv = unsafe { &mut *__recv_ptr };
         errReader::read(__recv, p)
     }
     fn __go_clone_box_reader(&self) -> Box<dyn io::r#mod::Reader + Send + Sync> {

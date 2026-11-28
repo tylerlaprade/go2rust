@@ -852,8 +852,8 @@ impl std::fmt::Display for CatPtr {
 
 impl Animal for CatPtr {
     fn sound(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Cat = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Cat };
+        let __recv = unsafe { &*__recv_ptr };
         Cat::sound(__recv)
     }
     fn __go_clone_box_animal(&self) -> Box<dyn Animal> {
@@ -912,8 +912,8 @@ impl std::fmt::Display for DogPtr {
 
 impl Animal for DogPtr {
     fn sound(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Dog = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Dog };
+        let __recv = unsafe { &*__recv_ptr };
         Dog::sound(__recv)
     }
     fn __go_clone_box_animal(&self) -> Box<dyn Animal> {

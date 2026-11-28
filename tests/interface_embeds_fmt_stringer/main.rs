@@ -827,13 +827,13 @@ impl std::fmt::Display for dogPtr {
 
 impl Named for dogPtr {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const dog = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const dog };
+        let __recv = unsafe { &*__recv_ptr };
         dog::name(__recv)
     }
     fn string(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const dog = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const dog };
+        let __recv = unsafe { &*__recv_ptr };
         dog::string(__recv)
     }
     fn __go_clone_box_named(&self) -> Box<dyn Named> {

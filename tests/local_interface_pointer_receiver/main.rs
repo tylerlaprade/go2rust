@@ -911,13 +911,13 @@ impl std::fmt::Display for listPtr {
 
 impl List for listPtr {
     fn label(&self, index: Rc<RefCell<Option<i64>>>) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const list = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const list };
+        let __recv = unsafe { &*__recv_ptr };
         list::label(__recv, index)
     }
     fn valid(&self, index: Rc<RefCell<Option<i64>>>) -> bool {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const list = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const list };
+        let __recv = unsafe { &*__recv_ptr };
         list::valid(__recv, index)
     }
     fn __go_clone_box_list(&self) -> Box<dyn List> {

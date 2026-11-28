@@ -1020,8 +1020,8 @@ impl std::fmt::Display for LinesPtr {
 
 impl io::r#mod::Writer for LinesPtr {
     fn write(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
-        let mut __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut Lines = { let mut __recv_guard = self.0.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Lines };
+        let __recv = unsafe { &mut *__recv_ptr };
         Lines::write(__recv, p)
     }
     fn __go_clone_box_writer(&self) -> Box<dyn io::r#mod::Writer + Send + Sync> {

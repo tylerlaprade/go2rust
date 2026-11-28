@@ -2,6 +2,7 @@
 [workspace]
 members = [
     ".",
+    "vendor/context",
     "vendor/go2rust_stdlib_stubs",
     "vendor/internal_bisect",
     "vendor/internal_bytealg",
@@ -25,6 +26,7 @@ path = "main.rs"
 overflow-checks = false
 
 [dependencies]
+context = { path = "vendor/context" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 internal_bisect = { path = "vendor/internal_bisect" }
 internal_bytealg = { path = "vendor/internal_bytealg" }
