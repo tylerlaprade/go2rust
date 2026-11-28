@@ -10943,8 +10943,10 @@ func writeAnySliceCloneValue(out *strings.Builder, expr ast.Expr) {
 		out.WriteString("Vec::new()")
 		return
 	}
-	// An element of a [][]any is the slice itself, not a cell around it.
-	if _, ok := unwrapParens(expr).(*ast.IndexExpr); ok && isExpressionResultBare(unwrapParens(expr)) {
+	// An element of a [][]any, and a slice asserted out of an interface,
+	// x.([]any), are the slice itself, not a cell around it.
+	_, isAssertion := unwrapParens(expr).(*ast.TypeAssertExpr)
+	if _, ok := unwrapParens(expr).(*ast.IndexExpr); isAssertion || ok && isExpressionResultBare(unwrapParens(expr)) {
 		out.WriteString("{ let __slice_value = ")
 		TranspileExpression(out, expr)
 		if goSliceModeEnabled() {

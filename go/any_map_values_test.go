@@ -285,3 +285,25 @@ func main() {
 		t.Fatalf("the bare inner slice is not a cell to borrow:\n%s", rust)
 	}
 }
+
+// A slice asserted out of an interface{}, x.([]any), is the slice itself, so
+// boxing it into another []any copies it instead of borrowing a cell
+// (any_slice_asserted_into_any_slice_literal).
+func TestAssertedAnySliceIsBoxedFromTheSliceItself(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	var x any = []any{1}
+	ys := []any{x.([]any)}
+	fmt.Println(ys)
+}
+`)
+	if !strings.Contains(rust, "Box::new({ let __slice_value = ") {
+		t.Fatalf("the asserted slice should be copied as it is:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __slice_holder = ({") {
+		t.Fatalf("the asserted slice is not a cell to borrow:\n%s", rust)
+	}
+}

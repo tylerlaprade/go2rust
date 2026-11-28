@@ -528,6 +528,10 @@ run_xfail_test() {
     run_test "tests/any_selector_return"
 }
 
+@test "any_slice_asserted_into_any_slice_literal" {
+    run_test "tests/any_slice_asserted_into_any_slice_literal"
+}
+
 @test "any_slice_element_comma_ok" {
     run_test "tests/any_slice_element_comma_ok"
 }
