@@ -9427,6 +9427,17 @@ func writeMapHandleElementValue(out *strings.Builder, expr ast.Expr, elemType ty
 		WriteWrapperSuffix(out)
 		return true
 	}
+	// A map bound by a channel range or a select receive is bare too, as the
+	// channel carried it.
+	if ident, ok := inner.(*ast.Ident); ok {
+		if kind := rangeLoopVars[ident.Name]; kind == "channel_val" || kind == "select_val" {
+			WriteWrapperPrefix(out)
+			out.WriteString(rustIdentForUseWithCapture(ident))
+			out.WriteString(".clone()")
+			WriteWrapperSuffix(out)
+			return true
+		}
+	}
 	// A channel carries a map bare; the element is a handle around it.
 	if unary, ok := inner.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
 		WriteWrapperPrefix(out)

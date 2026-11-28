@@ -211,3 +211,23 @@ func main() {
 		t.Fatalf("a defined map from an element should wrap the element's handle, not a new cell:\n%s", rust)
 	}
 }
+
+// A map bound by a channel range or a select receive is bare, as the
+// channel carried it, so as an element it is wrapped once
+// (slices_of_maps_from_channel_range_and_select).
+func TestChannelBoundMapIsWrappedAsElement(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func run(ch chan map[string]int) int {
+	n := 0
+	for m := range ch {
+		s := []map[string]int{m}
+		n += len(s[0])
+	}
+	return n
+}
+`)
+	if !strings.Contains(rust, "vec![Arc::new(Mutex::new(Some(m.clone())))]") && !strings.Contains(rust, "vec![Rc::new(RefCell::new(Some(m.clone())))]") {
+		t.Fatalf("a channel-bound map should be wrapped once as an element:\n%s", rust)
+	}
+}
