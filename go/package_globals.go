@@ -1405,7 +1405,8 @@ func writePackageGlobalMapSliceValueInsert(out *strings.Builder, indent string, 
 	out.WriteString("let mut ")
 	out.WriteString(valueName)
 	out.WriteString(" = Vec::<")
-	out.WriteString(goTypesTypeToRust(sliceType.Elem()))
+	// An element of map type is the map's handle (#318).
+	out.WriteString(goTypesCollectionElemTypeToRust(sliceType.Elem()))
 	out.WriteString(">::new();\n")
 	for _, elt := range orderedArrayLiteralValues(valueLit.Elts) {
 		out.WriteString(indent)
@@ -1413,6 +1414,8 @@ func writePackageGlobalMapSliceValueInsert(out *strings.Builder, indent string, 
 		out.WriteString(".push(")
 		if elt == nil {
 			out.WriteString(collectionElementZeroValue(sliceType.Elem()))
+		} else if writeMapHandleElementValue(out, elt, sliceType.Elem()) {
+			// A map element is its map's handle.
 		} else if !writeOwnedExpressionValue(out, elt) {
 			TranspileExpression(out, elt)
 		}

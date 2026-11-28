@@ -9413,6 +9413,20 @@ func writeMapHandleElementValue(out *strings.Builder, expr ast.Expr, elemType ty
 		}
 		return true
 	}
+	// A map asserted out of an interface is the handle the interface holds
+	// where that is known, and otherwise comes out bare, as from a []any
+	// element, and is wrapped once.
+	if assertion, ok := inner.(*ast.TypeAssertExpr); ok {
+		var handle strings.Builder
+		if writeAnyHandleAssertionHandle(&handle, assertion) {
+			out.WriteString(handle.String())
+			return true
+		}
+		WriteWrapperPrefix(out)
+		TranspileExpression(out, assertion)
+		WriteWrapperSuffix(out)
+		return true
+	}
 	// A channel carries a map bare; the element is a handle around it.
 	if unary, ok := inner.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
 		WriteWrapperPrefix(out)

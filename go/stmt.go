@@ -7450,6 +7450,41 @@ func isTypedAssignmentSelfWrappingExpression(expr ast.Expr) bool {
 	return isAssignmentSelfWrappingExpression(expr)
 }
 
+// writeDefinedMapFromElementHandle writes the initializer of var c Counts =
+// s[0], where Counts is a defined map type and s a slice or array of its
+// unnamed map type: the newtype around the element's handle, so c and the
+// element share one map. It reports whether it wrote it.
+func writeDefinedMapFromElementHandle(out *strings.Builder, declType ast.Expr, value ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	index, ok := unwrapParens(value).(*ast.IndexExpr)
+	if declType == nil || typeInfo == nil || !ok || !mapElementIndexExpression(index) {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(declType)).(*types.Named)
+	if !ok || !types.Identical(named.Underlying(), typeInfo.GetType(value)) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(goTypesTypeToRust(named))
+	out.WriteString("(")
+	TranspileExpression(out, value)
+	out.WriteString(")")
+	WriteWrapperSuffix(out)
+	return true
+}
+
+// varDeclConvertsToOtherType reports whether var x T = value declares x of a
+// type T other than value's own, as var c Counts = s[0] for a []map: the
+// value is then converted to T, not taken as the handle it is.
+func varDeclConvertsToOtherType(declType ast.Expr, value ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if declType == nil || typeInfo == nil {
+		return false
+	}
+	declared, valueType := typeInfo.GetType(declType), typeInfo.GetType(value)
+	return declared != nil && valueType != nil && !types.Identical(declared, valueType)
+}
+
 // mapIndexExpressionKeepsHandle reports whether expr reads a handle out of
 // a collection: a map value that is a map, slice, pointer or the like, or an
 // element of an array or slice of an unnamed map type, which is the map's
@@ -11967,10 +12002,11 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 		}
 		rustName := rustIdentForUseWithCapture(ident)
 		// Check if it's a range loop variable, constant, or bare variable
-		if _, isRange := rangeLoopVars[ident.Name]; isRange {
+		if rangeKind, isRange := rangeLoopVars[ident.Name]; isRange {
 			// A range value over a slice of maps is the map's handle (#318),
-			// and a channel carries the map bare.
-			if typeInfo != nil && isUnnamedMapType(typeInfo.GetType(ident)) {
+			// and a channel carries the map bare. A value received from a
+			// channel or in a select is already bare.
+			if typeInfo != nil && isUnnamedMapType(typeInfo.GetType(ident)) && rangeKind != "channel_val" && rangeKind != "select_val" {
 				out.WriteString("(*")
 				out.WriteString(rustName)
 				WriteBorrowMethod(out, false)
@@ -15742,7 +15778,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										registerBareShortDecl(name)
 									}
 									TranspileExpression(out, valueSpec.Values[i])
-								} else if mapIndexExpressionKeepsHandle(valueSpec.Values[i]) {
+								} else if writeDefinedMapFromElementHandle(out, valueSpec.Type, valueSpec.Values[i]) {
+									// var c Counts = s[0]: the defined map shares the element's map.
+								} else if mapIndexExpressionKeepsHandle(valueSpec.Values[i]) && !varDeclConvertsToOtherType(valueSpec.Type, valueSpec.Values[i]) {
 									// Map values that are maps/slices/pointers/etc. already return cloneable handles.
 									TranspileExpression(out, valueSpec.Values[i])
 								} else if writeConcurrentMapSelectorHandleClone(out, valueSpec.Values[i]) {

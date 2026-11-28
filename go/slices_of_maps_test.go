@@ -180,3 +180,34 @@ func main() {}
 		t.Fatalf("an omitted element should be a nil map handle:\n%s", rust)
 	}
 }
+
+// A map asserted out of a []any element, a defined map declared from a
+// slice-of-maps element, and a package-level map of slices of maps each
+// hold map handles (slices_of_maps_more_review_cases).
+func TestSliceOfMapsAssertionDefinedMapAndGlobalMapOfSlices(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Counts map[string]int
+
+var groups = map[string][]map[string]int{"a": {{"x": 1}, nil}}
+
+func main() {
+	values := []any{map[string]int{"v": 2}}
+	ms := []map[string]int{values[0].(map[string]int)}
+	s := []map[string]int{{"c": 3}}
+	var c Counts = s[0]
+	_, _ = ms, c
+}
+`)
+	for _, want := range []string{
+		"Vec::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>::new();",
+		"Some(Counts((*s.borrow().as_ref().unwrap())[(0) as usize].clone()))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "Counts(Rc::new(RefCell::new(Some((*s.borrow()") {
+		t.Fatalf("a defined map from an element should wrap the element's handle, not a new cell:\n%s", rust)
+	}
+}
