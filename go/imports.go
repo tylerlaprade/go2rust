@@ -6158,9 +6158,12 @@ func generateGoFloatStringHelper(out *strings.Builder, complexDisplay bool, floa
 	if floatSliceDisplay && goSliceModeEnabled() {
 		// A []float64 held as a map value prints its elements as floats,
 		// which GoSlice's own Display, for any element type, does not (#339).
-		out.WriteString(`    if __name.ends_with("GoSlice<f64>") || __name.ends_with("GoSlice<f32>") {
-        // T is GoSlice<f64> or GoSlice<f32>.
-        let __items: std::vec::Vec<String> = if __name.ends_with("f32>") {
+		out.WriteString(`    let __f64_slice = std::any::type_name::<GoSlice<f64>>();
+    let __f32_slice = std::any::type_name::<GoSlice<f32>>();
+    if __name == __f64_slice || __name == __f32_slice {
+        // T is GoSlice<f64> or GoSlice<f32>, the very type named here: a
+        // type of another path whose name ends the same way is not.
+        let __items: std::vec::Vec<String> = if __name == __f32_slice {
             let __slice = unsafe { &*(__value as *const T as *const GoSlice<f32>) };
             __slice.as_slice().iter().map(|__item| go_float_string(*__item as f64, true)).collect()
         } else {

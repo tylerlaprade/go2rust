@@ -51,7 +51,7 @@ func main() {
 }
 `)
 	for _, want := range []string{
-		`if __name.ends_with("GoSlice<f64>") || __name.ends_with("GoSlice<f32>") {`,
+		"if __name == __f64_slice || __name == __f32_slice {",
 		"go_float_string(*__item, false)",
 	} {
 		if !strings.Contains(rust, want) {
