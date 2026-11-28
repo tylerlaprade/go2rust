@@ -9095,9 +9095,7 @@ func writeBareFixedArrayCompositeLiteral(out *strings.Builder, expr ast.Expr, ex
 			out.WriteString(zeroValueForTypesType(elemType))
 			continue
 		}
-		if !writeArraySliceLiteralElementValue(out, elt, elemType) {
-			TranspileExpression(out, elt)
-		}
+		writeNestedCollectionLiteralElement(out, elt, elemType)
 	}
 	out.WriteString("]")
 	return true
@@ -9197,8 +9195,8 @@ func writeBareSliceCompositeLiteral(out *strings.Builder, expr ast.Expr, expecte
 		}
 		if elt == nil {
 			out.WriteString(zeroValueForTypesType(elemType))
-		} else if !writeArraySliceLiteralElementValue(out, elt, elemType) {
-			TranspileExpression(out, elt)
+		} else {
+			writeNestedCollectionLiteralElement(out, elt, elemType)
 		}
 		if multilineSliceLiteral {
 			out.WriteString(",\n")
@@ -9216,6 +9214,105 @@ func writeBareSliceCompositeLiteral(out *strings.Builder, expr ast.Expr, expecte
 		out.WriteString("]")
 	}
 	return true
+}
+
+// writeNestedCollectionLiteralElement writes an element of a slice or array
+// literal nested in another literal, as {1, "a"} in [][]any{{1, "a"}}: an
+// element of an empty interface type is boxed, as in a []any literal of its
+// own (#343).
+func writeNestedCollectionLiteralElement(out *strings.Builder, elt ast.Expr, elemType types.Type) {
+	if isEmptyInterfaceType(elemType) {
+		TrackImport("Any")
+		writeInterfaceSliceLiteralElement(out, elt, elemType, "Any", false)
+		return
+	}
+	if !writeArraySliceLiteralElementValue(out, elt, elemType) {
+		TranspileExpression(out, elt)
+	}
+}
+
+// writeInterfaceSliceLiteralElement writes elt as an element of a slice or
+// array literal whose elements are interfaceName: boxed, or for a local named
+// interface wrapped, as every element of such a literal is.
+func writeInterfaceSliceLiteralElement(out *strings.Builder, elt ast.Expr, elemType types.Type, interfaceName string, wrapInterfaceElements bool) {
+	if wrapInterfaceElements {
+		if elemType == nil {
+			out.WriteString(`unimplemented!("type info required to lower local interface slice literal element")`)
+			return
+		}
+		if !writeArraySliceLiteralElementValue(out, elt, elemType) {
+			TranspileExpression(out, elt)
+		}
+		return
+	}
+	// An error goes into a []any literal the way it goes into
+	// any other interface value.
+	if isEmptyInterfaceType(elemType) && writeGoErrorInterfaceAnyBox(out, elt) {
+		return
+	}
+	// nil, and another interface value, nil or not, are boxed
+	// as every []any element is (GoNilAny for nil).
+	if isEmptyInterfaceType(elemType) {
+		if ident, ok := unwrapParens(elt).(*ast.Ident); (ok && ident.Name == "nil") || isEmptyInterfaceValueExpr(elt) {
+			writeBareAnyBox(out, elt)
+			return
+		}
+		// A fmt.Stringer goes in as the value it holds.
+		if writeFmtStringerAnyBox(out, elt) {
+			return
+		}
+		// A []any goes in as the owned copy of its elements
+		// it is boxed as everywhere else.
+		if writeAnySliceCloneValueBox(out, elt) {
+			return
+		}
+	}
+	out.WriteString("Box::new(")
+	elementKeepsAnyHandle := false
+	if isEmptyInterfaceType(elemType) {
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			RegisterAnyCloneType(typeInfo.GetType(elt))
+		}
+		// A value that keeps its handle when boxed keeps it
+		// here too, the same as everywhere else it is stored
+		// in an interface.
+		elementKeepsAnyHandle = writeIntegerConstForAnyBox(out, elt) || writeAnyHandleBoxInnerValue(out, elt) || writeDefinedCollectionOwnedValue(out, elt)
+	}
+	// If the element is already a wrapped variable, unwrap it first.
+	if elementKeepsAnyHandle {
+	} else if ident, ok := unwrapParens(elt).(*ast.Ident); ok && isEmptyInterfaceType(elemType) && isConstIdent(ident) {
+		// A constant goes in as a value of its type.
+		writeAnyBoxInnerValue(out, elt)
+	} else if ident, ok := elt.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" && ident.Name != "true" && ident.Name != "false" {
+		if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+			if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+				out.WriteString("(*")
+				out.WriteString(ident.Name)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).clone()")
+			} else {
+				TranspileExpression(out, elt)
+			}
+		} else {
+			TranspileExpression(out, elt)
+		}
+	} else if isEmptyInterfaceType(elemType) && isCurrentReceiverFieldSelector(elt) && writeOwnedExpressionValue(out, elt) {
+		// A field of the method's receiver goes in as its
+		// value, not as the field's cell.
+	} else {
+		TranspileExpression(out, elt)
+	}
+	if isEmptyInterfaceType(elemType) {
+		// In a program with goroutines an interface value is
+		// Box<dyn Any + Send + Sync>. Every element has to be
+		// that type, or the slice cannot be copied or ranged.
+		out.WriteString(") as ")
+		out.WriteString(rustAnyTraitObject())
+	} else {
+		out.WriteString(") as Box<dyn ")
+		out.WriteString(interfaceName)
+		out.WriteString(">")
+	}
 }
 
 func writeBareArraySliceCompositeLiteralWithSyntaxType(out *strings.Builder, expr ast.Expr, expected ast.Expr) bool {
@@ -10850,8 +10947,8 @@ func writeAnySliceElementBoxClone(out *strings.Builder, expr ast.Expr) bool {
 	out.WriteString("{ let __idx = (")
 	TranspileExpression(out, index.Index)
 	out.WriteString(") as usize; let __seq_holder = ")
-	TranspileExpressionContext(out, index.X, LValue)
-	out.WriteString(".clone(); let __seq_guard = __seq_holder")
+	writeAnySliceAssertionHolder(out, index.X)
+	out.WriteString("; let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }")
 	return true
@@ -16662,9 +16759,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								}
 							}
 							// Recursively transpile elements.
-							if !writeArraySliceLiteralElementValue(out, elt, elemType) {
-								TranspileExpression(out, elt)
-							}
+							writeNestedCollectionLiteralElement(out, elt, elemType)
 						}
 						out.WriteString("]")
 						return
@@ -16897,84 +16992,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					}
 				}
 				if isInterfaceSlice {
-					if wrapInterfaceElements {
-						if elemType == nil {
-							out.WriteString(`unimplemented!("type info required to lower local interface slice literal element")`)
-							continue
-						}
-						if !writeArraySliceLiteralElementValue(out, elt, elemType) {
-							TranspileExpression(out, elt)
-						}
-						continue
-					}
-					// An error goes into a []any literal the way it goes into
-					// any other interface value.
-					if isEmptyInterfaceType(elemType) && writeGoErrorInterfaceAnyBox(out, elt) {
-						continue
-					}
-					// nil, and another interface value, nil or not, are boxed
-					// as every []any element is (GoNilAny for nil).
-					if isEmptyInterfaceType(elemType) {
-						if ident, ok := unwrapParens(elt).(*ast.Ident); (ok && ident.Name == "nil") || isEmptyInterfaceValueExpr(elt) {
-							writeBareAnyBox(out, elt)
-							continue
-						}
-						// A fmt.Stringer goes in as the value it holds.
-						if writeFmtStringerAnyBox(out, elt) {
-							continue
-						}
-						// A []any goes in as the owned copy of its elements
-						// it is boxed as everywhere else.
-						if writeAnySliceCloneValueBox(out, elt) {
-							continue
-						}
-					}
-					out.WriteString("Box::new(")
-					elementKeepsAnyHandle := false
-					if isEmptyInterfaceType(elemType) {
-						if typeInfo := GetTypeInfo(); typeInfo != nil {
-							RegisterAnyCloneType(typeInfo.GetType(elt))
-						}
-						// A value that keeps its handle when boxed keeps it
-						// here too, the same as everywhere else it is stored
-						// in an interface.
-						elementKeepsAnyHandle = writeIntegerConstForAnyBox(out, elt) || writeAnyHandleBoxInnerValue(out, elt) || writeDefinedCollectionOwnedValue(out, elt)
-					}
-					// If the element is already a wrapped variable, unwrap it first.
-					if elementKeepsAnyHandle {
-					} else if ident, ok := unwrapParens(elt).(*ast.Ident); ok && isEmptyInterfaceType(elemType) && isConstIdent(ident) {
-						// A constant goes in as a value of its type.
-						writeAnyBoxInnerValue(out, elt)
-					} else if ident, ok := elt.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" && ident.Name != "true" && ident.Name != "false" {
-						if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
-							if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-								out.WriteString("(*")
-								out.WriteString(ident.Name)
-								WriteBorrowMethod(out, false)
-								out.WriteString(".as_ref().unwrap()).clone()")
-							} else {
-								TranspileExpression(out, elt)
-							}
-						} else {
-							TranspileExpression(out, elt)
-						}
-					} else if isEmptyInterfaceType(elemType) && isCurrentReceiverFieldSelector(elt) && writeOwnedExpressionValue(out, elt) {
-						// A field of the method's receiver goes in as its
-						// value, not as the field's cell.
-					} else {
-						TranspileExpression(out, elt)
-					}
-					if isEmptyInterfaceType(elemType) {
-						// In a program with goroutines an interface value is
-						// Box<dyn Any + Send + Sync>. Every element has to be
-						// that type, or the slice cannot be copied or ranged.
-						out.WriteString(") as ")
-						out.WriteString(rustAnyTraitObject())
-					} else {
-						out.WriteString(") as Box<dyn ")
-						out.WriteString(interfaceName)
-						out.WriteString(">")
-					}
+					writeInterfaceSliceLiteralElement(out, elt, elemType, interfaceName, wrapInterfaceElements)
 				} else {
 					if elemType == nil && writeArraySliceLiteralElementValueWithSyntaxType(out, elt, arrayType.Elt) {
 						continue
@@ -22873,8 +22891,8 @@ func writeAnySliceElementAssertionValue(out *strings.Builder, e *ast.TypeAssertE
 	TranspileExpression(out, index.Index)
 	out.WriteString(") as usize;\n")
 	out.WriteString("        let __seq_holder = ")
-	TranspileExpressionContext(out, index.X, LValue)
-	out.WriteString(".clone();\n")
+	writeAnySliceAssertionHolder(out, index.X)
+	out.WriteString(";\n")
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
@@ -22911,8 +22929,8 @@ func writeAnySliceElementAssertionCommaOk(out *strings.Builder, e *ast.TypeAsser
 	TranspileExpression(out, index.Index)
 	out.WriteString(") as usize;\n")
 	out.WriteString("        let __seq_holder = ")
-	TranspileExpressionContext(out, index.X, LValue)
-	out.WriteString(".clone();\n")
+	writeAnySliceAssertionHolder(out, index.X)
+	out.WriteString(";\n")
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
@@ -22930,6 +22948,21 @@ func writeAnySliceElementAssertionCommaOk(out *strings.Builder, e *ast.TypeAsser
 	out.WriteString("        }\n")
 	out.WriteString("    })")
 	return true
+}
+
+// writeAnySliceAssertionHolder writes the handle of the []any an element is
+// read from. A []any held bare, as rows[0] of a [][]any, goes in a handle of
+// its own.
+func writeAnySliceAssertionHolder(out *strings.Builder, x ast.Expr) {
+	if formatSliceArgumentIsBareValue(x) {
+		WriteWrapperPrefix(out)
+		TranspileExpression(out, x)
+		out.WriteString(".clone()")
+		WriteWrapperSuffix(out)
+		return
+	}
+	TranspileExpressionContext(out, x, LValue)
+	out.WriteString(".clone()")
 }
 
 func anySliceElementAssertionSource(expr ast.Expr) (*ast.IndexExpr, bool) {
@@ -23292,8 +23325,8 @@ func writeAnySliceElementPointerHandleAssertionValue(out *strings.Builder, e *as
 	TranspileExpression(out, index.Index)
 	out.WriteString(") as usize;\n")
 	out.WriteString("        let __seq_holder = ")
-	TranspileExpressionContext(out, index.X, LValue)
-	out.WriteString(".clone();\n")
+	writeAnySliceAssertionHolder(out, index.X)
+	out.WriteString(";\n")
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
@@ -23321,8 +23354,8 @@ func writeAnySliceElementHandleAssertionCommaOk(out *strings.Builder, e *ast.Typ
 	TranspileExpression(out, index.Index)
 	out.WriteString(") as usize;\n")
 	out.WriteString("        let __seq_holder = ")
-	TranspileExpressionContext(out, index.X, LValue)
-	out.WriteString(".clone();\n")
+	writeAnySliceAssertionHolder(out, index.X)
+	out.WriteString(";\n")
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
