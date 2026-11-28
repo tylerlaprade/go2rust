@@ -5965,6 +5965,13 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 	if isUnnamedSliceType(valueType) && writeGoSliceFreshCellFromVariable(out, expr) {
 		return
 	}
+	// A value of a defined integer type stored in a map[K]tally, a constant
+	// as in m[k] = 3 or arithmetic as in m[k] = t + 1, is written as a
+	// declaration of one is: the newtype around its number (#336).
+	// A receive gives the newtype already, and takes the usual path.
+	if named, ok := types.Unalias(valueType).(*types.Named); ok && isNamedIntegerType(named) && !isChannelReceiveExpr(expr) && writeNamedIntegerWrappedInitializer(out, expr) {
+		return
+	}
 	if isFunctionSignatureType(valueType) && writeFuncValueFreshCellFromStorage(out, expr, valueType) {
 		return
 	}
@@ -9884,6 +9891,12 @@ func writeNamedIntegerConstCompoundAssignValue(out *strings.Builder, expr ast.Ex
 		return writeExpressionForExpectedTypesType(out, expr, named)
 	}
 	return writeNamedIntegerConstForExpected(out, expr, named)
+}
+
+// isChannelReceiveExpr reports whether expr is a receive, <-ch.
+func isChannelReceiveExpr(expr ast.Expr) bool {
+	unary, ok := unwrapParens(expr).(*ast.UnaryExpr)
+	return ok && unary.Op == token.ARROW
 }
 
 func writeNamedIntegerWrappedInitializer(out *strings.Builder, expr ast.Expr) bool {
