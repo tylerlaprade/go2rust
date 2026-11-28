@@ -70,6 +70,6 @@ fn main() {
     go_install_panic_exit();
     ::example_com_packagevariadic_label::__go_init_all();
 
-    println!("{}", format!("{}", (*example_com_packagevariadic_label::count(Rc::new(RefCell::new(Some("empty".to_string()))), Rc::new(RefCell::new(Some(vec![])))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*example_com_packagevariadic_label::count(Rc::new(RefCell::new(Some("empty".to_string()))), Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
     println!("{}", format!("{}", (*example_com_packagevariadic_label::count(Rc::new(RefCell::new(Some("full".to_string()))), Rc::new(RefCell::new(Some(vec!["alpha".to_string(), "beta".to_string()])))).borrow().as_ref().unwrap())));
 }

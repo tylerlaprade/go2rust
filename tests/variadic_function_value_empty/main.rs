@@ -740,7 +740,7 @@ pub type reporter = Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>, Rc<
 
 
 pub fn call(report: reporter) {
-    { let __f: Rc<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()> = report.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some("ready".to_string()))), Rc::new(RefCell::new(Some(vec![])))) };
+    { let __f: Rc<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()> = report.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some("ready".to_string()))), Rc::new(RefCell::new(None))) };
 }
 
 fn main() {
