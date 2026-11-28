@@ -1973,6 +1973,11 @@ func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemTyp
 			return
 		}
 	}
+	// A ...map[K]V parameter is a slice of maps, which holds the maps'
+	// handles (#318).
+	if writeMapHandleElementValue(out, arg, elemType) {
+		return
+	}
 	if elemType != nil {
 		if _, ok := types.Unalias(elemType).Underlying().(*types.Slice); ok {
 			writeSliceCloneOrEmpty(out, arg)

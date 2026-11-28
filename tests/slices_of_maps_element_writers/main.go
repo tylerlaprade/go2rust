@@ -39,6 +39,20 @@ func main() {
 	for i, row := range ms2() {
 		fmt.Println(i, row)
 	}
+
+	// A ...map parameter holds the arguments' handles.
+	fmt.Println(take(makeMap()), take(m, makeMap()), take(), m["seen"])
+}
+
+func makeMap() map[string]int { return map[string]int{"k": 1} }
+
+func take(ms ...map[string]int) int {
+	n := 0
+	for _, m := range ms {
+		m["seen"] = 1
+		n += len(m)
+	}
+	return n
 }
 
 func ms2() []map[string]int {

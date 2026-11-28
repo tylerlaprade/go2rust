@@ -4,3 +4,4 @@
 3 true
 0 map[a:1 seen:0]
 1 map[seen:1 x:9]
+2 6 0 1

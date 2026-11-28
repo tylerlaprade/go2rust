@@ -1198,6 +1198,22 @@ fn main() {
     { let __range_holder = ms2().clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, row) in __range_values.iter().enumerate() {
         println!("{} {}", format!("{}", i), format!("{}", format_map(&row)));
     } }
+
+        // A ...map parameter holds the arguments' handles.
+    println!("{} {} {} {}", format!("{}", take(Arc::new(Mutex::new(Some(vec![make_map().clone()]))))), format!("{}", take(Arc::new(Mutex::new(Some(vec![m.clone(), make_map().clone()]))))), format!("{}", take(Arc::new(Mutex::new(Some(vec![]))))), format!("{}", { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"seen".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+}
+
+pub fn make_map() -> Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> {
+    Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(1i64))))]))))
+}
+
+pub fn take(ms: Arc<Mutex<Option<Vec<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>>>>) -> i64 {
+    let mut n = Arc::new(Mutex::new(Some(0i64)));
+    { let __range_holder = ms.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for m in __range_values.iter() {
+        { let __map_key = "seen".to_string(); let __map_value = Arc::new(Mutex::new(Some(1))); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __rhs = ({ let __len = (*m.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    } }
+    return { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v };
 }
 
 pub fn ms2() -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>>>> {

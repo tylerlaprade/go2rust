@@ -963,6 +963,22 @@ fn main() {
     { let __range_holder = ms2().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, row) in __range_values.iter().enumerate() {
         println!("{} {}", format!("{}", i), format!("{}", format_map(&row)));
     } }
+
+        // A ...map parameter holds the arguments' handles.
+    println!("{} {} {} {}", format!("{}", take(Rc::new(RefCell::new(Some(vec![make_map().clone()]))))), format!("{}", take(Rc::new(RefCell::new(Some(vec![m.clone(), make_map().clone()]))))), format!("{}", take(Rc::new(RefCell::new(Some(vec![]))))), format!("{}", { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"seen".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+}
+
+pub fn make_map() -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> {
+    Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("k".to_string(), Rc::new(RefCell::new(Some(1i64))))]))))
+}
+
+pub fn take(ms: Rc<RefCell<Option<Vec<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>>>>) -> i64 {
+    let mut n = Rc::new(RefCell::new(Some(0i64)));
+    { let __range_holder = ms.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for m in __range_values.iter() {
+        { let __map_key = "seen".to_string(); let __map_value = Rc::new(RefCell::new(Some(1))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __rhs = ({ let __len = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    } }
+    return (*n.borrow().as_ref().unwrap());
 }
 
 pub fn ms2() -> Rc<RefCell<Option<Vec<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>>>> {
