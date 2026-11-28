@@ -927,6 +927,9 @@ func writeBareAnyPayloadRef(out *strings.Builder, arg ast.Expr) bool {
 // slices or of interface{} values, maps with array keys and the rest print
 // as fmt prints them, whether printed directly or as a struct field.
 func writeMapDisplayForType(out *strings.Builder, mapType types.Type, writeHandle func()) {
+	if m, ok := types.Unalias(mapType).Underlying().(*types.Map); ok {
+		NoteMapValueType(m.Elem())
+	}
 	if formatter, ok := mapArrayValueFormatter(mapType); ok {
 		writeMapOfArraysDisplayWithKeys(out, formatter, writeHandle, mapKeysAreBasicArrays(mapType))
 		return

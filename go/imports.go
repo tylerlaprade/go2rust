@@ -184,6 +184,7 @@ type HelperTracker struct {
 	needsGoFloatString         bool
 	needsGoDisplayValue        bool
 	needsGoComplexDisplay      bool // the program has complex numbers
+	needsGoFloatSliceDisplay   bool // a map holds []float64 or []float32 values
 	needsGoErrorChain          bool
 	needsGoSprintf             bool
 	needsGoFmtScan             bool
@@ -535,7 +536,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsGoFloatString || ht.needsGoDisplayValue || ht.needsFormatAny || ht.needsFormatSlice || ht.needsFormatMap {
-		generateGoFloatStringHelper(&result, ht.needsGoComplexDisplay)
+		generateGoFloatStringHelper(&result, ht.needsGoComplexDisplay, ht.needsGoFloatSliceDisplay)
 	}
 
 	if ht.needsGoErrorChain {
@@ -6095,7 +6096,7 @@ fn go_reflect_tag_get(raw: &str, key: &str) -> String {
 // as fmt's %v does: strconv's shortest %g, with an exponent when the
 // exponent is below -4 or at least 6, and +Inf, -Inf and NaN. single prints
 // the shortest digits of the float32 the value was widened from.
-func generateGoFloatStringHelper(out *strings.Builder, complexDisplay bool) {
+func generateGoFloatStringHelper(out *strings.Builder, complexDisplay bool, floatSliceDisplay bool) {
 	visibility := ""
 	if generatingPublicHelpers {
 		visibility = "pub "
@@ -6154,6 +6155,25 @@ func generateGoFloatStringHelper(out *strings.Builder, complexDisplay bool) {
         return go_float_string(unsafe { *(__value as *const T as *const f32) } as f64, true);
     }
 `)
+	if floatSliceDisplay && goSliceModeEnabled() {
+		// A []float64 held as a map value prints its elements as floats,
+		// which GoSlice's own Display, for any element type, does not (#339).
+		out.WriteString(`    let __f64_slice = std::any::type_name::<GoSlice<f64>>();
+    let __f32_slice = std::any::type_name::<GoSlice<f32>>();
+    if __name == __f64_slice || __name == __f32_slice {
+        // T is GoSlice<f64> or GoSlice<f32>, the very type named here: a
+        // type of another path whose name ends the same way is not.
+        let __items: std::vec::Vec<String> = if __name == __f32_slice {
+            let __slice = unsafe { &*(__value as *const T as *const GoSlice<f32>) };
+            __slice.as_slice().iter().map(|__item| go_float_string(*__item as f64, true)).collect()
+        } else {
+            let __slice = unsafe { &*(__value as *const T as *const GoSlice<f64>) };
+            __slice.as_slice().iter().map(|__item| go_float_string(*__item, false)).collect()
+        };
+        return format!("[{}]", __items.join(" "));
+    }
+`)
+	}
 	if complexDisplay {
 		// num::Complex is #[repr(C)] with re and im, so it has the layout
 		// of a two-element array. fmt prints (1-2i).
