@@ -1021,11 +1021,34 @@ func currentMapKeyStructTypes() map[string]bool {
 
 func structNeedsCustomPartialEq(structName string, structType *ast.StructType) bool {
 	return structName != "" && structType != nil && comparableStructTypes[structName] &&
-		(NeedsConcurrentWrapper() || structHasTraitField(structType))
+		(NeedsConcurrentWrapper() || structHasTraitField(structType) || structHasPointerField(structType))
 }
 
 func structNeedsCustomOrd(structName string, structType *ast.StructType) bool {
-	return structName != "" && structType != nil && structNeedsOrd(structName) && NeedsConcurrentWrapper()
+	return structName != "" && structType != nil && structNeedsOrd(structName) &&
+		(NeedsConcurrentWrapper() || structHasPointerField(structType))
+}
+
+// structHasPointerField reports whether a field of structType is a pointer.
+// A derived PartialEq or Ord compares what the pointers point to; Go compares
+// the pointers, so two distinct pointers to equal values are different map
+// keys (#354).
+func structHasPointerField(structType *ast.StructType) bool {
+	for _, field := range structComparableFields(structType) {
+		if typ, ok := structComparableFieldType(field); ok && isPointerType(typ) {
+			return true
+		}
+	}
+	return false
+}
+
+// structComparableBorrow reads a field's cell for a comparison: a lock in a
+// program with goroutines, a borrow otherwise.
+func structComparableBorrow() string {
+	if NeedsConcurrentWrapper() {
+		return ".lock().unwrap()"
+	}
+	return ".borrow()"
 }
 
 type structComparableField struct {
@@ -1146,10 +1169,10 @@ func writeStructComparablePointerFieldOrd(out *strings.Builder, field structComp
 	outerWrapper := GetOuterWrapperType()
 	out.WriteString("            let __left_some = self.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().is_some();\n")
+	out.WriteString(structComparableBorrow() + ".is_some();\n")
 	out.WriteString("            let __right_some = other.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().is_some();\n")
+	out.WriteString(structComparableBorrow() + ".is_some();\n")
 	out.WriteString("            let __ord = match (__left_some, __right_some) {\n")
 	out.WriteString("                (false, false) => std::cmp::Ordering::Equal,\n")
 	out.WriteString("                (false, true) => std::cmp::Ordering::Less,\n")
@@ -1277,10 +1300,10 @@ func writeStructComparableFieldOrd(out *strings.Builder, structName string, fiel
 	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); ok {
 		out.WriteString("            let __left = self.")
 		out.WriteString(field.name)
-		out.WriteString(".lock().unwrap();\n")
+		out.WriteString(structComparableBorrow() + ";\n")
 		out.WriteString("            let __right = other.")
 		out.WriteString(field.name)
-		out.WriteString(".lock().unwrap();\n")
+		out.WriteString(structComparableBorrow() + ";\n")
 		out.WriteString("            let __ord = match (__left.as_ref(), __right.as_ref()) {\n")
 		out.WriteString("                (None, None) => std::cmp::Ordering::Equal,\n")
 		out.WriteString("                (None, Some(_)) => std::cmp::Ordering::Less,\n")
@@ -1296,10 +1319,10 @@ func writeStructComparableFieldOrd(out *strings.Builder, structName string, fiel
 	}
 	out.WriteString("            let __left = { self.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().as_ref().cloned() };\n")
+	out.WriteString(structComparableBorrow() + ".as_ref().cloned() };\n")
 	out.WriteString("            let __right = { other.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().as_ref().cloned() };\n")
+	out.WriteString(structComparableBorrow() + ".as_ref().cloned() };\n")
 	if basic, ok := types.Unalias(typ).Underlying().(*types.Basic); ok && basic.Info()&types.IsFloat != 0 {
 		// A float has no total order; Go keys a map by == alone, so
 		// values that do not compare, NaN, order as equal.
