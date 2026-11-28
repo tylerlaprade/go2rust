@@ -1545,7 +1545,7 @@ fn main() {
             let __select_ok = __select_recv.is_some();
             let __go_recv_value_17 = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut __go_recv_value_17 = Arc::new(Mutex::new(__go_recv_value_17));
-            { let new_val = Arc::new(Mutex::new((*__go_recv_value_17.lock().unwrap()).clone())); (*h.lock().unwrap().as_mut().unwrap()).r#fn = new_val; };
+            { let new_val = Arc::new(Mutex::new({ let __func_value = (*__go_recv_value_17.lock().unwrap()).clone(); __func_value })); (*h.lock().unwrap().as_mut().unwrap()).r#fn = new_val; };
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
@@ -1553,11 +1553,11 @@ fn main() {
     }
     println!("{}", format!("{}", (*{ let __f_holder = (*h.lock().unwrap().as_ref().unwrap()).r#fn.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }.lock().unwrap().as_ref().unwrap())));
     fc.close();
-    let mut f = Arc::new(Mutex::new((*(*h.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap()).clone()));
+    let mut f = Arc::new(Mutex::new({ let __func_value = (*(*h.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap()).clone(); __func_value }));
     let mut f = Arc::new(Mutex::new(GoFuncValue::go_func_value(&f)));
     for __iface_value in fc.clone() {
         let mut __go_recv_value_18 = Arc::new(Mutex::new(__iface_value));
-        { let __func_value = (*__go_recv_value_18.lock().unwrap()).clone(); *f.lock().unwrap() = __func_value; };
+        { let __func_value = { let __func_value = (*__go_recv_value_18.lock().unwrap()).clone(); __func_value }; *f.lock().unwrap() = __func_value; };
     }
     println!("{}", format!("{}", (*{
         let __f: Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();

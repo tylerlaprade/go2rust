@@ -1202,16 +1202,16 @@ impl OpMethods for Op {
 }
 
 pub fn keep(g: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>>) -> Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>> {
-    Arc::new(Mutex::new((*g.lock().unwrap()).clone()))
+    Arc::new(Mutex::new({ let __func_value = (*g.lock().unwrap()).clone(); __func_value }))
 }
 
 pub fn swap_in(mut f: Arc<Mutex<Option<Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>>>>) -> Arc<Mutex<Option<Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>>>> {
-    let mut old = Arc::new(Mutex::new((*f.lock().unwrap()).clone()));
+    let mut old = Arc::new(Mutex::new({ let __func_value = (*f.lock().unwrap()).clone(); __func_value }));
     { let new_val = Arc::new(move || -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some("new".to_string())))
     }) as Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>; *f.lock().unwrap() = Some(new_val); };
     let _ = &f;
-    return Arc::new(Mutex::new((*old.lock().unwrap()).clone()));
+    return Arc::new(Mutex::new({ let __func_value = (*old.lock().unwrap()).clone(); __func_value }));
 }
 
 pub fn make_adder(n: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>> {
@@ -1236,7 +1236,7 @@ pub fn deferred() {
             )
         };
     }));
-        let mut saved = Arc::new(Mutex::new((*act.lock().unwrap()).clone()));
+        let mut saved = Arc::new(Mutex::new({ let __func_value = (*act.lock().unwrap()).clone(); __func_value }));
         { let new_val = Arc::new(move |i: Arc<Mutex<Option<i64>>>| {
         println!("{} {}", format!("{}", "replaced".to_string()), format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>; *act.lock().unwrap() = Some(new_val); };
@@ -1336,7 +1336,7 @@ fn main() {
         return { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y };
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>)));
     let mut other: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>> = Arc::new(Mutex::new(None));
-    { let __func_value = (*inc.lock().unwrap()).clone(); *other.lock().unwrap() = __func_value; };
+    { let __func_value = { let __func_value = (*inc.lock().unwrap()).clone(); __func_value }; *other.lock().unwrap() = __func_value; };
     { let new_val = Arc::new(move |x: Arc<Mutex<Option<i64>>>| -> i64 {
         return { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x * __tmp_y };
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>; *inc.lock().unwrap() = Some(new_val); };
@@ -1353,7 +1353,7 @@ fn main() {
     }));
 
     let mut b = Arc::new(Mutex::new(Some(Box_ {
-        r#fn: Arc::new(Mutex::new((*inc.lock().unwrap()).clone())),
+        r#fn: Arc::new(Mutex::new({ let __func_value = (*inc.lock().unwrap()).clone(); __func_value })),
         ..Default::default()
     })));
     { let new_val = Arc::new(move |x: Arc<Mutex<Option<i64>>>| -> i64 {
@@ -1366,7 +1366,7 @@ fn main() {
         )
     }));
 
-    let mut kept = keep(Arc::new(Mutex::new((*inc.lock().unwrap()).clone())));
+    let mut kept = keep(Arc::new(Mutex::new({ let __func_value = (*inc.lock().unwrap()).clone(); __func_value })));
     let mut kept = Arc::new(Mutex::new(GoFuncValue::go_func_value(&kept)));
     { let new_val = Arc::new(move |x: Arc<Mutex<Option<i64>>>| -> i64 {
         return { let __bin_x = ({ let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_x * __bin_x };
@@ -1384,7 +1384,7 @@ fn main() {
     }));
 
     let mut b2 = { let __owned = b.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
-    { let new_val = Arc::new(Mutex::new((*inc.lock().unwrap()).clone())); (*b.lock().unwrap().as_mut().unwrap()).r#fn = new_val; };
+    { let new_val = Arc::new(Mutex::new({ let __func_value = (*inc.lock().unwrap()).clone(); __func_value })); (*b.lock().unwrap().as_mut().unwrap()).r#fn = new_val; };
     println!("{} {} {}", format!("{}", "struct copy:".to_string()), format!("{}", { let __f_holder = (*b2.lock().unwrap().as_ref().unwrap()).r#fn.clone(); let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)(Arc::new(Mutex::new(Some(4)))) }), format!("{}", { let __f_holder = (*b.lock().unwrap().as_ref().unwrap()).r#fn.clone(); let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)(Arc::new(Mutex::new(Some(4)))) }));
     let mut b3 = { let __owned = b.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
     { let new_val = Arc::new(move |x: Arc<Mutex<Option<i64>>>| -> i64 {
@@ -1392,7 +1392,7 @@ fn main() {
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>; *(*b.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap() = Some(new_val); };
     println!("{} {} {}", format!("{}", "struct copy, literal:".to_string()), format!("{}", { let __f_holder = (*b3.lock().unwrap().as_ref().unwrap()).r#fn.clone(); let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)(Arc::new(Mutex::new(Some(4)))) }), format!("{}", { let __f_holder = (*b.lock().unwrap().as_ref().unwrap()).r#fn.clone(); let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)(Arc::new(Mutex::new(Some(4)))) }));
 
-    let mut fns = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new((*inc.lock().unwrap()).clone()))])));
+    let mut fns = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new({ let __func_value = (*inc.lock().unwrap()).clone(); __func_value }))])));
     { let new_val = Arc::new(move |x: Arc<Mutex<Option<i64>>>| -> i64 {
         return { let __tmp_x = 100; let __tmp_y = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y };
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>; *inc.lock().unwrap() = Some(new_val); };
@@ -1403,11 +1403,11 @@ fn main() {
         )
     }));
 
-    let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>>>::from([("a".to_string(), Arc::new(Mutex::new((*inc.lock().unwrap()).clone())))]))));
+    let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>>>::from([("a".to_string(), Arc::new(Mutex::new({ let __func_value = (*inc.lock().unwrap()).clone(); __func_value })))]))));
     { let new_val = Arc::new(move |x: Arc<Mutex<Option<i64>>>| -> i64 {
         7
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>; *inc.lock().unwrap() = Some(new_val); };
-    { let __map_key = "b".to_string(); let __map_value = Arc::new(Mutex::new((*inc.lock().unwrap()).clone())); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "b".to_string(); let __map_value = Arc::new(Mutex::new({ let __func_value = (*inc.lock().unwrap()).clone(); __func_value })); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {} {}", format!("{}", "map:".to_string()), format!("{}", { let __f_holder = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)(Arc::new(Mutex::new(Some(1)))) }), format!("{}", { let __f_holder = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)(Arc::new(Mutex::new(Some(1)))) }));
 
         // A closure that calls a variable sees the variable's later value.
@@ -1423,7 +1423,7 @@ fn main() {
     let mut h = Arc::new(Mutex::new(Some(Arc::new(move || -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some("h".to_string())))
     }) as Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>)));
-    { let __func_value = (*h.lock().unwrap()).clone(); *cb.lock().unwrap() = __func_value; };
+    { let __func_value = { let __func_value = (*h.lock().unwrap()).clone(); __func_value }; *cb.lock().unwrap() = __func_value; };
     println!("{} {}", format!("{}", "captured:".to_string()), format!("{}", (*{
         let __f: Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync> = run.lock().unwrap().as_ref().unwrap().clone();
         (__f)(
@@ -1449,7 +1449,7 @@ fn main() {
     let mut log = Arc::new(Mutex::new(Some(Arc::new(move |s: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> {
         return Arc::new(Mutex::new(Some(format!("{}{}", "log:".to_string(), { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
     }) as Arc<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)));
-    let mut next = Arc::new(Mutex::new((*log.lock().unwrap()).clone()));
+    let mut next = Arc::new(Mutex::new({ let __func_value = (*log.lock().unwrap()).clone(); __func_value }));
     let next_closure_clone = next.clone(); { let new_val = Arc::new(move |s: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> {
         return Arc::new(Mutex::new(Some(format!("{}{}", "before ".to_string(), (*{
             let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> = next_closure_clone.lock().unwrap().as_ref().unwrap().clone();
@@ -1477,7 +1477,7 @@ fn main() {
 
         )
     }));
-    { let __func_value = (*orig.lock().unwrap()).clone(); *now_1.lock().unwrap() = __func_value; };
+    { let __func_value = { let __func_value = (*orig.lock().unwrap()).clone(); __func_value }; *now_1.lock().unwrap() = __func_value; };
     println!("{} {}", format!("{}", "restored:".to_string()), format!("{}", {
         let __f: Arc<dyn Fn() -> i64 + Send + Sync> = now_1.lock().unwrap().as_ref().unwrap().clone();
         (__f)(
@@ -1503,7 +1503,7 @@ fn main() {
             )
         }; __tmp_x + __tmp_y };
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> }; *__func_lit_target.lock().unwrap() = Some(new_val); };
-    let mut f2 = Arc::new(Mutex::new((*fib.lock().unwrap()).clone()));
+    let mut f2 = Arc::new(Mutex::new({ let __func_value = (*fib.lock().unwrap()).clone(); __func_value }));
     println!("{} {} {}", format!("{}", "fib:".to_string()), format!("{}", {
         let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = fib.lock().unwrap().as_ref().unwrap().clone();
         (__f)(
@@ -1519,7 +1519,7 @@ fn main() {
         // nil copies stay nil.
     let mut z: Arc<Mutex<Option<Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>>>> = Arc::new(Mutex::new(None));
     println!("{} {}", format!("{}", "nil:".to_string()), format!("{}", { let __nil_result = (*z.lock().unwrap()).is_none(); __nil_result }));
-    { let __func_value = (*cb.lock().unwrap()).clone(); *z.lock().unwrap() = __func_value; };
+    { let __func_value = { let __func_value = (*cb.lock().unwrap()).clone(); __func_value }; *z.lock().unwrap() = __func_value; };
     *cb.lock().unwrap() = None;
     { let __go_print_arg_1 = {
     let __f: Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync> = z.lock().unwrap().as_ref().unwrap().clone();
@@ -1532,7 +1532,7 @@ fn main() {
     let mut o: Op = Arc::new(Mutex::new(Some(Arc::new(move |x: Arc<Mutex<Option<i64>>>| -> i64 {
         return { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y };
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>)));
-    let mut o2 = Arc::new(Mutex::new((*o.lock().unwrap()).clone()));
+    let mut o2 = Arc::new(Mutex::new({ let __func_value = (*o.lock().unwrap()).clone(); __func_value }));
     { let new_val = Arc::new(move |x: Arc<Mutex<Option<i64>>>| -> i64 {
         return { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x * __tmp_y };
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>; *o.lock().unwrap() = Some(new_val); };
@@ -1542,7 +1542,7 @@ fn main() {
     let mut g = Arc::new(Mutex::new(Some(Arc::new(move || -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some("orig".to_string())))
     }) as Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>)));
-    let mut old = swap_in(Arc::new(Mutex::new((*g.lock().unwrap()).clone())));
+    let mut old = swap_in(Arc::new(Mutex::new({ let __func_value = (*g.lock().unwrap()).clone(); __func_value })));
     let mut old = Arc::new(Mutex::new(GoFuncValue::go_func_value(&old)));
     println!("{} {} {}", format!("{}", "param:".to_string()), format!("{}", (*{
         let __f: Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync> = old.lock().unwrap().as_ref().unwrap().clone();
@@ -1559,7 +1559,7 @@ fn main() {
         // A function's result.
     let mut adder = make_adder(Arc::new(Mutex::new(Some(5))));
     let mut adder = Arc::new(Mutex::new(GoFuncValue::go_func_value(&adder)));
-    let mut savedAdder = Arc::new(Mutex::new((*adder.lock().unwrap()).clone()));
+    let mut savedAdder = Arc::new(Mutex::new({ let __func_value = (*adder.lock().unwrap()).clone(); __func_value }));
     { let __func_value = GoFuncValue::go_func_value(&(make_adder(Arc::new(Mutex::new(Some(100)))))); *adder.lock().unwrap() = __func_value; };
     println!("{} {} {}", format!("{}", "result:".to_string()), format!("{}", {
         let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = savedAdder.lock().unwrap().as_ref().unwrap().clone();
@@ -1583,7 +1583,7 @@ fn main() {
         Arc::new(Mutex::new(Some("b".to_string())))
     }) as Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>; *step_closure_clone.lock().unwrap() = Some(new_val); };
     }) as Arc<dyn Fn() -> () + Send + Sync>)));
-    let mut before = Arc::new(Mutex::new((*step.lock().unwrap()).clone()));
+    let mut before = Arc::new(Mutex::new({ let __func_value = (*step.lock().unwrap()).clone(); __func_value }));
     {
         let __f: Arc<dyn Fn() -> () + Send + Sync> = advance.lock().unwrap().as_ref().unwrap().clone();
         (__f)(

@@ -372,11 +372,14 @@ func isAtomicValueMethodSelector(sel *ast.SelectorExpr) bool {
 // atomic.Value method as the interface value it becomes: a value of a
 // concrete type, such as a package-level channel, is boxed in a new
 // interface value, as for any interface{} parameter, and an interface value
-// is passed as its cell. It reports false for nil, which the stub's usual
-// path writes.
+// is passed as its cell, and nil as an empty cell. It reports false for an
+// interface value, which the caller copies.
 func writeAtomicValueMethodCallArgument(out *strings.Builder, arg ast.Expr) bool {
 	if ident, ok := unwrapParens(arg).(*ast.Ident); ok && ident.Name == "nil" {
-		return false
+		// nil is the nil interface value, which Store and CompareAndSwap
+		// check for.
+		writeTypedWrappedNone(out, rustAnyTraitObject())
+		return true
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || isEmptyInterfaceType(typeInfo.GetType(arg)) {

@@ -1057,9 +1057,18 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     std::any::type_name_of_val(val)
 }
 
-#[derive(Clone)]
 pub struct atomic_Value {
     __go_slot: std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::any::Any + Send + Sync>>>>>>>,
+}
+
+// A copy of a Value is a Value of its own that starts with the value stored
+// when it was copied, as Go copies the struct: storing into one does not
+// change the other.
+impl Clone for atomic_Value {
+    fn clone(&self) -> Self {
+        let stored = self.__go_slot.lock().unwrap().clone();
+        Self { __go_slot: std::sync::Arc::new(std::sync::Mutex::new(stored)) }
+    }
 }
 
 impl Default for atomic_Value {
@@ -1151,21 +1160,38 @@ impl atomic_Value {
         old.unwrap_or_else(|| std::sync::Arc::new(std::sync::Mutex::new(None)))
     }
 
+    // Go's checks come first: new must not be nil, old and new must have
+    // one dynamic type, and new must have the stored value's type.
     pub fn compare_and_swap<T0: std::any::Any + Send + Sync, T1: std::any::Any + Send + Sync>(&self, old: T0, new: T1) -> bool {
         let old = Self::__go_handle(old);
         let new = Self::__go_handle(new);
-        self.__go_check(&new);
+        let new_type = match new.lock().unwrap().as_ref() {
+            Some(value) => (**value).type_id(),
+            None => panic!("sync/atomic: compare and swap of nil value into Value"),
+        };
+        if let Some(value) = old.lock().unwrap().as_ref() {
+            if (**value).type_id() != new_type {
+                panic!("sync/atomic: compare and swap of inconsistently typed values");
+            }
+        }
         let mut slot = self.__go_slot.lock().unwrap();
-        // The stored value and old compare as Go compares two interface
-        // values: equal dynamic types and values, with a panic for a type
-        // that is not comparable.
         let matches = match slot.as_ref() {
-            Some(stored) => std::sync::Arc::ptr_eq(stored, &old) || match (stored.lock().unwrap().as_ref(), old.lock().unwrap().as_ref()) {
-                (None, None) => true,
-                (Some(stored), Some(old)) => Self::__go_values_eq(stored.as_ref(), old.as_ref()),
-                _ => false,
-            },
+            // An empty Value swaps only for a nil old.
             None => old.lock().unwrap().is_none(),
+            Some(stored) => {
+                if let Some(value) = stored.lock().unwrap().as_ref() {
+                    if (**value).type_id() != new_type {
+                        panic!("sync/atomic: compare and swap of inconsistently typed value into Value");
+                    }
+                }
+                // The stored value and old compare as Go compares two
+                // interface values: equal dynamic types and values, with a
+                // panic for a type that is not comparable.
+                std::sync::Arc::ptr_eq(stored, &old) || match (stored.lock().unwrap().as_ref(), old.lock().unwrap().as_ref()) {
+                    (Some(stored), Some(old)) => Self::__go_values_eq(stored.as_ref(), old.as_ref()),
+                    _ => false,
+                }
+            }
         };
         if matches {
             *slot = Some(new);

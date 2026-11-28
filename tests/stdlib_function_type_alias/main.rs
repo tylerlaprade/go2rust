@@ -159,7 +159,7 @@ pub fn use_qualifier(qualifier: go_types::typestring::Qualifier) -> Arc<Mutex<Op
 }
 
 pub fn forward_qualifier(qualifier: go_types::typestring::Qualifier) -> Arc<Mutex<Option<String>>> {
-    use_qualifier(Arc::new(Mutex::new((*qualifier.lock().unwrap()).clone())))
+    use_qualifier(Arc::new(Mutex::new({ let __func_value = (*qualifier.lock().unwrap()).clone(); __func_value })))
 }
 
 fn main() {

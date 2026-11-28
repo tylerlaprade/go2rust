@@ -1216,7 +1216,7 @@ fn main() {
     let mut t: Transform = Arc::new(Mutex::new(Some(Arc::new(move |s: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> {
         return Arc::new(Mutex::new(Some(format!("{}{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }, "!".to_string()))));
     }) as Arc<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)));
-    for f in vec![Arc::new(Mutex::new((*t.lock().unwrap()).clone())), Arc::new(Mutex::new(Some(Arc::new(move |__arg0: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> { strings::to_lower(__arg0) }) as Arc<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)))].iter().cloned() {
+    for f in vec![Arc::new(Mutex::new({ let __func_value = (*t.lock().unwrap()).clone(); __func_value })), Arc::new(Mutex::new(Some(Arc::new(move |__arg0: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> { strings::to_lower(__arg0) }) as Arc<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)))].iter().cloned() {
         println!("{}", format!("{}", (*{
             let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();
             (__f)(
@@ -1226,7 +1226,7 @@ fn main() {
     }
     let mut wg = WaitGroup::new();
     let mut results = Arc::new(Mutex::new(Some(vec!["".to_string(); (2) as usize])));
-    for (i, f) in vec![Arc::new(Mutex::new(Some(Arc::new(move |__arg0: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> { strings::to_upper(__arg0) }) as Arc<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>))), Arc::new(Mutex::new((*t.lock().unwrap()).clone()))].iter().cloned().enumerate() {
+    for (i, f) in vec![Arc::new(Mutex::new(Some(Arc::new(move |__arg0: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> { strings::to_upper(__arg0) }) as Arc<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>))), Arc::new(Mutex::new({ let __func_value = (*t.lock().unwrap()).clone(); __func_value }))].iter().cloned().enumerate() {
         wg.add(1);
         let results_thread = results.clone(); let wg_thread = wg.clone(); let __go_arg_0 = Arc::new(Mutex::new(Some(i as i64))); let __go_arg_1 = f.clone(); std::thread::spawn(move || {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {

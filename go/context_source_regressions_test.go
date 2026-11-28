@@ -188,3 +188,49 @@ func run() (any, bool) {
 		}
 	}
 }
+
+func TestAtomicValueCopyHasItsOwnSlotAndCompareAndSwapChecksTypes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync/atomic"
+
+func run() bool {
+	var v atomic.Value
+	w := v
+	v.Store(1)
+	_ = w
+	return v.CompareAndSwap(1, nil)
+}
+`)
+	for _, want := range []string{
+		"impl Clone for atomic_Value {",
+		"Self { __go_slot: std::rc::Rc::new(std::cell::RefCell::new(stored)) }",
+		`panic!("sync/atomic: compare and swap of nil value into Value")`,
+		`panic!("sync/atomic: compare and swap of inconsistently typed values")`,
+		`panic!("sync/atomic: compare and swap of inconsistently typed value into Value")`,
+		"compare_and_swap(Rc::new(RefCell::new(Some(Box::new(1i64) as Box<dyn Any>))), Rc::new(RefCell::new(None::<Box<dyn Any>>)))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "#[derive(Clone)]\npub struct atomic_Value") {
+		t.Fatalf("a copy of an atomic.Value should not share its slot:\n%s", rust)
+	}
+}
+
+func TestFuncValueCopyReleasesItsBorrowBeforeTheCall(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func invoke(g func()) { g() }
+
+func run() {
+	var f func()
+	f = func() { f = nil }
+	invoke(f)
+}
+`)
+	if !strings.Contains(rust, "invoke(Rc::new(RefCell::new({ let __func_value = (*f.borrow()).clone(); __func_value })))") {
+		t.Fatalf("the func value's copy should end its borrow before the call:\n%s", rust)
+	}
+}

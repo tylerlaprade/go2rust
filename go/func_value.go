@@ -144,10 +144,12 @@ func writeFuncValueOption(out *strings.Builder, expr ast.Expr) {
 		// A variable's or field's cell holds the Option itself, read
 		// here without GoFuncValue: its impls cannot name a func type
 		// whose parameter is a reference, as func(context.Context) is.
-		out.WriteString("(*")
+		// The copy is bound in a block so the cell's borrow ends before a
+		// call it is passed to runs: the callee may assign the variable.
+		out.WriteString("{ let __func_value = (*")
 		TranspileExpressionContext(out, expr, LValue)
 		WriteBorrowMethod(out, false)
-		out.WriteString(").clone()")
+		out.WriteString(").clone(); __func_value }")
 		return
 	}
 	out.WriteString("GoFuncValue::go_func_value(&(")

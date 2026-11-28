@@ -518,7 +518,7 @@ pub fn walk(n: Arc<Mutex<Option<Node>>>, f: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mute
         )
     };
     { let __range_holder = (*n.lock().unwrap().as_ref().unwrap()).kids.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for k in __range_values.iter() {
-        walk(k.clone(), Arc::new(Mutex::new((*f.lock().unwrap()).clone())));
+        walk(k.clone(), Arc::new(Mutex::new({ let __func_value = (*f.lock().unwrap()).clone(); __func_value })));
     } }
 }
 

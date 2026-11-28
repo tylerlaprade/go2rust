@@ -2187,7 +2187,9 @@ func writeAtomicValueStub(out *strings.Builder) {
 	ptrEq := "std::rc::Rc::ptr_eq"
 	anyBound, anyObject := "std::any::Any", "dyn std::any::Any"
 	newHandleOf := "std::rc::Rc::new(std::cell::RefCell::new(Some(value)))"
+	newSlotOf := "std::rc::Rc::new(std::cell::RefCell::new(stored))"
 	if NeedsConcurrentWrapper() {
+		newSlotOf = "std::sync::Arc::new(std::sync::Mutex::new(stored))"
 		anyBound, anyObject = "std::any::Any + Send + Sync", "dyn std::any::Any + Send + Sync"
 		newHandleOf = "std::sync::Arc::new(std::sync::Mutex::new(Some(value)))"
 		handle = "std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::any::Any + Send + Sync>>>>"
@@ -2201,6 +2203,7 @@ func writeAtomicValueStub(out *strings.Builder) {
 		"ANY_BOUND", anyBound,
 		"ANY_OBJECT", anyObject,
 		"NEW_HANDLE_OF(value)", newHandleOf,
+		"NEW_SLOT_OF(stored)", newSlotOf,
 		"HANDLE", handle,
 		"SLOT", slot,
 		"NEW_HANDLE", newHandle,
@@ -2208,9 +2211,18 @@ func writeAtomicValueStub(out *strings.Builder) {
 		".READ", read,
 		".WRITE", write,
 		"PTR_EQ", ptrEq,
-	).Replace(`#[derive(Clone)]
-pub struct atomic_Value {
+	).Replace(`pub struct atomic_Value {
     __go_slot: SLOT,
+}
+
+// A copy of a Value is a Value of its own that starts with the value stored
+// when it was copied, as Go copies the struct: storing into one does not
+// change the other.
+impl Clone for atomic_Value {
+    fn clone(&self) -> Self {
+        let stored = self.__go_slot.READ.clone();
+        Self { __go_slot: NEW_SLOT_OF(stored) }
+    }
 }
 
 impl Default for atomic_Value {
@@ -2302,21 +2314,38 @@ impl atomic_Value {
         old.unwrap_or_else(|| NEW_HANDLE)
     }
 
+    // Go's checks come first: new must not be nil, old and new must have
+    // one dynamic type, and new must have the stored value's type.
     pub fn compare_and_swap<T0: ANY_BOUND, T1: ANY_BOUND>(&self, old: T0, new: T1) -> bool {
         let old = Self::__go_handle(old);
         let new = Self::__go_handle(new);
-        self.__go_check(&new);
+        let new_type = match new.READ.as_ref() {
+            Some(value) => (**value).type_id(),
+            None => panic!("sync/atomic: compare and swap of nil value into Value"),
+        };
+        if let Some(value) = old.READ.as_ref() {
+            if (**value).type_id() != new_type {
+                panic!("sync/atomic: compare and swap of inconsistently typed values");
+            }
+        }
         let mut slot = self.__go_slot.WRITE;
-        // The stored value and old compare as Go compares two interface
-        // values: equal dynamic types and values, with a panic for a type
-        // that is not comparable.
         let matches = match slot.as_ref() {
-            Some(stored) => PTR_EQ(stored, &old) || match (stored.READ.as_ref(), old.READ.as_ref()) {
-                (None, None) => true,
-                (Some(stored), Some(old)) => Self::__go_values_eq(stored.as_ref(), old.as_ref()),
-                _ => false,
-            },
+            // An empty Value swaps only for a nil old.
             None => old.READ.is_none(),
+            Some(stored) => {
+                if let Some(value) = stored.READ.as_ref() {
+                    if (**value).type_id() != new_type {
+                        panic!("sync/atomic: compare and swap of inconsistently typed value into Value");
+                    }
+                }
+                // The stored value and old compare as Go compares two
+                // interface values: equal dynamic types and values, with a
+                // panic for a type that is not comparable.
+                PTR_EQ(stored, &old) || match (stored.READ.as_ref(), old.READ.as_ref()) {
+                    (Some(stored), Some(old)) => Self::__go_values_eq(stored.as_ref(), old.as_ref()),
+                    _ => false,
+                }
+            }
         };
         if matches {
             *slot = Some(new);

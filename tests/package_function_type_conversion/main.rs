@@ -95,7 +95,7 @@ pub type Exporter = Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64
 
 
 pub fn r#use(e: Exporter) -> i64 {
-    example_com_fnconvert_dep::set(Rc::new(RefCell::new((*e.borrow()).clone())))
+    example_com_fnconvert_dep::set(Rc::new(RefCell::new({ let __func_value = (*e.borrow()).clone(); __func_value })))
 }
 
 fn main() {

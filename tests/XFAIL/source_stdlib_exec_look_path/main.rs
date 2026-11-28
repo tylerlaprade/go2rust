@@ -122,6 +122,7 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
 fn main() {
     go_install_panic_exit();
     ::bytes::__go_init_all();
+    ::context::__go_init_all();
     ::internal_bisect::__go_init_all();
     ::internal_bytealg::__go_init_all();
     ::internal_filepathlite::__go_init_all();

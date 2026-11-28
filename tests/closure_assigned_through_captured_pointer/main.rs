@@ -830,7 +830,7 @@ impl std::fmt::Display for ctx {
 
 
 pub fn after(f: Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>>) -> Rc<RefCell<Option<timer>>> {
-    Rc::new(RefCell::new(Some(timer { r#fn: Rc::new(RefCell::new((*f.borrow()).clone())), ..Default::default() })))
+    Rc::new(RefCell::new(Some(timer { r#fn: Rc::new(RefCell::new({ let __func_value = (*f.borrow()).clone(); __func_value })), ..Default::default() })))
 }
 
 fn main() {

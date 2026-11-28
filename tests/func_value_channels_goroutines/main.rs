@@ -1060,7 +1060,7 @@ pub fn hello() -> Arc<Mutex<Option<String>>> {
 }
 
 pub fn producer(out: GoChannel<Option<Arc<dyn Fn() -> i64 + Send + Sync>>>, f: Arc<Mutex<Option<Arc<dyn Fn() -> i64 + Send + Sync>>>>) {
-    out.send({ let __func_cell = Arc::new(Mutex::new((*f.lock().unwrap()).clone())); let __func_value = __func_cell.lock().unwrap().take(); __func_value });
+    out.send({ let __func_cell = Arc::new(Mutex::new({ let __func_value = (*f.lock().unwrap()).clone(); __func_value })); let __func_value = __func_cell.lock().unwrap().take(); __func_value });
 }
 
 pub fn consume(r#in: GoChannel<Option<Arc<dyn Fn() -> i64 + Send + Sync>>>) -> i64 {
@@ -1090,7 +1090,7 @@ fn main() {
     let mut greet = Arc::new(Mutex::new(Some(Arc::new(move || -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some("variable".to_string())))
     }) as Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>)));
-    ch.send({ let __func_cell = Arc::new(Mutex::new((*greet.lock().unwrap()).clone())); let __func_value = __func_cell.lock().unwrap().take(); __func_value });
+    ch.send({ let __func_cell = Arc::new(Mutex::new({ let __func_value = (*greet.lock().unwrap()).clone(); __func_value })); let __func_value = __func_cell.lock().unwrap().take(); __func_value });
     { let new_val = Arc::new(move || -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some("changed".to_string())))
     }) as Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>; *greet.lock().unwrap() = Some(new_val); };

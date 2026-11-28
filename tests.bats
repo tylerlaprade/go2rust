@@ -696,6 +696,10 @@ run_xfail_test() {
     run_test "tests/atomic_typed_counters_plain"
 }
 
+@test "atomic_value_copies_and_type_checks" {
+    run_test "tests/atomic_value_copies_and_type_checks"
+}
+
 @test "atomic_value_copies_interface_values" {
     run_test "tests/atomic_value_copies_interface_values"
 }
@@ -1794,6 +1798,10 @@ run_xfail_test() {
 
 @test "func_type_alias_implements_interface" {
     run_test "tests/func_type_alias_implements_interface"
+}
+
+@test "func_value_argument_reassigned_by_callee" {
+    run_test "tests/func_value_argument_reassigned_by_callee"
 }
 
 @test "func_value_call_results_print" {

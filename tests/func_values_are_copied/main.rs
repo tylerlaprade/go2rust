@@ -947,16 +947,16 @@ impl OpMethods for Op {
 }
 
 pub fn keep(g: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>>>>) -> Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>>>> {
-    Rc::new(RefCell::new((*g.borrow()).clone()))
+    Rc::new(RefCell::new({ let __func_value = (*g.borrow()).clone(); __func_value }))
 }
 
 pub fn swap_in(mut f: Rc<RefCell<Option<Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>>>>) -> Rc<RefCell<Option<Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>>>> {
-    let mut old = Rc::new(RefCell::new((*f.borrow()).clone()));
+    let mut old = Rc::new(RefCell::new({ let __func_value = (*f.borrow()).clone(); __func_value }));
     { let new_val = Rc::new(move || -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some("new".to_string())))
     }) as Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>; *f.borrow_mut() = Some(new_val); };
     let _ = &f;
-    return Rc::new(RefCell::new((*old.borrow()).clone()));
+    return Rc::new(RefCell::new({ let __func_value = (*old.borrow()).clone(); __func_value }));
 }
 
 pub fn make_adder(n: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>>>> {
@@ -976,7 +976,7 @@ pub fn deferred() {
         let act_defer_captured = Rc::new(RefCell::new((*act.borrow()).clone())); __defer_stack.push(Box::new(move || {
         { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> ()> = act_defer_captured.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(1)))) };
     }));
-        let mut saved = Rc::new(RefCell::new((*act.borrow()).clone()));
+        let mut saved = Rc::new(RefCell::new({ let __func_value = (*act.borrow()).clone(); __func_value }));
         { let new_val = Rc::new(move |i: Rc<RefCell<Option<i64>>>| {
         println!("{} {}", format!("{}", "replaced".to_string()), format!("{}", { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v }));
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> ()>; *act.borrow_mut() = Some(new_val); };
@@ -1016,19 +1016,19 @@ fn main() {
         (*x.borrow().as_ref().unwrap()) + 1
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>)));
     let mut other: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>>>> = Rc::new(RefCell::new(None));
-    { let __func_value = (*inc.borrow()).clone(); *other.borrow_mut() = __func_value; };
+    { let __func_value = { let __func_value = (*inc.borrow()).clone(); __func_value }; *other.borrow_mut() = __func_value; };
     { let new_val = Rc::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
         (*x.borrow().as_ref().unwrap()) * 10
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>; *inc.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "assigned:".to_string()), format!("{}", { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = other.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(1)))) }), format!("{}", { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = inc.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(1)))) }));
 
-    let mut b = Rc::new(RefCell::new(Some(Box_ { r#fn: Rc::new(RefCell::new((*inc.borrow()).clone())), ..Default::default() })));
+    let mut b = Rc::new(RefCell::new(Some(Box_ { r#fn: Rc::new(RefCell::new({ let __func_value = (*inc.borrow()).clone(); __func_value })), ..Default::default() })));
     { let new_val = Rc::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
         -((*x.borrow().as_ref().unwrap()))
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>; *inc.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "field:".to_string()), format!("{}", { let __f_holder = (*b.borrow().as_ref().unwrap()).r#fn.clone(); let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(2)))) }), format!("{}", { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = inc.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(2)))) }));
 
-    let mut kept = keep(Rc::new(RefCell::new((*inc.borrow()).clone())));
+    let mut kept = keep(Rc::new(RefCell::new({ let __func_value = (*inc.borrow()).clone(); __func_value })));
     let mut kept = Rc::new(RefCell::new(GoFuncValue::go_func_value(&kept)));
     { let new_val = Rc::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
         { let __bin_x = (*x.borrow().as_ref().unwrap()).clone(); __bin_x * __bin_x }
@@ -1036,7 +1036,7 @@ fn main() {
     println!("{} {} {}", format!("{}", "argument:".to_string()), format!("{}", { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = kept.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(3)))) }), format!("{}", { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = inc.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(3)))) }));
 
     let mut b2 = { let __owned = b.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
-    { let new_val = Rc::new(RefCell::new((*inc.borrow()).clone())); (*b.borrow_mut().as_mut().unwrap()).r#fn = new_val; };
+    { let new_val = Rc::new(RefCell::new({ let __func_value = (*inc.borrow()).clone(); __func_value })); (*b.borrow_mut().as_mut().unwrap()).r#fn = new_val; };
     println!("{} {} {}", format!("{}", "struct copy:".to_string()), format!("{}", { let __f_holder = (*b2.borrow().as_ref().unwrap()).r#fn.clone(); let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(4)))) }), format!("{}", { let __f_holder = (*b.borrow().as_ref().unwrap()).r#fn.clone(); let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(4)))) }));
     let mut b3 = { let __owned = b.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
     { let new_val = Rc::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
@@ -1044,17 +1044,17 @@ fn main() {
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>; *(*b.borrow().as_ref().unwrap()).r#fn.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "struct copy, literal:".to_string()), format!("{}", { let __f_holder = (*b3.borrow().as_ref().unwrap()).r#fn.clone(); let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(4)))) }), format!("{}", { let __f_holder = (*b.borrow().as_ref().unwrap()).r#fn.clone(); let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(4)))) }));
 
-    let mut fns = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new((*inc.borrow()).clone()))])));
+    let mut fns = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new({ let __func_value = (*inc.borrow()).clone(); __func_value }))])));
     { let new_val = Rc::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
         100 + (*x.borrow().as_ref().unwrap())
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>; *inc.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "slice:".to_string()), format!("{}", { let __f_holder = (*fns.borrow().as_ref().unwrap())[(0) as usize].clone(); let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(5)))) }), format!("{}", { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = inc.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(5)))) }));
 
-    let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>>>>>::from([("a".to_string(), Rc::new(RefCell::new((*inc.borrow()).clone())))]))));
+    let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>>>>>::from([("a".to_string(), Rc::new(RefCell::new({ let __func_value = (*inc.borrow()).clone(); __func_value })))]))));
     { let new_val = Rc::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
         7
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>; *inc.borrow_mut() = Some(new_val); };
-    { let __map_key = "b".to_string(); let __map_value = Rc::new(RefCell::new((*inc.borrow()).clone())); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "b".to_string(); let __map_value = Rc::new(RefCell::new({ let __func_value = (*inc.borrow()).clone(); __func_value })); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {} {}", format!("{}", "map:".to_string()), format!("{}", { let __f_holder = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(1)))) }), format!("{}", { let __f_holder = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(1)))) }));
 
         // A closure that calls a variable sees the variable's later value.
@@ -1065,7 +1065,7 @@ fn main() {
     let mut h = Rc::new(RefCell::new(Some(Rc::new(move || -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some("h".to_string())))
     }) as Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>)));
-    { let __func_value = (*h.borrow()).clone(); *cb.borrow_mut() = __func_value; };
+    { let __func_value = { let __func_value = (*h.borrow()).clone(); __func_value }; *cb.borrow_mut() = __func_value; };
     println!("{} {}", format!("{}", "captured:".to_string()), format!("{}", (*{ let __f: Rc<dyn Fn() -> Rc<RefCell<Option<String>>>> = run.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap())));
     { let new_val = Rc::new(move || -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some("changed h".to_string())))
@@ -1076,7 +1076,7 @@ fn main() {
     let mut log = Rc::new(RefCell::new(Some(Rc::new(move |s: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some(format!("{}{}", "log:".to_string(), (*s.borrow().as_ref().unwrap())))))
     }) as Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>)));
-    let mut next = Rc::new(RefCell::new((*log.borrow()).clone()));
+    let mut next = Rc::new(RefCell::new({ let __func_value = (*log.borrow()).clone(); __func_value }));
     let next_closure_clone = next.clone(); { let new_val = Rc::new(move |s: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
         return Rc::new(RefCell::new(Some(format!("{}{}", "before ".to_string(), (*{ let __f: Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>> = next_closure_clone.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))) }.borrow().as_ref().unwrap())))));
     }) as Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>; *log.borrow_mut() = Some(new_val); };
@@ -1089,7 +1089,7 @@ fn main() {
         42
     }) as Rc<dyn Fn() -> i64>; *now_1.borrow_mut() = Some(new_val); };
     println!("{} {}", format!("{}", "global:".to_string()), format!("{}", { let __f: Rc<dyn Fn() -> i64> = now_1.borrow().as_ref().unwrap().clone(); (__f)() }));
-    { let __func_value = (*orig.borrow()).clone(); *now_1.borrow_mut() = __func_value; };
+    { let __func_value = { let __func_value = (*orig.borrow()).clone(); __func_value }; *now_1.borrow_mut() = __func_value; };
     println!("{} {}", format!("{}", "restored:".to_string()), format!("{}", { let __f: Rc<dyn Fn() -> i64> = now_1.borrow().as_ref().unwrap().clone(); (__f)() }));
 
         // Recursion through a variable, and a copy of it.
@@ -1100,13 +1100,13 @@ fn main() {
     }
         return { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = fib_closure_clone_closure_clone.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()) - 1; __arg_value })))) } + { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = fib_closure_clone_closure_clone.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()) - 2; __arg_value })))) };
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> }; *__func_lit_target.borrow_mut() = Some(new_val); };
-    let mut f2 = Rc::new(RefCell::new((*fib.borrow()).clone()));
+    let mut f2 = Rc::new(RefCell::new({ let __func_value = (*fib.borrow()).clone(); __func_value }));
     println!("{} {} {}", format!("{}", "fib:".to_string()), format!("{}", { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = fib.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(10)))) }), format!("{}", { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = f2.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(11)))) }));
 
         // nil copies stay nil.
     let mut z: Rc<RefCell<Option<Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>>>> = Rc::new(RefCell::new(None));
     println!("{} {}", format!("{}", "nil:".to_string()), format!("{}", { let __nil_result = (*z.borrow()).is_none(); __nil_result }));
-    { let __func_value = (*cb.borrow()).clone(); *z.borrow_mut() = __func_value; };
+    { let __func_value = { let __func_value = (*cb.borrow()).clone(); __func_value }; *z.borrow_mut() = __func_value; };
     *cb.borrow_mut() = None;
     { let __go_print_arg_1 = { let __f: Rc<dyn Fn() -> Rc<RefCell<Option<String>>>> = z.borrow().as_ref().unwrap().clone(); (__f)() }; let __go_print_value = println!("{} {} {} {}", format!("{}", "nil after:".to_string()), format!("{}", { let __nil_result = (*z.borrow()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*cb.borrow()).is_none(); __nil_result }), format!("{}", { let __v = (*__go_print_arg_1.borrow().as_ref().unwrap()).clone(); __v })); __go_print_value };
 
@@ -1114,7 +1114,7 @@ fn main() {
     let mut o: Op = Rc::new(RefCell::new(Some(Rc::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
         (*x.borrow().as_ref().unwrap()) + 1
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>)));
-    let mut o2 = Rc::new(RefCell::new((*o.borrow()).clone()));
+    let mut o2 = Rc::new(RefCell::new({ let __func_value = (*o.borrow()).clone(); __func_value }));
     { let new_val = Rc::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
         (*x.borrow().as_ref().unwrap()) * 3
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>; *o.borrow_mut() = Some(new_val); };
@@ -1124,14 +1124,14 @@ fn main() {
     let mut g = Rc::new(RefCell::new(Some(Rc::new(move || -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some("orig".to_string())))
     }) as Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>)));
-    let mut old = swap_in(Rc::new(RefCell::new((*g.borrow()).clone())));
+    let mut old = swap_in(Rc::new(RefCell::new({ let __func_value = (*g.borrow()).clone(); __func_value })));
     let mut old = Rc::new(RefCell::new(GoFuncValue::go_func_value(&old)));
     println!("{} {} {}", format!("{}", "param:".to_string()), format!("{}", (*{ let __f: Rc<dyn Fn() -> Rc<RefCell<Option<String>>>> = old.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap())), format!("{}", (*{ let __f: Rc<dyn Fn() -> Rc<RefCell<Option<String>>>> = g.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap())));
 
         // A function's result.
     let mut adder = make_adder(Rc::new(RefCell::new(Some(5))));
     let mut adder = Rc::new(RefCell::new(GoFuncValue::go_func_value(&adder)));
-    let mut savedAdder = Rc::new(RefCell::new((*adder.borrow()).clone()));
+    let mut savedAdder = Rc::new(RefCell::new({ let __func_value = (*adder.borrow()).clone(); __func_value }));
     { let __func_value = GoFuncValue::go_func_value(&(make_adder(Rc::new(RefCell::new(Some(100)))))); *adder.borrow_mut() = __func_value; };
     println!("{} {} {}", format!("{}", "result:".to_string()), format!("{}", { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = savedAdder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(1)))) }), format!("{}", { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = adder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(1)))) }));
 
@@ -1145,7 +1145,7 @@ fn main() {
         Rc::new(RefCell::new(Some("b".to_string())))
     }) as Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>; *step_closure_clone.borrow_mut() = Some(new_val); };
     }) as Rc<dyn Fn() -> ()>)));
-    let mut before = Rc::new(RefCell::new((*step.borrow()).clone()));
+    let mut before = Rc::new(RefCell::new({ let __func_value = (*step.borrow()).clone(); __func_value }));
     { let __f: Rc<dyn Fn() -> ()> = advance.borrow().as_ref().unwrap().clone(); (__f)() };
     println!("{} {} {}", format!("{}", "closure assigns:".to_string()), format!("{}", (*{ let __f: Rc<dyn Fn() -> Rc<RefCell<Option<String>>>> = before.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap())), format!("{}", (*{ let __f: Rc<dyn Fn() -> Rc<RefCell<Option<String>>>> = step.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap())));
 
