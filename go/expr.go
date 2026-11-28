@@ -1247,6 +1247,11 @@ func sequenceElementTypeForIndexExpr(expr ast.Expr, typeInfo *TypeInfo) (types.T
 	if ptr, ok := typ.(*types.Pointer); ok {
 		typ = types.Unalias(ptr.Elem())
 	}
+	// A type parameter S ~[]map[string]int holds what its slice constraint's
+	// element is.
+	if elem, ok := goTypeParamSliceConstraintElem(typ); ok {
+		return elem, true
+	}
 	switch seq := types.Unalias(typ).Underlying().(type) {
 	case *types.Array:
 		return seq.Elem(), true

@@ -1,0 +1,4 @@
+[map[a:1 c:3] map[b:2 d:4 e:5]] map[a:1 c:3]
+[map[a:1 c:3 k:2] map[b:2 d:4 e:5 k:3]]
+[map[b:2 d:4 e:5 k:3] map[a:1 c:3 k:2]] map[a:1 c:3 k:2]
+[map[fresh:0] map[a:1 c:3 k:2]] 4
