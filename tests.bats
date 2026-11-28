@@ -1388,6 +1388,14 @@ run_xfail_test() {
     run_test "tests/defined_type_of_defined_collection_goroutines"
 }
 
+@test "dependency_types_in_interfaces" {
+    run_test "tests/dependency_types_in_interfaces"
+}
+
+@test "dependency_types_in_interfaces_goroutines" {
+    run_test "tests/dependency_types_in_interfaces_goroutines"
+}
+
 @test "deref_assign_through_selector" {
     run_test "tests/deref_assign_through_selector"
 }
