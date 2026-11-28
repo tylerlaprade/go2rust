@@ -3136,6 +3136,14 @@ run_xfail_test() {
     run_test "tests/nested_slice_element_updates_goroutines"
 }
 
+@test "nested_struct_array_print" {
+    run_test "tests/nested_struct_array_print"
+}
+
+@test "nested_struct_array_print_goroutines" {
+    run_test "tests/nested_struct_array_print_goroutines"
+}
+
 @test "nested_structures" {
     run_test "tests/nested_structures"
 }

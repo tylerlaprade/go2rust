@@ -1188,6 +1188,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			if writeNestedAnySlicePrintArg(out, arg, argType) {
 				return
 			}
+			if writeNestedStructArrayPrintArg(out, arg, argType) {
+				return
+			}
 			// Check if it's a slice of interface{}
 			elemType := typeInfo.GetSliceElemType(arg)
 			if elemType != nil {
@@ -3137,6 +3140,80 @@ func writeNestedAnySlicePrintArg(out *strings.Builder, arg ast.Expr, argType typ
 	WriteBorrowMethod(out, false)
 	out.WriteString("; __any_rows_guard.as_ref().cloned() }; match __any_rows_copy { Some(__any_rows) => ")
 	out.WriteString(rows("__any_rows", 1))
+	out.WriteString(", None => \"[]\".to_string() } }")
+	return true
+}
+
+// writeNestedStructArrayPrintArg prints a slice or an array of arrays of
+// structs, [2][2]P or [][3]P, the way fmt does: each array in brackets of
+// its own, and each struct through its Display, as {:#} for %+v (#345).
+// The arrays are bare Rust arrays, which have no Display, so
+// format_slice cannot print them. The rows are copied out of the handle
+// first, so a String method that reads the collection does not wait on
+// the lock printing would hold.
+func writeNestedStructArrayPrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
+	if argType == nil {
+		return false
+	}
+	if _, named := types.Unalias(argType).(*types.Named); named {
+		return false
+	}
+	var outerElem types.Type
+	switch seq := types.Unalias(argType).(type) {
+	case *types.Slice:
+		outerElem = seq.Elem()
+	case *types.Array:
+		outerElem = seq.Elem()
+	default:
+		return false
+	}
+	depth := 1
+	cell := outerElem
+	for {
+		array, ok := types.Unalias(cell).(*types.Array)
+		if !ok {
+			break
+		}
+		depth++
+		cell = array.Elem()
+	}
+	if depth < 2 {
+		return false
+	}
+	if _, ok := types.Unalias(cell).Underlying().(*types.Struct); !ok {
+		return false
+	}
+	cellFormat := "{}"
+	if printArgPlusV {
+		cellFormat = "{:#}"
+	}
+	TrackImport("Display")
+	var rows func(value string, level int) string
+	rows = func(value string, level int) string {
+		row := "__struct_row_" + strconv.Itoa(level)
+		var item string
+		if level == depth {
+			item = "format!(\"" + cellFormat + "\", " + row + ")"
+		} else {
+			item = rows(row, level+1)
+		}
+		return "format!(\"[{}]\", " + value + ".iter().map(|" + row + "| " + item + ").collect::<Vec<String>>().join(\" \"))"
+	}
+	arg = unwrapParens(arg)
+	out.WriteString("{ let __struct_rows_holder = ")
+	if formatSliceArgumentIsBareValue(arg) {
+		WriteWrapperPrefix(out)
+		TranspileExpression(out, arg)
+		out.WriteString(".clone()")
+		WriteWrapperSuffix(out)
+	} else {
+		TranspileExpressionContext(out, arg, LValue)
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; let __struct_rows_copy = { let __struct_rows_guard = __struct_rows_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __struct_rows_guard.as_ref().cloned() }; match __struct_rows_copy { Some(__struct_rows) => ")
+	out.WriteString(rows("__struct_rows", 1))
 	out.WriteString(", None => \"[]\".to_string() } }")
 	return true
 }
