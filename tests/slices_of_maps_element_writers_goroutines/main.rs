@@ -1205,11 +1205,11 @@ fn __go_init_globals() {
     *table_1.lock().unwrap() = Some(BTreeMap::new());
     {
         let mut __go_map = BTreeMap::<String, Arc<Mutex<Option<Vec<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>>>>>::new();
-        let __go_map_key_5637 = "row".to_string();
-        let mut __go_map_value_5637 = Vec::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>::new();
-        __go_map_value_5637.push(Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)));
-        __go_map_value_5637.push(Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("bad")))))));
-        __go_map.insert(__go_map_key_5637, Arc::new(Mutex::new(Some(__go_map_value_5637))));
+        let __go_map_key_5801 = "row".to_string();
+        let mut __go_map_value_5801 = Vec::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>::new();
+        __go_map_value_5801.push(Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)));
+        __go_map_value_5801.push(Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("bad")))))));
+        __go_map.insert(__go_map_key_5801, Arc::new(Mutex::new(Some(__go_map_value_5801))));
         *table_1.lock().unwrap() = Some(__go_map);
     }
 }
@@ -1299,6 +1299,13 @@ fn main() {
         );
         __result
     };
+    mark_counts(Arc::new(Mutex::new(Some({ let __arg_value = Counts({ let __seq = { let __seq_holder = args.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }); __arg_value }))));
+    {
+        let __f: Arc<dyn Fn(Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>) -> () + Send + Sync> = markFn.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
+            { let __seq = { let __seq_holder = args.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }
+        )
+    };
     println!("{}", format!("{}", { let __maps = (*args.lock().unwrap()).as_ref().map(|__v| __v.to_vec()).unwrap_or_default(); format!("[{}]", __maps.iter().map(|__m| format_map(__m)).collect::<Vec<_>>().join(" ")) }));
 
     let mut es = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("x".to_string(), Arc::new(Mutex::new(Some(1i64))))]))))])));
@@ -1323,6 +1330,10 @@ fn main() {
 
 pub fn mark(m: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>) {
     { let __map_key = "x".to_string(); let __map_value = Arc::new(Mutex::new(Some(1))); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+}
+
+pub fn mark_counts(m: Arc<Mutex<Option<Counts>>>) {
+    { let __map_key = "c".to_string(); let __map_value = Arc::new(Mutex::new(Some(3))); (*{ let __named_map = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
 }
 
 pub fn first_counts(s: Arc<Mutex<Option<Vec<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>>>>) -> Arc<Mutex<Option<Counts>>> {

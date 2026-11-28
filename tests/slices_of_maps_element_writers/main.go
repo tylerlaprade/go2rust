@@ -60,6 +60,8 @@ func main() {
 	markFn := mark
 	markFn(args[0])
 	holder{}.put(args[0])
+	markCounts(args[0])
+	markFn((args[0]))
 	fmt.Println(args)
 
 	// A map read through a pointer to an element, and an element returned
@@ -80,6 +82,8 @@ type holder struct{ M map[string]int }
 type Tables [2]map[string]int
 
 func mark(m map[string]int) { m["x"] = 1 }
+
+func markCounts(m Counts) { m["c"] = 3 }
 
 func (holder) put(m map[string]int) { m["y"] = 2 }
 

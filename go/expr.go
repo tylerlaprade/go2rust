@@ -4320,10 +4320,11 @@ func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 }
 
 func writeAlreadyWrappedMapIndexCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
-	index, ok := arg.(*ast.IndexExpr)
+	index, ok := unwrapParens(arg).(*ast.IndexExpr)
 	if !ok {
 		return false
 	}
+	arg = index
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
@@ -4335,7 +4336,19 @@ func writeAlreadyWrappedMapIndexCallArgument(out *strings.Builder, arg ast.Expr,
 		if !mapElementIndexExpression(index) {
 			return false
 		}
-		if actual := typeInfo.GetType(index); expected != nil && !types.Identical(types.Unalias(actual), types.Unalias(expected)) {
+		actual := typeInfo.GetType(index)
+		if named, ok := types.Unalias(expected).(*types.Named); ok && types.Identical(named.Underlying(), types.Unalias(actual)) {
+			// take(s[0]) for func take(m Counts): the newtype around the
+			// element's handle, as a return of s[0] as Counts is.
+			WriteWrapperPrefix(out)
+			out.WriteString(goTypesTypeToRust(named))
+			out.WriteString("(")
+			TranspileExpression(out, arg)
+			out.WriteString(")")
+			WriteWrapperSuffix(out)
+			return true
+		}
+		if expected != nil && !types.Identical(types.Unalias(actual), types.Unalias(expected)) {
 			return false
 		}
 		TranspileExpression(out, arg)
