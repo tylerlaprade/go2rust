@@ -1,0 +1,23 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_helperbindingdep_dep",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "type_named_like_helper_binding_dependency"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "type_named_like_helper_binding_dependency"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+example_com_helperbindingdep_dep = { path = "vendor/example_com_helperbindingdep_dep" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

@@ -2135,15 +2135,15 @@ func rustTypeNameForImportedPackagePath(pkgPath, name string) (string, bool) {
 		if crateName, ok := ctx.PackageMapping[pkgPath]; ok {
 			TrackGeneratedCrateDependency(crateName)
 			if moduleName := importedPackageTypeModuleName(ctx, pkgPath, name); moduleName != "" {
-				return crateName + "::" + moduleName + "::" + RustTypeNameForUse(name), true
+				return crateName + "::" + moduleName + "::" + RustTypeNameForPackageUse(pkgPath, name), true
 			}
-			return crateName + "::" + RustTypeNameForUse(name), true
+			return crateName + "::" + RustTypeNameForPackageUse(pkgPath, name), true
 		}
 	}
 	if isStdlibPackage(pkgPath) {
 		return "", false
 	}
-	return RustCrateNameForGoImportPath(pkgPath) + "::" + RustTypeNameForUse(name), true
+	return RustCrateNameForGoImportPath(pkgPath) + "::" + RustTypeNameForPackageUse(pkgPath, name), true
 }
 
 func importedPackageTypeModuleName(ctx *TranspileContext, pkgPath, name string) string {

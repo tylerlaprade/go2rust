@@ -1085,28 +1085,28 @@ impl std::fmt::Display for holder {
 
 
 #[derive(Debug)]
-pub struct key(pub Arc<Mutex<Option<String>>>);
+pub struct key_(pub Arc<Mutex<Option<String>>>);
 
-impl Clone for key {
+impl Clone for key_ {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
-        key(Arc::new(Mutex::new(__value)))
+        key_(Arc::new(Mutex::new(__value)))
     }
 }
 
-impl Default for key {
+impl Default for key_ {
     fn default() -> Self {
         Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
-impl Display for key {
+impl Display for key_ {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "{}", (*self.string().lock().unwrap().as_ref().unwrap()))
     }
 }
 
-impl PartialEq for key {
+impl PartialEq for key_ {
     fn eq(&self, other: &Self) -> bool {
         let __left = { self.0.lock().unwrap().as_ref().cloned() };
         let __right = { other.0.lock().unwrap().as_ref().cloned() };
@@ -1114,15 +1114,15 @@ impl PartialEq for key {
     }
 }
 
-impl PartialOrd for key {
+impl PartialOrd for key_ {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
-impl Eq for key {}
+impl Eq for key_ {}
 
-impl Ord for key {
+impl Ord for key_ {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         let __left = { self.0.lock().unwrap().as_ref().cloned() };
         let __right = { other.0.lock().unwrap().as_ref().cloned() };
@@ -1130,39 +1130,39 @@ impl Ord for key {
     }
 }
 
-impl PartialEq<String> for key {
+impl PartialEq<String> for key_ {
     fn eq(&self, other: &String) -> bool {
         *self.0.lock().unwrap().as_ref().unwrap() == *other
     }
 }
 
-impl PartialEq<&str> for key {
+impl PartialEq<&str> for key_ {
     fn eq(&self, other: &&str) -> bool {
         self.0.lock().unwrap().as_ref().unwrap().as_str() == *other
     }
 }
 
-impl std::ops::Add for key {
-    type Output = key;
-    fn add(self, other: Self) -> key {
+impl std::ops::Add for key_ {
+    type Output = key_;
+    fn add(self, other: Self) -> key_ {
         let __joined = format!("{}{}", self.0.lock().unwrap().as_ref().unwrap(), other.0.lock().unwrap().as_ref().unwrap());
-        key(Arc::new(Mutex::new(Some(__joined))))
+        key_(Arc::new(Mutex::new(Some(__joined))))
     }
 }
 
-impl std::ops::Add<String> for key {
-    type Output = key;
-    fn add(self, other: String) -> key {
+impl std::ops::Add<String> for key_ {
+    type Output = key_;
+    fn add(self, other: String) -> key_ {
         let __joined = format!("{}{}", self.0.lock().unwrap().as_ref().unwrap(), other);
-        key(Arc::new(Mutex::new(Some(__joined))))
+        key_(Arc::new(Mutex::new(Some(__joined))))
     }
 }
 
-impl std::ops::Add<&str> for key {
-    type Output = key;
-    fn add(self, other: &str) -> key {
+impl std::ops::Add<&str> for key_ {
+    type Output = key_;
+    fn add(self, other: &str) -> key_ {
         let __joined = format!("{}{}", self.0.lock().unwrap().as_ref().unwrap(), other);
-        key(Arc::new(Mutex::new(Some(__joined))))
+        key_(Arc::new(Mutex::new(Some(__joined))))
     }
 }
 
@@ -1206,14 +1206,14 @@ impl<T: 'static> GoGlobalMapSync<T> {
 
 pub(crate) static shared_1: std::sync::LazyLock<GoGlobalMapSync<BTreeMap<String, Arc<Mutex<Option<Vec<item>>>>>>> = std::sync::LazyLock::new(GoGlobalMapSync::new);
 
-pub(crate) static nested_1: std::sync::LazyLock<GoGlobalMapSync<BTreeMap<key, Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>>> = std::sync::LazyLock::new(GoGlobalMapSync::new);
+pub(crate) static nested_1: std::sync::LazyLock<GoGlobalMapSync<BTreeMap<key_, Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>>> = std::sync::LazyLock::new(GoGlobalMapSync::new);
 
 
 fn __go_init_globals() {
     *shared_1.lock().unwrap() = Some(BTreeMap::new());
     *nested_1.lock().unwrap() = Some(BTreeMap::new());
     {
-        let mut __go_map = BTreeMap::<key, Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>::new();
+        let mut __go_map = BTreeMap::<key_, Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>::new();
         *nested_1.lock().unwrap() = Some(__go_map);
     }
 }
@@ -1225,7 +1225,7 @@ impl item {
     }
 }
 
-impl key {
+impl key_ {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some(format!("{}{}", format!("{}", (*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()).clone()))).lock().unwrap().as_ref().unwrap())), format!("{}", ({ let __len = (*nested_1.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }))))))
     }
@@ -1245,7 +1245,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
         { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<item>>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(vec![item { n: Arc::new(Mutex::new(Some(1))), ..Default::default() }, item { n: Arc::new(Mutex::new(Some(2))), ..Default::default() }]))))])))).clone(); shared_1.set(new_val); };;
-        { let __map_key = key(Arc::new(Mutex::new(Some("k".to_string())))); let __map_value = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("x".to_string(), Arc::new(Mutex::new(Some(1i64))))])))); (*nested_1.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
+        { let __map_key = key_(Arc::new(Mutex::new(Some("k".to_string())))); let __map_value = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("x".to_string(), Arc::new(Mutex::new(Some(1i64))))])))); (*nested_1.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
         while let Some(f) = __defer_stack.pop() {
             f();
         }
