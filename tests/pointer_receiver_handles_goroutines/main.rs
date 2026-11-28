@@ -1121,8 +1121,8 @@ impl std::fmt::Display for TeamPtr {
 
 impl Registrar for TeamPtr {
     fn register(&self) {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Team = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Team };
+        let __recv = unsafe { &*__recv_ptr };
         Team::register(__recv)
     }
     fn __go_clone_box_registrar(&self) -> Box<dyn Registrar + Send + Sync> {

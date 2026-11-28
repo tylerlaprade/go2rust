@@ -461,8 +461,8 @@ impl std::fmt::Display for CodeValPtr {
 
 impl Code for CodeValPtr {
     fn value(&self) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const CodeVal = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const CodeVal };
+        let __recv = unsafe { &*__recv_ptr };
         CodeVal::value(__recv)
     }
     fn __go_clone_box_code(&self) -> Box<dyn Code> {

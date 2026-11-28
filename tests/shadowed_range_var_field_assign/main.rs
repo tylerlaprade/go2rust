@@ -919,8 +919,8 @@ impl std::fmt::Display for DeclPtr {
 
 impl Node for DeclPtr {
     fn tag(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Decl = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Decl };
+        let __recv = unsafe { &*__recv_ptr };
         Decl::tag(__recv)
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {

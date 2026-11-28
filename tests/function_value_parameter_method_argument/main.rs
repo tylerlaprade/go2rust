@@ -788,7 +788,7 @@ impl recorder {
 
 pub fn relay(record: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> ()>>>>) {
     let mut r: Rc<RefCell<Option<recorder>>> = Rc::new(RefCell::new(Some(Default::default())));
-    (*r.borrow().as_ref().unwrap()).r#use(Rc::new(RefCell::new(GoFuncValue::go_func_value(&(record)))));
+    (*r.borrow().as_ref().unwrap()).r#use(Rc::new(RefCell::new({ let __func_value = (*record.borrow()).clone(); __func_value })));
 }
 
 fn main() {

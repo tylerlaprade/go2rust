@@ -1694,7 +1694,7 @@ let mut shared = { let __slice_header = GoSliceHeader::go_slice_header(&shared);
     let mut scale: Scale = Rc::new(RefCell::new(Some(Rc::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
         (*x.borrow().as_ref().unwrap()) * 10
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>)));
-    let mut boxedScale: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(GoFuncValue::go_func_value(&(scale))))) as Box<dyn Any>)));
+    let mut boxedScale: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new({ let __func_value = (*scale.borrow()).clone(); __func_value }))) as Box<dyn Any>)));
     println!("{} {}", format!("{}", "call defined func:".to_string()), format!("{}", ({
         let __f_holder = { let val = boxedScale.clone(); let guard = val.borrow(); match guard.as_ref() { Some(any_val) => any_val.downcast_ref::<Scale>().expect("type assertion failed").clone(), None => panic!("type assertion on nil interface") } };
         (|__f_arg0| {

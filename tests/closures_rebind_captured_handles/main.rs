@@ -519,7 +519,7 @@ pub fn walk(n: Arc<Mutex<Option<Node>>>, f: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mute
         )
     };
     { let __range_holder = (*n.lock().unwrap().as_ref().unwrap()).kids.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for k in __range_values.iter() {
-        walk(k.clone(), Arc::new(Mutex::new(GoFuncValue::go_func_value(&(f)))));
+        walk(k.clone(), Arc::new(Mutex::new({ let __func_value = (*f.lock().unwrap()).clone(); __func_value })));
     } }
 }
 
@@ -749,28 +749,28 @@ fn main() {
         let mut list = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Node { v: Arc::new(Mutex::new(Some(3))), ..Default::default() }))), Arc::new(Mutex::new(Some(Node { v: Arc::new(Mutex::new(Some(9))), ..Default::default() }))), Arc::new(Mutex::new(Some(Node { v: Arc::new(Mutex::new(Some(1))), ..Default::default() })))])));
         let mut best: Arc<Mutex<Option<Node>>> = Arc::new(Mutex::new(None));
         let mut __cell_best_8 = Arc::new(Mutex::new(Some(AnonymousStruct1 { v: best.clone() })));
-        let __cell_best_8_closure_clone = __cell_best_8.clone(); let list_closure_clone = list.clone(); { let __sort_target = list_closure_clone.clone(); let __sort_less = Arc::new(Mutex::new(Some(Arc::new(move |i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>| -> bool {
+        let __cell_best_8_closure_clone = __cell_best_8.clone(); let list_closure_clone = list.clone(); { let __sort_target = list_closure_clone.clone(); let __sort_less = Arc::new(Mutex::new(Some({ let list_closure_clone_closure_clone = list_closure_clone.clone(); Arc::new(move |i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>| -> bool {
         if {
             let __go_cond_0 = { let __nil_target = (*__cell_best_8_closure_clone.lock().unwrap().as_ref().unwrap()).v.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result };
             if __go_cond_0 {
                 true
             } else {
                 let __go_cond_1 = {
-                    let __tmp_x = (*(*{ let __seq = { let __seq_holder = list_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap());
+                    let __tmp_x = (*(*{ let __seq = { let __seq_holder = list_closure_clone_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap());
                     let __tmp_y = (*(*{ let __base = (*__cell_best_8_closure_clone.lock().unwrap().as_ref().unwrap()).v.clone(); __base }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap());
                     __tmp_x > __tmp_y
                 };
                 __go_cond_1
             }
         } {
-        { let new_val = { let __seq = { let __seq_holder = list_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.clone(); (*__cell_best_8_closure_clone.lock().unwrap().as_mut().unwrap()).v = new_val; };
+        { let new_val = { let __seq = { let __seq_holder = list_closure_clone_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.clone(); (*__cell_best_8_closure_clone.lock().unwrap().as_mut().unwrap()).v = new_val; };
     }
         return {
-            let __tmp_x = (*(*{ let __seq = { let __seq_holder = list_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap());
-            let __tmp_y = (*(*{ let __seq = { let __seq_holder = list_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap());
+            let __tmp_x = (*(*{ let __seq = { let __seq_holder = list_closure_clone_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*(*{ let __seq = { let __seq_holder = list_closure_clone_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap());
             __tmp_x < __tmp_y
         };
-    }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i64))), Arc::new(Mutex::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
+    }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync> }))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i64))), Arc::new(Mutex::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
         println!("{} {}", format!("{}", (*(*{ let __base = (*__cell_best_8.lock().unwrap().as_ref().unwrap()).v.clone(); __base }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())), format!("{}", (*(*{ let __seq = { let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())));
         let mut cur: Arc<Mutex<Option<Node>>> = Arc::new(Mutex::new(None));
         let mut __cell_cur_9 = Arc::new(Mutex::new(Some(AnonymousStruct1 { v: cur.clone() })));

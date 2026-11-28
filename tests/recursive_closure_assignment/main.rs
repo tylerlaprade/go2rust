@@ -739,12 +739,12 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
 fn main() {
     go_install_panic_exit();
     let mut visit: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool>>>> = Rc::new(RefCell::new(None));
-    let visit_closure_clone = visit.clone(); { let __func_lit_target = visit_closure_clone.clone(); let new_val = Rc::new(move |i: Rc<RefCell<Option<i64>>>| -> bool {
+    let visit_closure_clone = visit.clone(); { let __func_lit_target = visit_closure_clone.clone(); let new_val = { let visit_closure_clone_closure_clone = visit_closure_clone.clone(); Rc::new(move |i: Rc<RefCell<Option<i64>>>| -> bool {
         if (*i.borrow().as_ref().unwrap()) == 0 {
         return true;
     }
-        return { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool> = visit_closure_clone.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __arg_value = (*i.borrow().as_ref().unwrap()) - 1; __arg_value })))) };
-    }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool>; *__func_lit_target.borrow_mut() = Some(new_val); };
+        return { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool> = visit_closure_clone_closure_clone.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __arg_value = (*i.borrow().as_ref().unwrap()) - 1; __arg_value })))) };
+    }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool> }; *__func_lit_target.borrow_mut() = Some(new_val); };
 
     println!("{}", format!("{}", { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool> = visit.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(3)))) }));
 }

@@ -856,8 +856,8 @@ impl std::fmt::Display for alphaPtr {
 
 impl namer for alphaPtr {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const alpha = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const alpha };
+        let __recv = unsafe { &*__recv_ptr };
         alpha::name(__recv)
     }
     fn __go_clone_box_namer(&self) -> Box<dyn namer> {
@@ -916,8 +916,8 @@ impl std::fmt::Display for betaPtr {
 
 impl namer for betaPtr {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const beta = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const beta };
+        let __recv = unsafe { &*__recv_ptr };
         beta::name(__recv)
     }
     fn __go_clone_box_namer(&self) -> Box<dyn namer> {

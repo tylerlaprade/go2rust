@@ -1073,14 +1073,14 @@ pub fn f() {
         let __rf_arg_1_1_1_closure_clone = __rf_arg_1_1_1.clone(); let mut __rf_call_1_1 = Rc::new(RefCell::new(Some(Rc::new(move || {
         println!("{} {}", format!("{}", "deferred".to_string()), format!("{}", { let __v = (*__rf_arg_1_1_1_closure_clone.borrow().as_ref().unwrap()).clone(); __v }));
     }) as Rc<dyn Fn() -> ()>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new(GoFuncValue::go_func_value(&(__rf_call_1_1)))); let mut __appended = (*__rf_defers_1_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_1_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new({ let __func_value = (*__rf_call_1_1.borrow()).clone(); __func_value })); let mut __appended = (*__rf_defers_1_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_1_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
         if (*i.borrow().as_ref().unwrap()) == 1 {
         let i_closure_clone = i.clone(); let mut __rf_call_1_2 = Rc::new(RefCell::new(Some(Rc::new(move || {
         let i_closure_clone_closure_clone = i_closure_clone.clone(); { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
         println!("{} {}", format!("{}", "closure at".to_string()), format!("{}", { let __v = (*i_closure_clone_closure_clone.borrow().as_ref().unwrap()).clone(); __v }));
     }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }) as Rc<dyn Fn() -> ()>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new(GoFuncValue::go_func_value(&(__rf_call_1_2)))); let mut __appended = (*__rf_defers_1_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_1_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new({ let __func_value = (*__rf_call_1_2.borrow()).clone(); __func_value })); let mut __appended = (*__rf_defers_1_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_1_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     }
         true
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool>))));
@@ -1174,7 +1174,7 @@ pub fn g() -> i64 {
         println!("{} {} {}", format!("{}", "pair".to_string()), format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*n_closure_clone_closure_clone_closure_clone.borrow().as_ref().unwrap()).clone(); __v }));
     }) as Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> ()>))); let __f: Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __arg_holder = __rf_arg_2_1_0_closure_clone.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))) };
     }) as Rc<dyn Fn() -> ()>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new(GoFuncValue::go_func_value(&(__rf_call_2_1)))); let mut __appended = (*__rf_defers_2_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_2_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new({ let __func_value = (*__rf_call_2_1.borrow()).clone(); __func_value })); let mut __appended = (*__rf_defers_2_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_2_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
         let mut __rf_done_3: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
         let mut __rf_result_3_0: Rc<RefCell<Option<[i64; 1]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 1, _>(|_| 0))));
         let __rf_defers_2_closure_clone_closure_clone = __rf_defers_2_closure_clone.clone(); let k_closure_clone = k.clone(); seq3(Rc::new(RefCell::new(Some(Rc::new(move |__rf_param_3_0: Rc<RefCell<Option<i64>>>| -> bool {
@@ -1185,7 +1185,7 @@ pub fn g() -> i64 {
         let __rf_arg_2_2_1_closure_clone = __rf_arg_2_2_1.clone(); let __rf_arg_2_2_2_closure_clone = __rf_arg_2_2_2.clone(); let mut __rf_call_2_2 = Rc::new(RefCell::new(Some(Rc::new(move || {
         println!("{} {} {}", format!("{}", "inner".to_string()), format!("{}", { let __v = (*__rf_arg_2_2_1_closure_clone.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__rf_arg_2_2_2_closure_clone.borrow().as_ref().unwrap()).clone(); __v }));
     }) as Rc<dyn Fn() -> ()>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new(GoFuncValue::go_func_value(&(__rf_call_2_2)))); let mut __appended = (*__rf_defers_2_closure_clone_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_2_closure_clone_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new({ let __func_value = (*__rf_call_2_2.borrow()).clone(); __func_value })); let mut __appended = (*__rf_defers_2_closure_clone_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_2_closure_clone_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     }
         true
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool>))));
@@ -1321,36 +1321,36 @@ pub fn h() {
         let __rf_arg_4_1_0_0_closure_clone = __rf_arg_4_1_0_0.clone(); let __rf_arg_4_1_0_1_closure_clone = __rf_arg_4_1_0_1.clone(); let mut __rf_call_4_1 = Rc::new(RefCell::new(Some(Rc::new(move || {
         record(Rc::new(RefCell::new(Some({ let __arg_holder = __rf_arg_4_1_0_0_closure_clone.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(__rf_arg_4_1_0_1_closure_clone))));
     }) as Rc<dyn Fn() -> ()>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new(GoFuncValue::go_func_value(&(__rf_call_4_1)))); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new({ let __func_value = (*__rf_call_4_1.borrow()).clone(); __func_value })); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
         let mut __rf_arg_4_2_1 = Rc::new(RefCell::new(xs_closure_clone.borrow().clone()));
         let __rf_arg_4_2_1_closure_clone = __rf_arg_4_2_1.clone(); let mut __rf_call_4_2 = Rc::new(RefCell::new(Some(Rc::new(move || {
         show(Rc::new(RefCell::new(Some("xs".to_string()))), __rf_arg_4_2_1.clone());
     }) as Rc<dyn Fn() -> ()>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new(GoFuncValue::go_func_value(&(__rf_call_4_2)))); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
-        let mut __rf_fn_4_3 = Rc::new(RefCell::new(GoFuncValue::go_func_value(&(act_closure_clone))));
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new({ let __func_value = (*__rf_call_4_2.borrow()).clone(); __func_value })); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        let mut __rf_fn_4_3 = Rc::new(RefCell::new({ let __func_value = (*act_closure_clone.borrow()).clone(); __func_value }));
         let mut __rf_arg_4_3_0 = { let __owned = i.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
         let __rf_arg_4_3_0_closure_clone = __rf_arg_4_3_0.clone(); let __rf_fn_4_3_closure_clone = __rf_fn_4_3.clone(); let mut __rf_call_4_3 = Rc::new(RefCell::new(Some(Rc::new(move || {
         { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> ()> = __rf_fn_4_3_closure_clone.borrow().as_ref().unwrap().clone(); (__f)(__rf_arg_4_3_0_closure_clone.clone()) };
     }) as Rc<dyn Fn() -> ()>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new(GoFuncValue::go_func_value(&(__rf_call_4_3)))); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new({ let __func_value = (*__rf_call_4_3.borrow()).clone(); __func_value })); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
         let mut __rf_fn_4_4 = picker(Rc::new(RefCell::new(Some("at".to_string()))));
 let mut __rf_fn_4_4 = Rc::new(RefCell::new(GoFuncValue::go_func_value(&__rf_fn_4_4)));
         let mut __rf_arg_4_4_0 = { let __owned = i.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
         let __rf_arg_4_4_0_closure_clone = __rf_arg_4_4_0.clone(); let __rf_fn_4_4_closure_clone = __rf_fn_4_4.clone(); let mut __rf_call_4_4 = Rc::new(RefCell::new(Some(Rc::new(move || {
         { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> ()> = __rf_fn_4_4_closure_clone.borrow().as_ref().unwrap().clone(); (__f)(__rf_arg_4_4_0_closure_clone.clone()) };
     }) as Rc<dyn Fn() -> ()>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new(GoFuncValue::go_func_value(&(__rf_call_4_4)))); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new({ let __func_value = (*__rf_call_4_4.borrow()).clone(); __func_value })); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
         if (*i.borrow().as_ref().unwrap()) == 0 {
         let mut __rf_call_4_5 = Rc::new(RefCell::new(Some(Rc::new(move || {
         println!("{}", format!("{}", "cleanup".to_string()));
     }) as Rc<dyn Fn() -> ()>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new(GoFuncValue::go_func_value(&(__rf_call_4_5)))); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new({ let __func_value = (*__rf_call_4_5.borrow()).clone(); __func_value })); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     }
         if (*i.borrow().as_ref().unwrap()) == 2 {
         let mut __rf_call_4_6 = Rc::new(RefCell::new(Some(Rc::new(move || -> () {
         std::panic::panic_any(format!("boom"));
     }) as Rc<dyn Fn() -> ()>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new(GoFuncValue::go_func_value(&(__rf_call_4_6)))); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Rc::new(RefCell::new({ let __func_value = (*__rf_call_4_6.borrow()).clone(); __func_value })); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     }
         true
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool>))));

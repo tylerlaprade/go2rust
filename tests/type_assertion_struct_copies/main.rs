@@ -1061,8 +1061,8 @@ impl std::fmt::Display for Vec_Ptr {
 
 impl Shape for Vec_Ptr {
     fn area(&self) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Vec_ = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Vec_ };
+        let __recv = unsafe { &*__recv_ptr };
         Vec_::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape> {

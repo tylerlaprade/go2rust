@@ -466,13 +466,13 @@ impl std::fmt::Display for DogPtr {
 
 impl Animal for DogPtr {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Dog = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Dog };
+        let __recv = unsafe { &*__recv_ptr };
         Dog::name(__recv)
     }
     fn sound(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Dog = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Dog };
+        let __recv = unsafe { &*__recv_ptr };
         Dog::sound(__recv)
     }
     fn __go_clone_box_animal(&self) -> Box<dyn Animal + Send + Sync> {
@@ -541,13 +541,13 @@ impl std::fmt::Display for LoudPtr {
 
 impl Animal for LoudPtr {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Loud = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Loud };
+        let __recv = unsafe { &*__recv_ptr };
         Loud::name(__recv)
     }
     fn sound(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Loud = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Loud };
+        let __recv = unsafe { &*__recv_ptr };
         Loud::sound(__recv)
     }
     fn __go_clone_box_animal(&self) -> Box<dyn Animal + Send + Sync> {
@@ -626,18 +626,18 @@ impl std::fmt::Display for mapStorePtr {
 
 impl Store for mapStorePtr {
     fn get(&self, key: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, bool) {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const mapStore = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const mapStore };
+        let __recv = unsafe { &*__recv_ptr };
         mapStore::get(__recv, key)
     }
     fn put(&mut self, key: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<String>>>) {
-        let mut __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut mapStore = { let mut __recv_guard = self.0.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut mapStore };
+        let __recv = unsafe { &mut *__recv_ptr };
         mapStore::put(__recv, key, value)
     }
     fn keys(&self) -> Arc<Mutex<Option<Vec<String>>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const mapStore = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const mapStore };
+        let __recv = unsafe { &*__recv_ptr };
         mapStore::keys(__recv)
     }
     fn __go_clone_box_store(&self) -> Box<dyn Store + Send + Sync> {
@@ -717,18 +717,18 @@ impl std::fmt::Display for loggedPtr {
 
 impl Store for loggedPtr {
     fn get(&self, key: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, bool) {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const logged = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const logged };
+        let __recv = unsafe { &*__recv_ptr };
         logged::get(__recv, key)
     }
     fn put(&mut self, key: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<String>>>) {
-        let mut __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut logged = { let mut __recv_guard = self.0.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut logged };
+        let __recv = unsafe { &mut *__recv_ptr };
         logged::put(__recv, key, value)
     }
     fn keys(&self) -> Arc<Mutex<Option<Vec<String>>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const logged = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const logged };
+        let __recv = unsafe { &*__recv_ptr };
         logged::keys(__recv)
     }
     fn __go_clone_box_store(&self) -> Box<dyn Store + Send + Sync> {
@@ -812,18 +812,18 @@ impl std::fmt::Display for upperPtr {
 
 impl Store for upperPtr {
     fn get(&self, key: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, bool) {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const upper = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const upper };
+        let __recv = unsafe { &*__recv_ptr };
         upper::get(__recv, key)
     }
     fn put(&mut self, key: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<String>>>) {
-        let mut __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut upper = { let mut __recv_guard = self.0.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut upper };
+        let __recv = unsafe { &mut *__recv_ptr };
         upper::put(__recv, key, value)
     }
     fn keys(&self) -> Arc<Mutex<Option<Vec<String>>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const upper = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const upper };
+        let __recv = unsafe { &*__recv_ptr };
         upper::keys(__recv)
     }
     fn __go_clone_box_store(&self) -> Box<dyn Store + Send + Sync> {

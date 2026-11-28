@@ -349,18 +349,18 @@ impl std::fmt::Display for byLenPtr {
 
 impl sort::r#mod::Interface for byLenPtr {
     fn len(&self) -> i64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const byLen = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const byLen };
+        let __recv = unsafe { &*__recv_ptr };
         byLen::len(__recv)
     }
     fn less(&self, i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>) -> bool {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const byLen = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const byLen };
+        let __recv = unsafe { &*__recv_ptr };
         byLen::less(__recv, i, j)
     }
     fn swap(&self, i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>) {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const byLen = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const byLen };
+        let __recv = unsafe { &*__recv_ptr };
         byLen::swap(__recv, i, j)
     }
     fn __go_clone_box_interface(&self) -> Box<dyn sort::r#mod::Interface + Send + Sync> {
@@ -461,18 +461,18 @@ impl std::fmt::Display for byXPtr {
 
 impl sort::r#mod::Interface for byXPtr {
     fn len(&self) -> i64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const byX = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const byX };
+        let __recv = unsafe { &*__recv_ptr };
         byX::len(__recv)
     }
     fn less(&self, i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>) -> bool {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const byX = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const byX };
+        let __recv = unsafe { &*__recv_ptr };
         byX::less(__recv, i, j)
     }
     fn swap(&self, i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>) {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const byX = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const byX };
+        let __recv = unsafe { &*__recv_ptr };
         byX::swap(__recv, i, j)
     }
     fn __go_clone_box_interface(&self) -> Box<dyn sort::r#mod::Interface + Send + Sync> {

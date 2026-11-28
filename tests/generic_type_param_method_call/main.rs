@@ -820,8 +820,8 @@ impl std::fmt::Display for SqPtr {
 
 impl Shape for SqPtr {
     fn area(&self) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Sq = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Sq };
+        let __recv = unsafe { &*__recv_ptr };
         Sq::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape> {

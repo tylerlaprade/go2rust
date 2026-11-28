@@ -200,8 +200,8 @@ impl std::fmt::Display for localVarDeclPtr {
 
 impl localDecl for localVarDeclPtr {
     fn node(&self) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Node + Send + Sync>>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const localVarDecl = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const localVarDecl };
+        let __recv = unsafe { &*__recv_ptr };
         localVarDecl::node(__recv)
     }
     fn __go_clone_box_local_decl(&self) -> Box<dyn localDecl + Send + Sync> {

@@ -865,8 +865,8 @@ impl std::fmt::Display for basePtr {
 
 impl describer for basePtr {
     fn describe(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const base = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const base };
+        let __recv = unsafe { &*__recv_ptr };
         base::describe(__recv)
     }
     fn __go_clone_box_describer(&self) -> Box<dyn describer> {
@@ -929,8 +929,8 @@ impl std::fmt::Display for containerPtr {
 
 impl describer for containerPtr {
     fn describe(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const container = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const container };
+        let __recv = unsafe { &*__recv_ptr };
         container::describe(__recv)
     }
     fn __go_clone_box_describer(&self) -> Box<dyn describer> {

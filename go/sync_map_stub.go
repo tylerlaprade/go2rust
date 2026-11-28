@@ -332,7 +332,72 @@ func writeExternalStubMethodCallArgument(out *strings.Builder, sel *ast.Selector
 	if isSyncMapMethodSelector(sel) && writeSyncMapMethodCallArgument(out, arg) {
 		return
 	}
+	if isAtomicValueMethodSelector(sel) && writeAtomicValueMethodCallArgument(out, arg) {
+		return
+	}
+	// An interface value is stored as a copy, as Go stores it: assigning to
+	// the variable afterwards leaves the stored value alone.
+	if isAtomicValueMethodSelector(sel) && !isNilIdentExpr(arg) {
+		if typeInfo := GetTypeInfo(); typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(arg)) {
+			NeedAnyHandleCopy()
+			out.WriteString("go_any_handle_copy(&")
+			writeExternalStubCallArgument(out, arg, expected)
+			out.WriteString(")")
+			return
+		}
+	}
 	writeExternalStubCallArgument(out, arg, expected)
+}
+
+// isAtomicValueMethodSelector reports whether sel is a method of
+// sync/atomic.Value, whose stub takes the interface values it stores.
+func isAtomicValueMethodSelector(sel *ast.SelectorExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || sel == nil {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok {
+		return false
+	}
+	recv := types.Unalias(selection.Recv())
+	if ptr, ok := recv.(*types.Pointer); ok {
+		recv = types.Unalias(ptr.Elem())
+	}
+	named, ok := recv.(*types.Named)
+	return ok && named.Obj() != nil && named.Obj().Pkg() != nil && named.Obj().Pkg().Path() == "sync/atomic" && named.Obj().Name() == "Value"
+}
+
+// writeAtomicValueMethodCallArgument writes a value passed to an
+// atomic.Value method as the interface value it becomes: a value of a
+// concrete type, such as a package-level channel, is boxed in a new
+// interface value, as for any interface{} parameter, and an interface value
+// is passed as its cell, and nil as an empty cell. It reports false for an
+// interface value, which the caller copies.
+func writeAtomicValueMethodCallArgument(out *strings.Builder, arg ast.Expr) bool {
+	if ident, ok := unwrapParens(arg).(*ast.Ident); ok && ident.Name == "nil" {
+		// nil is the nil interface value, which Store and CompareAndSwap
+		// check for.
+		writeTypedWrappedNone(out, rustAnyTraitObject())
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || isEmptyInterfaceType(typeInfo.GetType(arg)) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	if isChannelOperand(arg) {
+		// The channel itself, read out of a package variable's cell.
+		RegisterAnyCloneType(typeInfo.GetType(arg))
+		out.WriteString("Box::new(")
+		writeChannelExpression(out, arg)
+		out.WriteString(") as ")
+		out.WriteString(rustAnyTraitObject())
+	} else {
+		writeInterfaceBoxedValue(out, arg)
+	}
+	WriteWrapperSuffix(out)
+	return true
 }
 
 func isSyncMapMethodSelector(sel *ast.SelectorExpr) bool {

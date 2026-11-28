@@ -1070,6 +1070,16 @@ impl<T> std::fmt::Debug for GoChannel<T> {
     }
 }
 
+// Two channels are equal when they are the same channel, as == compares
+// them in Go, or both nil.
+impl<T> PartialEq for GoChannel<T> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.is_nil() && other.is_nil()) || std::sync::Arc::ptr_eq(&self.rx, &other.rx)
+    }
+}
+
+impl<T> Eq for GoChannel<T> {}
+
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
@@ -1294,8 +1304,8 @@ impl std::fmt::Display for Vec_Ptr {
 
 impl Shape for Vec_Ptr {
     fn area(&self) -> i64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Vec_ = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Vec_ };
+        let __recv = unsafe { &*__recv_ptr };
         Vec_::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape + Send + Sync> {

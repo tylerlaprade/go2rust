@@ -712,6 +712,22 @@ run_xfail_test() {
     run_test "tests/atomic_typed_counters_plain"
 }
 
+@test "atomic_value_copies_and_type_checks" {
+    run_test "tests/atomic_value_copies_and_type_checks"
+}
+
+@test "atomic_value_copies_interface_values" {
+    run_test "tests/atomic_value_copies_interface_values"
+}
+
+@test "atomic_value_copies_interface_values_goroutines" {
+    run_test "tests/atomic_value_copies_interface_values_goroutines"
+}
+
+@test "atomic_value_stores_channels" {
+    run_test "tests/atomic_value_stores_channels"
+}
+
 @test "base64_encoding" {
     run_test "tests/base64_encoding"
 }
@@ -922,6 +938,10 @@ run_xfail_test() {
 
 @test "closure_append_pointer_capture" {
     run_test "tests/closure_append_pointer_capture"
+}
+
+@test "closure_assigned_through_captured_pointer" {
+    run_test "tests/closure_assigned_through_captured_pointer"
 }
 
 @test "closure_map_assignment_capture" {
@@ -1138,6 +1158,10 @@ run_xfail_test() {
 
 @test "context_err_error_return" {
     run_test "tests/context_err_error_return"
+}
+
+@test "context_errors_is_sentinels" {
+    run_test "tests/context_errors_is_sentinels"
 }
 
 @test "context_struct_display" {
@@ -1790,6 +1814,10 @@ run_xfail_test() {
 
 @test "func_type_alias_implements_interface" {
     run_test "tests/func_type_alias_implements_interface"
+}
+
+@test "func_value_argument_reassigned_by_callee" {
+    run_test "tests/func_value_argument_reassigned_by_callee"
 }
 
 @test "func_value_call_results_print" {
@@ -2794,6 +2822,10 @@ run_xfail_test() {
 
 @test "mutex_guard_method_call" {
     run_test "tests/mutex_guard_method_call"
+}
+
+@test "mutex_unlock_in_terminating_branch" {
+    run_test "tests/mutex_unlock_in_terminating_branch"
 }
 
 @test "named_array_literals_and_equality" {
@@ -5126,6 +5158,10 @@ run_xfail_test() {
 
 @test "type_switch_local_interface" {
     run_test "tests/type_switch_local_interface"
+}
+
+@test "type_switch_local_interface_stdlib_stringer" {
+    run_test "tests/type_switch_local_interface_stdlib_stringer"
 }
 
 @test "type_switch_no_binding" {

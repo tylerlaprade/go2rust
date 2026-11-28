@@ -630,8 +630,8 @@ impl std::fmt::Display for ClickPtr {
 
 impl Event for ClickPtr {
     fn kind(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Click = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Click };
+        let __recv = unsafe { &*__recv_ptr };
         Click::kind(__recv)
     }
     fn __go_clone_box_event(&self) -> Box<dyn Event + Send + Sync> {
@@ -690,8 +690,8 @@ impl std::fmt::Display for KeyPtr {
 
 impl Event for KeyPtr {
     fn kind(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Key = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Key };
+        let __recv = unsafe { &*__recv_ptr };
         Key::kind(__recv)
     }
     fn __go_clone_box_event(&self) -> Box<dyn Event + Send + Sync> {

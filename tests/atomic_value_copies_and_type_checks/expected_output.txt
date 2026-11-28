@@ -1,0 +1,8 @@
+1 <nil>
+1 s
+3
+empty sync/atomic: compare and swap of inconsistently typed values
+stored sync/atomic: compare and swap of inconsistently typed values
+nilnew sync/atomic: compare and swap of nil value into Value
+othertype sync/atomic: compare and swap of inconsistently typed value into Value
+true 5
