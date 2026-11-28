@@ -1,0 +1,23 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_anyslicepkg_dep",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "any_slice_printed_by_another_package"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "any_slice_printed_by_another_package"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+example_com_anyslicepkg_dep = { path = "vendor/example_com_anyslicepkg_dep" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

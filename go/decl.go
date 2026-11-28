@@ -103,6 +103,9 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		// value inside one of them prints as.
 		sliceOfMaps bool
 		mapNilText  string
+		// mapType is the type of a map field, which prints as the map does
+		// when printed directly, when that has a form of its own.
+		mapType types.Type
 		// mapArrayFormatter prints the array values of a map[K][N]T
 		// field, which have no Display; empty for any other field.
 		mapArrayFormatter         string
@@ -153,8 +156,12 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			}
 		}
 		mapArrayFormatter := ""
+		var mapType types.Type
 		if typeInfo := GetTypeInfo(); isMap && typeInfo != nil {
 			mapArrayFormatter, _ = mapArrayValueFormatter(typeInfo.GetType(field.Type))
+			if typ := typeInfo.GetType(field.Type); typ != nil && mapDisplayHasOwnForm(typ) {
+				mapType = typ
+			}
 		}
 		nestedSlice := arrayFieldContainsSlice(field.Type)
 		nestedSliceWrapped := arrayFieldNestedInnerIsPointer(field.Type)
@@ -191,6 +198,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					mapArrayFormatter:         mapArrayFormatter,
 					sliceOfMaps:               sliceOfMaps,
 					mapNilText:                mapNilText,
+					mapType:                   mapType,
 					nestedSlice:               nestedSlice,
 					nestedSliceWrapped:        nestedSliceWrapped,
 					nestedPointerSlice:        nestedPointerSlice,
@@ -228,6 +236,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				mapArrayFormatter:         mapArrayFormatter,
 				sliceOfMaps:               sliceOfMaps,
 				mapNilText:                mapNilText,
+				mapType:                   mapType,
 				nestedSlice:               nestedSlice,
 				nestedSliceWrapped:        nestedSliceWrapped,
 				nestedPointerSlice:        nestedPointerSlice,
@@ -269,6 +278,11 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString(ToSnakeCase(f.name))
 			WriteBorrowMethod(out, false)
 			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"[{}]\", std::iter::repeat(\"<func>\").take(__v.len()).collect::<Vec<_>>().join(\" \")), None => \"[]\".to_string() } }")
+		} else if f.isMap && f.mapType != nil {
+			writeMapDisplayForType(out, f.mapType, func() {
+				out.WriteString("self.")
+				out.WriteString(ToSnakeCase(f.name))
+			})
 		} else if f.isMap && f.mapArrayFormatter != "" {
 			writeMapOfArraysDisplay(out, f.mapArrayFormatter, func() {
 				out.WriteString("self.")

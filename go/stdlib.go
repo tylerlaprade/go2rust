@@ -922,6 +922,91 @@ func writeBareAnyPayloadRef(out *strings.Builder, arg ast.Expr) bool {
 }
 
 // Helper function to unwrap arguments for print statements
+// writeMapDisplayForType writes the fmt form of the map whose handle
+// writeHandle writes, for a map of type mapType: maps of arrays, of maps, of
+// slices or of interface{} values, maps with array keys and the rest print
+// as fmt prints them, whether printed directly or as a struct field.
+func writeMapDisplayForType(out *strings.Builder, mapType types.Type, writeHandle func()) {
+	if formatter, ok := mapArrayValueFormatter(mapType); ok {
+		writeMapOfArraysDisplayWithKeys(out, formatter, writeHandle, mapKeysAreBasicArrays(mapType))
+		return
+	}
+	if mapValuesAreBasicMaps(mapType) {
+		writeMapOfMapsDisplay(out, writeHandle, false)
+		return
+	}
+	if innerSlices, ok := mapValuesAreMapsOfSlicesOrStructs(mapType); ok {
+		writeMapOfMapsDisplay(out, writeHandle, innerSlices)
+		return
+	}
+	if mapKeysAreBasicArrays(mapType) {
+		writeMapWithArrayKeysDisplayOf(out, writeHandle, mapValuesAreEmptyInterfaces(mapType))
+		return
+	}
+	if nilText, ok := mapValuesAreSlicesOfMaps(mapType); ok {
+		writeMapOfSlicesOfMapsDisplay(out, writeHandle, nilText)
+		return
+	}
+	if mapValuesAreEmptyInterfaces(mapType) {
+		// map[string]any: each value prints as format_any prints it.
+		NeedFormatAnyMap()
+		out.WriteString("format_any_map(&")
+		writeHandle()
+		out.WriteString(")")
+		return
+	}
+	NeedFormatMap()
+	TrackImport("Display")
+	TrackImport("Ord")
+	if mapValuesAreSlices(mapType) {
+		// A nil slice value prints as [].
+		out.WriteString("format_map_nil(&")
+		writeHandle()
+		out.WriteString(", \"[]\")")
+		return
+	}
+	out.WriteString("format_map(&")
+	writeHandle()
+	out.WriteString(")")
+}
+
+// mapDisplayHasOwnForm reports whether writeMapDisplayForType prints a map
+// of type mapType with a form of its own, rather than with format_map, which
+// needs keys and values that implement Display.
+func mapDisplayHasOwnForm(mapType types.Type) bool {
+	// A map of a type parameter's type has no Display of its own to print
+	// it with, and a map with array keys prints values that are Display or
+	// interface{} values.
+	if typeContainsTypeParam(mapType) {
+		return false
+	}
+	if mapKeysAreBasicArrays(mapType) {
+		if _, ok := mapArrayValueFormatter(mapType); !ok && !mapValuesAreEmptyInterfaces(mapType) {
+			if m, ok := types.Unalias(mapType).Underlying().(*types.Map); !ok || !mapValueTypeDisplayable(m.Elem()) {
+				return false
+			}
+		}
+	}
+	if _, ok := mapArrayValueFormatter(mapType); ok {
+		return true
+	}
+	if _, ok := mapValuesAreMapsOfSlicesOrStructs(mapType); ok {
+		return true
+	}
+	if mapValuesAreBasicMaps(mapType) || mapKeysAreBasicArrays(mapType) || mapValuesAreEmptyInterfaces(mapType) {
+		return true
+	}
+	if _, ok := mapValuesAreSlicesOfMaps(mapType); ok {
+		return true
+	}
+	if m, ok := types.Unalias(mapType).Underlying().(*types.Map); ok {
+		if slice, ok := types.Unalias(m.Elem()).Underlying().(*types.Slice); ok {
+			return anyFormatElemImplementsDisplay(slice.Elem())
+		}
+	}
+	return false
+}
+
 func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 	if writeComplexPrintArg(out, arg) {
 		return
@@ -1067,39 +1152,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 					TranspileExpression(out, arg)
 				}
 			}
-			if formatter, ok := mapArrayValueFormatter(argType); ok {
-				writeMapOfArraysDisplay(out, formatter, writeHandle)
-				return
-			}
-			if mapValuesAreBasicMaps(argType) {
-				writeMapOfMapsDisplay(out, writeHandle, false)
-				return
-			}
-			if innerSlices, ok := mapValuesAreMapsOfSlicesOrStructs(argType); ok {
-				writeMapOfMapsDisplay(out, writeHandle, innerSlices)
-				return
-			}
-			if mapKeysAreBasicArrays(argType) {
-				writeMapWithArrayKeysDisplay(out, writeHandle)
-				return
-			}
-			if nilText, ok := mapValuesAreSlicesOfMaps(argType); ok {
-				writeMapOfSlicesOfMapsDisplay(out, writeHandle, nilText)
-				return
-			}
-			NeedFormatMap()
-			TrackImport("Display")
-			TrackImport("Ord")
-			if mapValuesAreSlices(argType) {
-				// A nil slice value prints as [].
-				out.WriteString("format_map_nil(&")
-				writeHandle()
-				out.WriteString(", \"[]\")")
-				return
-			}
-			out.WriteString("format_map(&")
-			writeHandle()
-			out.WriteString(")")
+			writeMapDisplayForType(out, argType, writeHandle)
 			return
 		} else if typeInfo.IsSlice(arg) || typeInfo.IsArray(arg) {
 			if writeNamedSlicePrintArg(out, arg, argType) {
@@ -2701,6 +2754,16 @@ func mapValuesAreSlices(mapType types.Type) bool {
 	return isSlice
 }
 
+// mapValuesAreEmptyInterfaces reports whether mapType is a map of
+// interface{} values, map[string]any say.
+func mapValuesAreEmptyInterfaces(mapType types.Type) bool {
+	if mapType == nil {
+		return false
+	}
+	m, ok := types.Unalias(mapType).Underlying().(*types.Map)
+	return ok && isEmptyInterfaceType(m.Elem())
+}
+
 // mapKeysAreBasicArrays reports whether mapType is a map whose keys are
 // arrays of numbers, strings or bools, which have no Display for
 // format_map to print.
@@ -2724,16 +2787,44 @@ func mapKeysAreBasicArrays(mapType types.Type) bool {
 // prints as its elements, in key order, which is the order fmt sorts array
 // keys in.
 func writeMapWithArrayKeysDisplay(out *strings.Builder, writeHandle func()) {
+	writeMapWithArrayKeysDisplayOf(out, writeHandle, false)
+}
+
+// writeMapWithArrayKeysDisplayOf is writeMapWithArrayKeysDisplay for a map
+// whose values are interface{} values when anyValues: each value prints as
+// fmt prints the value it holds.
+func writeMapWithArrayKeysDisplayOf(out *strings.Builder, writeHandle func(), anyValues bool) {
 	NeedFormatMap()
 	NeedFormatSlice()
 	TrackImport("Display")
+	if anyValues {
+		NeedFormatAnyNested()
+		// Each value is copied out of its entry before it prints.
+		NeedAnyClone()
+	} else {
+		NeedGoDisplayValue()
+	}
+	// The entries are copied out and the map's lock released first, so a
+	// value's String method that reads the map does not wait on it.
 	out.WriteString("{ let __map_holder = ")
 	writeHandle()
-	out.WriteString(".clone(); let __map_guard = __map_holder")
+	out.WriteString(".clone(); let __map_entries = { let __map_guard = __map_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; match __map_guard.as_ref() { Some(__map) => format!(\"map[{}]\", __map.iter().map(|(__key, __value)| { let __value_guard = __value")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; format!(\"{}:{}\", format_slice_values(&__key[..]), __value_guard.as_ref().map(|__value| go_display_value(__value)).unwrap_or_else(|| \"<nil>\".to_string())) }).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
+	out.WriteString("; __map_guard.as_ref().map(|__map| __map.iter().map(|(__key, __value)| (__key.clone(), __value.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map_entries) => format!(\"map[{}]\", __map_entries.iter().map(|(__key, __value)| { ")
+	if anyValues {
+		// The value is copied out too, so its String method may read its
+		// own entry; one with no copy prints in place.
+		out.WriteString("let __value_copy = { let __value_guard = __value")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __value_guard.as_ref().map(|__value| go_any_try_clone(__value.as_ref())) }; let __value_text = match __value_copy { Some(Some(__value)) => format_any_nested(__value.as_ref()), Some(None) => { let __value_guard = __value")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __value_guard.as_ref().map(|__value| format_any_nested(__value.as_ref())).unwrap_or_else(|| \"<nil>\".to_string()) } None => \"<nil>\".to_string() }; ")
+	} else {
+		out.WriteString("let __value_copy = { let __value_guard = __value")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __value_guard.as_ref().cloned() }; let __value_text = __value_copy.as_ref().map(|__value| go_display_value(__value)).unwrap_or_else(|| \"<nil>\".to_string()); ")
+	}
+	out.WriteString("format!(\"{}:{}\", format_slice_values(&__key[..]), __value_text) }).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
 }
 
 // mapValuesAreBasicMaps reports whether mapType is a map whose values are
@@ -2758,11 +2849,23 @@ func mapValuesAreBasicMaps(mapType types.Type) bool {
 	return ok && basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
 }
 
+// writeMapEntriesCopyMatch writes, after the map's handle, the copy of its
+// entries in key order and the opening of a match on it whose Some arm
+// names the copy __map: a printer iterates the copy after the map's lock is
+// released, so a key's or value's String method that reads the map does not
+// wait on the lock printing would hold.
+func writeMapEntriesCopyMatch(out *strings.Builder) {
+	out.WriteString(".clone(); let __map_entries = { let __map_guard = __map_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => ")
+}
+
 // writeMapOfMapsDisplay prints a map whose values are maps as fmt does,
 // map[a:map[b:2]], in key order. Each value is the cell of an inner map,
 // which format_map takes; the inner map has no Display of its own. An inner
 // map of slices prints a nil slice as [].
 func writeMapOfMapsDisplay(out *strings.Builder, writeHandle func(), innerSlices bool) {
+	NeedGoDisplayValue()
 	NeedFormatMap()
 	TrackImport("Display")
 	TrackImport("Ord")
@@ -2772,9 +2875,8 @@ func writeMapOfMapsDisplay(out *strings.Builder, writeHandle func(), innerSlices
 	}
 	out.WriteString("{ let __map_holder = ")
 	writeHandle()
-	out.WriteString(".clone(); let __map_guard = __map_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; match __map_guard.as_ref() { Some(__map) => format!(\"map[{}]\", __map.iter().map(|(__k, __v)| format!(\"{}:{}\", go_display_value(__k), " + innerFormat + ")).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
+	writeMapEntriesCopyMatch(out)
+	out.WriteString("format!(\"map[{}]\", __map.iter().map(|(__k, __v)| format!(\"{}:{}\", go_display_value(__k), " + innerFormat + ")).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
 }
 
 // mapValuesAreMapsOfSlicesOrStructs reports whether mapType is a map whose
@@ -2811,16 +2913,27 @@ func mapValuesAreMapsOfSlicesOrStructs(mapType types.Type) (bool, bool) {
 // map[k:[1 2] ...] in key order, through formatter for each value.
 // writeHandle writes the map's handle.
 func writeMapOfArraysDisplay(out *strings.Builder, formatter string, writeHandle func()) {
+	writeMapOfArraysDisplayWithKeys(out, formatter, writeHandle, false)
+}
+
+// writeMapOfArraysDisplayWithKeys is writeMapOfArraysDisplay for a map whose
+// keys are arrays too when arrayKeys: each key prints as its elements.
+func writeMapOfArraysDisplayWithKeys(out *strings.Builder, formatter string, writeHandle func(), arrayKeys bool) {
 	NeedFormatSlice()
 	if formatter == "format_nested_slice_values" {
 		NeedFormatNestedSlice()
 	}
 	TrackImport("Display")
+	keyFormat := "go_display_value(__k)"
+	if arrayKeys {
+		keyFormat = "format_slice_values(&__k[..])"
+	} else {
+		NeedGoDisplayValue()
+	}
 	out.WriteString("{ let __map_holder = ")
 	writeHandle()
-	out.WriteString(".clone(); let __map_guard = __map_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; match __map_guard.as_ref() { Some(__map) => format!(\"map[{}]\", __map.iter().map(|(__k, __v)| format!(\"{}:{}\", go_display_value(__k), ")
+	writeMapEntriesCopyMatch(out)
+	out.WriteString("format!(\"map[{}]\", __map.iter().map(|(__k, __v)| format!(\"{}:{}\", " + keyFormat + ", ")
 	out.WriteString(formatter)
 	out.WriteString("(&__v")
 	WriteBorrowMethod(out, false)
@@ -3258,14 +3371,14 @@ func mapValuesAreSlicesOfMaps(mapType types.Type) (string, bool) {
 // as fmt does, map[a:[map[x:1] map[]]], in key order. Each value is the cell
 // of a slice that holds its maps bare; a nil slice prints as [].
 func writeMapOfSlicesOfMapsDisplay(out *strings.Builder, writeHandle func(), nilText string) {
+	NeedGoDisplayValue()
 	NeedFormatMap()
 	TrackImport("Display")
 	TrackImport("Ord")
 	out.WriteString("{ let __map_holder = ")
 	writeHandle()
-	out.WriteString(".clone(); let __map_guard = __map_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; match __map_guard.as_ref() { Some(__map) => format!(\"map[{}]\", __map.iter().map(|(__k, __v)| { let __maps = (*__v")
+	writeMapEntriesCopyMatch(out)
+	out.WriteString("format!(\"map[{}]\", __map.iter().map(|(__k, __v)| { let __maps = (*__v")
 	WriteBorrowMethod(out, false)
 	out.WriteString(").clone().unwrap_or_default(); format!(\"{}:[{}]\", go_display_value(__k), __maps.iter().map(|__m| ")
 	writeBareMapInSliceFormat(out, nilText)
@@ -7959,7 +8072,7 @@ func generateMapFormatter(out *strings.Builder) {
 		TrackImport("Mutex")
 		out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String
 where
-    V: Display,
+    V: Display + Clone,
 {
     format_map_nil(map, "<nil>")
 }
@@ -7968,18 +8081,19 @@ where
 // [] for a nil slice, as Go prints one.
 fn format_map_nil<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>, __nil_text: &str) -> String
 where
-    V: Display,
+    V: Display + Clone,
 {
-    let guard = map.lock().unwrap();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-
+    // The entries are copied out first, in key order, so a value's String
+    // method that reads this map does not wait on the lock printing holds.
+    let items: Option<Vec<(K, Arc<Mutex<Option<V>>>)>> = { let guard = map.lock().unwrap(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()) };
+    if let Some(items) = items {
         let formatted: Vec<String> = items
-            .into_iter()
+            .iter()
             .map(|(k, v)| {
-                let v_guard = v.lock().unwrap();
-                if let Some(ref val) = *v_guard {
+                // The value is copied out too, so its String method may
+                // read its own entry.
+                let value = { let v_guard = v.lock().unwrap(); v_guard.clone() };
+                if let Some(ref val) = value {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
                     format!("{}:{}", go_display_value(k), __nil_text)
@@ -7998,7 +8112,7 @@ where
 		TrackImport("RefCell")
 		out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
-    V: Display,
+    V: Display + Clone,
 {
     format_map_nil(map, "<nil>")
 }
@@ -8007,18 +8121,19 @@ where
 // [] for a nil slice, as Go prints one.
 fn format_map_nil<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>, __nil_text: &str) -> String
 where
-    V: Display,
+    V: Display + Clone,
 {
-    let guard = map.borrow();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-
+    // The entries are copied out first, in key order, so a value's String
+    // method that reads this map does not wait on the lock printing holds.
+    let items: Option<Vec<(K, Rc<RefCell<Option<V>>>)>> = { let guard = map.borrow(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()) };
+    if let Some(items) = items {
         let formatted: Vec<String> = items
-            .into_iter()
+            .iter()
             .map(|(k, v)| {
-                let v_guard = v.borrow();
-                if let Some(ref val) = *v_guard {
+                // The value is copied out too, so its String method may
+                // read its own entry.
+                let value = { let v_guard = v.borrow(); v_guard.clone() };
+                if let Some(ref val) = value {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
                     format!("{}:{}", go_display_value(k), __nil_text)

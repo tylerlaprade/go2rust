@@ -6,6 +6,7 @@ macro_rules! vec {
 }
 use std::any::Any;
 use std::cell::{RefCell};
+use std::cmp::Ord;
 use std::collections::BTreeMap;
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
@@ -682,6 +683,42 @@ impl std::io::Write for GoSlice<u8> {
     }
 }
 
+fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
+where
+    V: Display + Clone,
+{
+    format_map_nil(map, "<nil>")
+}
+
+// format_map_nil prints a value the map holds no value for as __nil_text:
+// [] for a nil slice, as Go prints one.
+fn format_map_nil<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>, __nil_text: &str) -> String
+where
+    V: Display + Clone,
+{
+    // The entries are copied out first, in key order, so a value's String
+    // method that reads this map does not wait on the lock printing holds.
+    let items: Option<Vec<(K, Rc<RefCell<Option<V>>>)>> = { let guard = map.borrow(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()) };
+    if let Some(items) = items {
+        let formatted: Vec<String> = items
+            .iter()
+            .map(|(k, v)| {
+                // The value is copied out too, so its String method may
+                // read its own entry.
+                let value = { let v_guard = v.borrow(); v_guard.clone() };
+                if let Some(ref val) = value {
+                    format!("{}:{}", go_display_value(k), go_display_value(val))
+                } else {
+                    format!("{}:{}", go_display_value(k), __nil_text)
+                }
+            })
+            .collect();
+
+        format!("map[{}]", formatted.join(" "))
+    } else {
+        "map[]".to_string()
+    }
+}
 fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
 where
     C: AsRef<[T]>,
@@ -1377,7 +1414,7 @@ impl std::fmt::Display for Request {
         let __go_fmt_1 = format!("{}", format_slice(&self.env));
         let __go_fmt_2 = format!("{}", format_slice(&self.build_flags));
         let __go_fmt_3 = format!("{}", (*self.tests.borrow().as_ref().unwrap()));
-        let __go_fmt_4 = format!("{}", "<map>");
+        let __go_fmt_4 = format!("{}", format_map_nil(&self.overlay, "[]"));
         write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
