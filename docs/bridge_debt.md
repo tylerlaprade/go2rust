@@ -336,7 +336,8 @@ against the `// TEMPORARY:` comments of that one file.
   `writeNestedAnySlicePrintArg`, `writeMapOfAnySlicesDisplay`,
   `writeSliceOfMapsPrintArg`); `go/imports.go`, the generated Rust helpers
   `go_display_value`, `go_float_string`, `format_map`, `format_map_nil`,
-  `format_slice` and `format_any_slice`.
+  `format_slice` and `format_any_slice`; `go/any_format.go`,
+  `anyFormatArmForType`, the cases of the generated `format_any`.
 - Go symbol: how `fmt.Print`, `fmt.Println` and `%v` print an operand: a
   float as `strconv`'s shortest `%g`, and a slice, an array or a map element
   by element in brackets, a map in key order.
@@ -346,10 +347,13 @@ against the `// TEMPORARY:` comments of that one file.
   registry; the row records them so that each widening is tracked. The
   widenings so far send a `[]float64` or `[]float32` held as a map value
   through `go_float_string` (#339), where it printed with Rust's float
-  formatting, and print a slice, an array or a map of `[]any` row by row
-  with `format_any_slice` (#343), where they did not build.
+  formatting, gives `format_any` a case for a dependency's types, exported
+  or not, and for a slice of a defined basic type (#358), and print a
+  slice, an array or a map of `[]any` row by row with `format_any_slice`
+  (#343), where they did not build.
 - Fixture: `tests/map_float_slice_values/`,
   `tests/map_float_slice_values_dependency/`,
+  `tests/dependency_types_in_interfaces/`,
   `tests/nested_any_slice_literals/`, `tests/fmt_println/` and
   `tests/defined_collection_display/`.
 - Removal trigger: `fmt` is translated from source, which needs `reflect`,

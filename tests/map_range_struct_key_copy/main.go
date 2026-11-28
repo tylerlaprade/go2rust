@@ -1,0 +1,64 @@
+package main
+
+import "fmt"
+
+type K struct{ x, y int }
+
+type Outer struct {
+	K    K
+	Name string
+}
+
+func main() {
+	m := map[K]int{{3, 4}: 7}
+	for k, v := range m {
+		k.x = 9
+		_ = v
+	}
+	fmt.Println(m[K{3, 4}], len(m))
+	for k := range m {
+		k.y++
+		fmt.Println(k)
+	}
+	fmt.Println(m)
+	u := map[struct{ a, b int }]string{{1, 2}: "u"}
+	for k := range u {
+		k.a = 5
+	}
+	fmt.Println(u)
+	o := map[Outer]bool{{K{1, 1}, "o"}: true}
+	for k := range o {
+		k.K.x = 2
+		k.Name = "changed"
+	}
+	fmt.Println(o)
+	saved := []K{}
+	for k := range m {
+		saved = append(saved, k)
+	}
+	saved[0].x = 100
+	fmt.Println(m, saved)
+
+	// An existing variable takes the copy too.
+	var last K
+	for last = range m {
+		last.x = 9
+	}
+	fmt.Println(m[K{3, 4}], last)
+
+	// A value named like the generated key temporary.
+	for key, __range_key := range m {
+		key.x = 1
+		fmt.Println(key, __range_key)
+	}
+	fmt.Println(m)
+
+	// An outer variable named like the temporary, read in an inner loop.
+	b := map[K]int{{2, 2}: 0}
+	for __range_key := range m {
+		for k := range b {
+			k.x++
+			fmt.Println(__range_key.x, k.x)
+		}
+	}
+}

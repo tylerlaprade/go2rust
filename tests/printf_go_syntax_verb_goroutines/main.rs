@@ -4249,7 +4249,8 @@ pub fn __go2rust_gosyntax0_50(v: Arc<Mutex<Option<BTreeMap<Point, Arc<Mutex<Opti
         return Arc::new(Mutex::new(Some("map[main.Point]string(nil)".to_string())));
     }
     let mut keys: Arc<Mutex<Option<Vec<Point>>>> = Arc::new(Mutex::new(Some({ let mut v: Vec<Point> = (0..(({ let __len = (*v.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize).map(|_| Default::default()).collect(); v.truncate((0) as usize); v })));
-    for (k, _) in { let __range_holder = v.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
+    for (__range_key, _) in { let __range_holder = v.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
+        let k = __range_key.__go_value_clone();
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = keys.clone(); let __append_value = k.clone(); let mut __appended: Vec<Point> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.push(__append_value); }, |__go_elem| __go_elem.__go_value_clone()); Arc::new(Mutex::new(Some(__appended))) })); *keys.lock().unwrap() = __slice_header; };
     }
     let mut i = Arc::new(Mutex::new(Some(1i64)));
@@ -4430,7 +4431,8 @@ pub fn __go2rust_gosyntax0_59(v: Arc<Mutex<Option<BTreeMap<Square, Arc<Mutex<Opt
         return Arc::new(Mutex::new(Some("map[main.Square]int(nil)".to_string())));
     }
     let mut keys: Arc<Mutex<Option<Vec<Square>>>> = Arc::new(Mutex::new(Some({ let mut v: Vec<Square> = (0..(({ let __len = (*v.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize).map(|_| Default::default()).collect(); v.truncate((0) as usize); v })));
-    for (k, _) in { let __range_holder = v.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
+    for (__range_key, _) in { let __range_holder = v.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
+        let k = __range_key.__go_value_clone();
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = keys.clone(); let __append_value = k.clone(); let mut __appended: Vec<Square> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.push(__append_value); }, |__go_elem| __go_elem.__go_value_clone()); Arc::new(Mutex::new(Some(__appended))) })); *keys.lock().unwrap() = __slice_header; };
     }
     let mut i = Arc::new(Mutex::new(Some(1i64)));

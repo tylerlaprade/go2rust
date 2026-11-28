@@ -414,7 +414,7 @@ fn main() {
             (Arc::new(Mutex::new(None::<fmt_Stringer>)), false)
         }
     });
-    let mut w: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(example_com_fmt_stringer_imported_types_goroutines_model::r#mod::Label { text: Arc::new(Mutex::new(Some("y".to_string()))), ..Default::default() }) as Box<dyn Any + Send + Sync>)));
+    let mut w: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({ go_register_any_runtime_type::<example_com_fmt_stringer_imported_types_goroutines_model::r#mod::Label>("model.Label", |__value| { let __typed = __value.downcast_ref::<example_com_fmt_stringer_imported_types_goroutines_model::r#mod::Label>().expect("registered interface formatter type mismatch"); format!("{}", __typed) }, |__value| { let __typed = __value.downcast_ref::<example_com_fmt_stringer_imported_types_goroutines_model::r#mod::Label>().expect("registered interface clone type mismatch"); Box::new(__typed.__go_value_clone()) as Box<dyn Any + Send + Sync> }, None); Box::new(example_com_fmt_stringer_imported_types_goroutines_model::r#mod::Label { text: Arc::new(Mutex::new(Some("y".to_string()))), ..Default::default() }) as Box<dyn Any + Send + Sync> })));
     let (mut st, mut ok2) = ({
         let val = w.clone();
         let guard = val.lock().unwrap();

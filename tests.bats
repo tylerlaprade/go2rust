@@ -1396,6 +1396,14 @@ run_xfail_test() {
     run_test "tests/defined_type_of_defined_collection_goroutines"
 }
 
+@test "dependency_types_in_interfaces" {
+    run_test "tests/dependency_types_in_interfaces"
+}
+
+@test "dependency_types_in_interfaces_goroutines" {
+    run_test "tests/dependency_types_in_interfaces_goroutines"
+}
+
 @test "deref_assign_through_selector" {
     run_test "tests/deref_assign_through_selector"
 }
@@ -2678,6 +2686,22 @@ run_xfail_test() {
 
 @test "map_range_string_value_compare" {
     run_test "tests/map_range_string_value_compare"
+}
+
+@test "map_range_struct_key_copy" {
+    run_test "tests/map_range_struct_key_copy"
+}
+
+@test "map_range_struct_key_copy_goroutines" {
+    run_test "tests/map_range_struct_key_copy_goroutines"
+}
+
+@test "map_range_value_compound_assign" {
+    run_test "tests/map_range_value_compound_assign"
+}
+
+@test "map_range_value_compound_assign_goroutines" {
+    run_test "tests/map_range_value_compound_assign_goroutines"
 }
 
 @test "map_range_value_delete_key" {

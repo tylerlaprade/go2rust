@@ -1190,7 +1190,8 @@ fn main() {
     } }
     }
     println!("{} {}", format!("{}", ({ let __len = (*dist.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __map = { let __map_holder = dist.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&AnonymousStruct1 { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(1))) })).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
-    for (k, v) in { let __range_holder = dist.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
+    for (__range_key, v) in { let __range_holder = dist.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
+        let k = __range_key.__go_value_clone();
         if { let __tmp_x = (*v.lock().unwrap().as_mut().unwrap()); let __tmp_y = 2; __tmp_x == __tmp_y } {
         println!("{} {}", format!("{}", { let __tmp_x = (*k.x.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*k.y.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }), format!("{}", (*v.lock().unwrap().as_mut().unwrap())));
     }
