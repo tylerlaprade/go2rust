@@ -62,7 +62,7 @@ pub static Numbers: GoGlobal<Vec<i64>> = GoGlobal::new();
 
 pub static Groups: GoGlobalMap<BTreeMap<String, Rc<RefCell<Option<Vec<String>>>>>> = GoGlobalMap::new();
 
-pub static Records: GoGlobal<Vec<BTreeMap<String, Rc<RefCell<Option<Box<dyn Any>>>>>>> = GoGlobal::new();
+pub static Records: GoGlobal<Vec<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Box<dyn Any>>>>>>>>>> = GoGlobal::new();
 
 
 fn __go_init_globals() {
@@ -128,9 +128,9 @@ pub(crate) fn __go_init_order_2() {
 
 pub(crate) fn __go_init_order_3() {
     {
-        let mut __go_slice = Vec::<BTreeMap<String, Rc<RefCell<Option<Box<dyn Any>>>>>>::with_capacity(2);
-        __go_slice.push(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("name".to_string(), Rc::new(RefCell::new(Some(Box::new("Alice".to_string()) as Box<dyn Any>)))), ("age".to_string(), Rc::new(RefCell::new(Some(Box::new(30i64) as Box<dyn Any>))))]));
-        __go_slice.push(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("name".to_string(), Rc::new(RefCell::new(Some(Box::new("Bob".to_string()) as Box<dyn Any>)))), ("age".to_string(), Rc::new(RefCell::new(Some(Box::new(25i64) as Box<dyn Any>))))]));
+        let mut __go_slice = Vec::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Box<dyn Any>>>>>>>>>::with_capacity(2);
+        __go_slice.push(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("name".to_string(), Rc::new(RefCell::new(Some(Box::new("Alice".to_string()) as Box<dyn Any>)))), ("age".to_string(), Rc::new(RefCell::new(Some(Box::new(30i64) as Box<dyn Any>))))])))));
+        __go_slice.push(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("name".to_string(), Rc::new(RefCell::new(Some(Box::new("Bob".to_string()) as Box<dyn Any>)))), ("age".to_string(), Rc::new(RefCell::new(Some(Box::new(25i64) as Box<dyn Any>))))])))));
         let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());
         *Records.borrow_mut() = Some(__go_slice);
     }

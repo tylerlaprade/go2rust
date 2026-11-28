@@ -1405,18 +1405,23 @@ func writePackageGlobalMapSliceValueInsert(out *strings.Builder, indent string, 
 	out.WriteString("let mut ")
 	out.WriteString(valueName)
 	out.WriteString(" = Vec::<")
-	out.WriteString(goTypesTypeToRust(sliceType.Elem()))
+	// An element of map type is the map's handle (#318).
+	out.WriteString(goTypesCollectionElemTypeToRust(sliceType.Elem()))
 	out.WriteString(">::new();\n")
 	for _, elt := range orderedArrayLiteralValues(valueLit.Elts) {
 		out.WriteString(indent)
 		out.WriteString(valueName)
 		out.WriteString(".push(")
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(sliceType.Elem()))
+			out.WriteString(collectionElementZeroValue(sliceType.Elem()))
 		} else if isEmptyInterfaceType(sliceType.Elem()) {
 			// A []any value boxes its elements, as a []any literal does.
 			writeNestedCollectionLiteralElement(out, elt, sliceType.Elem())
-		} else if !writeOwnedExpressionValue(out, elt) {
+		} else if writeMapHandleElementValue(out, elt, sliceType.Elem()) {
+			// A map element is its map's handle.
+		} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
+			// The element is written as the vector's element type is, an
+			// error as its handle (writeGoErrorHandleValue).
 			TranspileExpression(out, elt)
 		}
 		out.WriteString(");\n")
@@ -1462,7 +1467,7 @@ func writePackageGlobalNestedSliceLiteralElement(out *strings.Builder, indent st
 		out.WriteString(elemName)
 		out.WriteString(".push(")
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(sliceType.Elem()))
+			out.WriteString(collectionElementZeroValue(sliceType.Elem()))
 		} else if isEmptyInterfaceType(sliceType.Elem()) {
 			writeNestedCollectionLiteralElement(out, elt, sliceType.Elem())
 		} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
@@ -1532,7 +1537,7 @@ func writePackageGlobalSliceLiteralInit(out *strings.Builder, name string, globa
 		}
 		out.WriteString("        __go_slice.push(")
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(sliceType.Elem()))
+			out.WriteString(collectionElementZeroValue(sliceType.Elem()))
 		} else if isEmptyInterfaceType(sliceType.Elem()) {
 			writeNestedCollectionLiteralElement(out, elt, sliceType.Elem())
 		} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
@@ -1588,7 +1593,7 @@ func writePackageGlobalArrayLiteralInit(out *strings.Builder, name string, globa
 	for _, elt := range values {
 		out.WriteString("        __go_array.push(")
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(arrayType.Elem()))
+			out.WriteString(collectionElementZeroValue(arrayType.Elem()))
 		} else if isEmptyInterfaceType(arrayType.Elem()) {
 			writeNestedCollectionLiteralElement(out, elt, arrayType.Elem())
 		} else if !writeArraySliceLiteralElementValue(out, elt, arrayType.Elem()) && !writeOwnedExpressionValue(out, elt) {

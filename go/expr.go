@@ -1224,10 +1224,15 @@ func indexExpressionResultKeepsHandle(expr *ast.IndexExpr, typeInfo *TypeInfo) b
 	if typeInfo.IsMap(expr.X) {
 		return mapValueTypeKeepsHandle(typeInfo.GetType(expr))
 	}
+	elemType, ok := sequenceElementTypeForIndexExpr(expr.X, typeInfo)
+	// An element of an unnamed map type is the map's handle in every array
+	// or slice, bare ones included, as s[0][0] of a [][]map (#318).
+	if ok && isUnnamedMapType(elemType) {
+		return true
+	}
 	if isExpressionResultBare(expr.X) {
 		return false
 	}
-	elemType, ok := sequenceElementTypeForIndexExpr(expr.X, typeInfo)
 	if !ok {
 		return mapValueTypeKeepsHandle(typeInfo.GetType(expr))
 	}
@@ -1241,6 +1246,11 @@ func sequenceElementTypeForIndexExpr(expr ast.Expr, typeInfo *TypeInfo) (types.T
 	typ := types.Unalias(typeInfo.GetType(expr))
 	if ptr, ok := typ.(*types.Pointer); ok {
 		typ = types.Unalias(ptr.Elem())
+	}
+	// A type parameter S ~[]map[string]int holds what its slice constraint's
+	// element is.
+	if elem, ok := goTypeParamSliceConstraintElem(typ); ok {
+		return elem, true
 	}
 	switch seq := types.Unalias(typ).Underlying().(type) {
 	case *types.Array:
@@ -1962,6 +1972,11 @@ func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemTyp
 		if ident, ok := arg.(*ast.Ident); ok && isStdlibNamedInterfaceValueType(types.Unalias(elemType)) && writeOwnedRangeValue(out, ident) {
 			return
 		}
+	}
+	// A ...map[K]V parameter is a slice of maps, which holds the maps'
+	// handles (#318).
+	if writeMapHandleElementValue(out, arg, elemType) {
+		return
 	}
 	if elemType != nil {
 		if _, ok := types.Unalias(elemType).Underlying().(*types.Slice); ok {
@@ -3120,7 +3135,7 @@ func writeTypeParamSliceCompositeLiteral(out *strings.Builder, lit *ast.Composit
 			out.WriteString(", ")
 		}
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(elemType))
+			out.WriteString(collectionElementZeroValue(elemType))
 			continue
 		}
 		if !writeArraySliceLiteralElementValue(out, elt, elemType) {
@@ -4305,13 +4320,39 @@ func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 }
 
 func writeAlreadyWrappedMapIndexCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
-	index, ok := arg.(*ast.IndexExpr)
+	index, ok := unwrapParens(arg).(*ast.IndexExpr)
 	if !ok {
 		return false
 	}
+	arg = index
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsMap(index.X) {
+	if typeInfo == nil {
 		return false
+	}
+	if !typeInfo.IsMap(index.X) {
+		// take(s[0]) for a []map: the element is the map's handle (#318),
+		// which a map[K]V parameter takes as it is. A defined map
+		// parameter type is left to the conversion the call writes.
+		if !mapElementIndexExpression(index) {
+			return false
+		}
+		actual := typeInfo.GetType(index)
+		if named, ok := types.Unalias(expected).(*types.Named); ok && types.Identical(named.Underlying(), types.Unalias(actual)) {
+			// take(s[0]) for func take(m Counts): the newtype around the
+			// element's handle, as a return of s[0] as Counts is.
+			WriteWrapperPrefix(out)
+			out.WriteString(goTypesTypeToRust(named))
+			out.WriteString("(")
+			TranspileExpression(out, arg)
+			out.WriteString(")")
+			WriteWrapperSuffix(out)
+			return true
+		}
+		if expected != nil && !types.Identical(types.Unalias(actual), types.Unalias(expected)) {
+			return false
+		}
+		TranspileExpression(out, arg)
+		return true
 	}
 	actual := typeInfo.GetType(index)
 	if actual == nil || !mapValueTypeKeepsHandle(actual) {
@@ -5619,7 +5660,7 @@ func writeNamedSliceCompositeLiteral(out *strings.Builder, e *ast.CompositeLit, 
 			out.WriteString(", ")
 		}
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(sliceType.Elem()))
+			out.WriteString(collectionElementZeroValue(sliceType.Elem()))
 		} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
 			TranspileExpression(out, elt)
 		}
@@ -9224,7 +9265,8 @@ func writeNestedCollectionLiteralZero(out *strings.Builder, elemType types.Type)
 		writeNilAnyBox(out)
 		return
 	}
-	out.WriteString(zeroValueForTypesType(elemType))
+	// An element of an unnamed map type is a nil map's handle (#318).
+	out.WriteString(collectionElementZeroValue(elemType))
 }
 
 // writeNestedCollectionLiteralElement writes an element of a slice or array
@@ -9503,10 +9545,111 @@ func sliceLiteralNeedsExplicitElemType(elemType types.Type) bool {
 	return elemType != nil && isStdlibNamedInterfaceValueType(types.Unalias(elemType))
 }
 
+// collectionElementZeroValue writes the zero value of an element of type
+// elemType in an array or slice: a nil map's handle for an unnamed map type
+// (#318), and the type's zero value otherwise.
+func collectionElementZeroValue(elemType types.Type) string {
+	if isUnnamedMapType(elemType) {
+		var none strings.Builder
+		writeTypedWrappedNone(&none, goTypesTypeToRust(elemType))
+		return none.String()
+	}
+	return zeroValueForTypesType(elemType)
+}
+
+// isUnnamedMapType reports whether typ is an unnamed map type, whose values
+// as elements of an array or slice are the maps' handles (#318).
+func isUnnamedMapType(typ types.Type) bool {
+	_, ok := types.Unalias(typ).(*types.Map)
+	return typ != nil && ok
+}
+
+// writeMapHandleElementValue writes an element of an array or slice of an
+// unnamed map type, which is the map's handle (#318): nil is a nil map, a
+// literal is its map's handle, and any other map value gives its handle,
+// which the element then shares.
+func writeMapHandleElementValue(out *strings.Builder, expr ast.Expr, elemType types.Type) bool {
+	if elemType == nil {
+		return false
+	}
+	if _, ok := types.Unalias(elemType).(*types.Map); !ok {
+		return false
+	}
+	inner := unwrapParens(expr)
+	if ident, ok := inner.(*ast.Ident); ok && ident.Name == "nil" {
+		writeTypedWrappedNone(out, goTypesTypeToRust(elemType))
+		return true
+	}
+	if lit, ok := inner.(*ast.CompositeLit); ok {
+		if lit.Type == nil {
+			// An elided literal is the bare map; its element is a handle.
+			WriteWrapperPrefix(out)
+			TranspileExpression(out, lit)
+			WriteWrapperSuffix(out)
+		} else {
+			TranspileExpression(out, lit)
+		}
+		return true
+	}
+	// A map asserted out of an interface is the handle the interface holds
+	// where that is known, and otherwise comes out bare, as from a []any
+	// element, and is wrapped once.
+	if assertion, ok := inner.(*ast.TypeAssertExpr); ok {
+		var handle strings.Builder
+		if writeAnyHandleAssertionHandle(&handle, assertion) {
+			out.WriteString(handle.String())
+			return true
+		}
+		// values[0].(map[string]int) for a []any keeps the handle the
+		// element holds too, so the slice shares the map and a nil map
+		// stays nil.
+		if handleType, _, ok := typeAssertionAnyHandleTarget(assertion); ok && writeAnySliceElementPointerHandleAssertionValue(&handle, assertion, handleType) {
+			out.WriteString(handle.String())
+			return true
+		}
+		WriteWrapperPrefix(out)
+		TranspileExpression(out, assertion)
+		WriteWrapperSuffix(out)
+		return true
+	}
+	// A map bound by a channel range or a select receive is bare too, as the
+	// channel carried it.
+	if ident, ok := inner.(*ast.Ident); ok {
+		if kind := rangeLoopVars[ident.Name]; kind == "channel_val" || kind == "select_val" {
+			WriteWrapperPrefix(out)
+			out.WriteString(rustIdentForUseWithCapture(ident))
+			out.WriteString(".clone()")
+			WriteWrapperSuffix(out)
+			return true
+		}
+	}
+	// A channel carries a map bare; the element is a handle around it.
+	if unary, ok := inner.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
+		WriteWrapperPrefix(out)
+		TranspileExpression(out, unary)
+		WriteWrapperSuffix(out)
+		return true
+	}
+	if _, isIdent := inner.(*ast.Ident); isIdent {
+		writeMapHandleCloneForOp(out, expr)
+		return true
+	}
+	// Any other map value, such as holder.M, is read in a block of its own,
+	// so the guard on holder is released before the next element locks it
+	// again: []map[string]int{holder.M, holder.M}.
+	out.WriteString("{ let __map_handle = ")
+	writeMapHandleCloneForOp(out, expr)
+	out.WriteString("; __map_handle }")
+	return true
+}
+
 func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, elemType types.Type) bool {
 	typeInfo := GetTypeInfo()
 	if isGoErrorType(elemType) {
 		return writeGoErrorHandleValue(out, expr)
+	}
+	if writeMapHandleElementValue(out, expr, elemType) {
+		return true
 	}
 	if writeChannelHandleCopy(out, expr, elemType) {
 		return true
@@ -10782,9 +10925,9 @@ func anyBoxedCollectionExprIsBare(expr ast.Expr, typ types.Type) bool {
 		}
 		switch c := types.Unalias(container).Underlying().(type) {
 		case *types.Slice:
-			return arraySliceElementExpectedStoresBareCollection(c.Elem())
+			return arraySliceElementExpectedStoresBareCollection(c.Elem()) && !isUnnamedMapType(c.Elem())
 		case *types.Array:
-			return arraySliceElementExpectedStoresBareCollection(c.Elem())
+			return arraySliceElementExpectedStoresBareCollection(c.Elem()) && !isUnnamedMapType(c.Elem())
 		}
 	case *ast.TypeAssertExpr:
 		// "x.([]int)" read for its handle is the handle the interface value
@@ -11344,6 +11487,12 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 
 func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type, fieldOwnerPkgPath string) {
 	if isUnnamedSliceType(fieldType) && writeGoSliceFreshCellFromVariable(out, value) {
+		return
+	}
+	// Row{M: s[0]} for a []map: the field shares the element's map, whose
+	// handle the element is (#318).
+	if index, ok := unwrapParens(value).(*ast.IndexExpr); ok && isUnnamedMapType(fieldType) && mapElementIndexExpression(index) {
+		TranspileExpression(out, value)
 		return
 	}
 	if isFunctionSignatureType(fieldType) && writeFuncValueFreshCellFromStorage(out, value, fieldType) {
@@ -13260,6 +13409,8 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 		writeInterfaceBoxedValue(out, value)
 	} else if valueType != nil && writeConstExpressionForExpectedNamedInteger(out, value, valueType) {
 		// The map cell holds the defined integer type.
+	} else if valueType != nil && writeRangeIndexForExpectedType(out, value, valueType) {
+		// map[string]int{"i": i} for a range index: the index is a usize.
 	} else if ident, ok := value.(*ast.Ident); ok && writeOwnedRangeValue(out, ident) {
 		// range value cloned above
 	} else if copyCall, ok := mapLiteralValueGoCopyCall(value); ok {
@@ -16794,9 +16945,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							if i > 0 {
 								out.WriteString(", ")
 							}
-							// A slice holds its maps bare, and a bare map
-							// cannot be nil: a nil element is an empty map,
-							// as in an explicit []map[K]V literal.
+							// A nil element of map type is a nil map: the
+							// map's handle (#318) or a defined map type's.
 							elemType := typ.Underlying().(*types.Slice).Elem()
 							if elt == nil {
 								writeNestedCollectionLiteralZero(out, elemType)
@@ -16804,7 +16954,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							}
 							if ident, ok := unwrapParens(elt).(*ast.Ident); ok && ident.Name == "nil" {
 								if _, isMap := types.Unalias(elemType).Underlying().(*types.Map); isMap {
-									out.WriteString(zeroValueForTypesType(elemType))
+									out.WriteString(collectionElementZeroValue(elemType))
 									continue
 								}
 							}
@@ -17026,18 +17176,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 				if elt == nil {
 					if elemType != nil {
-						out.WriteString(zeroValueForTypesType(elemType))
+						out.WriteString(collectionElementZeroValue(elemType))
 					} else {
 						out.WriteString(zeroValueForGoType(arrayType.Elt))
 					}
 					continue
 				}
-				// A slice holds its maps bare, and a bare map cannot be nil:
-				// a nil element is an empty map, as the zero element of
-				// make([]map[K]V, n) is.
+				// A nil element of map type is a nil map, as the zero
+				// element of make([]map[K]V, n) is.
 				if ident, ok := unwrapParens(elt).(*ast.Ident); ok && ident.Name == "nil" && elemType != nil {
 					if _, isMap := types.Unalias(elemType).Underlying().(*types.Map); isMap && !isInterfaceSlice {
-						out.WriteString(zeroValueForTypesType(elemType))
+						out.WriteString(collectionElementZeroValue(elemType))
 						continue
 					}
 				}

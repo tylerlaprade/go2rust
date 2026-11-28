@@ -1413,6 +1413,9 @@ func zeroValueForGoType(expr ast.Expr) string {
 		if t.Len != nil {
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
 				if array, ok := types.Unalias(typeInfo.GetType(t)).(*types.Array); ok {
+					if isUnnamedMapType(array.Elem()) {
+						return arrayZeroValueFromFn(array.Len(), collectionElementZeroValue(array.Elem()))
+					}
 					return arrayZeroValueFromFn(array.Len(), zeroValueForGoType(t.Elt))
 				}
 			}
@@ -1492,7 +1495,7 @@ func zeroValueForTypesType(typ types.Type) string {
 			out.WriteString("(")
 			WriteWrapperPrefix(&out)
 			out.WriteString("std::array::from_fn(|_| ")
-			out.WriteString(zeroValueForTypesType(array.Elem()))
+			out.WriteString(collectionElementZeroValue(array.Elem()))
 			out.WriteString(")")
 			WriteWrapperSuffix(&out)
 			out.WriteString(")")
@@ -1525,7 +1528,7 @@ func zeroValueForTypesType(typ types.Type) string {
 	case *types.Slice:
 		return bareSliceZeroValue()
 	case *types.Array:
-		return arrayZeroValueFromFn(t.Len(), zeroValueForTypesType(t.Elem()))
+		return arrayZeroValueFromFn(t.Len(), collectionElementZeroValue(t.Elem()))
 	case *types.Map:
 		TrackImport("BTreeMap")
 		return "BTreeMap::new()"
@@ -1635,14 +1638,29 @@ func goCollectionElemTypeToRust(expr ast.Expr) string {
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "error" {
 		return GoTypeToRust(expr)
 	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		typ := typeInfo.GetType(expr)
+	typeInfo := GetTypeInfo()
+	var typ types.Type
+	if typeInfo != nil {
+		typ = typeInfo.GetType(expr)
 		if goTypeParamHasOrderedConstraint(typ) {
 			return goTypeToRustBase(expr)
 		}
 		if _, ok := types.Unalias(typ).(*types.TypeParam); ok {
 			return GoTypeToRust(expr)
 		}
+		// A map is a reference: an element of an unnamed map type is the
+		// map's handle, as a map value and a struct field of map type
+		// are, so the element and every copy of it share the map (#318).
+		// A defined map type is a newtype over the handle already.
+		if _, ok := types.Unalias(typ).(*types.Map); ok {
+			return GoTypeToRust(expr)
+		}
+	}
+	if _, ok := expr.(*ast.MapType); ok && typ == nil {
+		// Whether the element is the map's handle is decided from its type;
+		// a missing type is a loader bug, so the element type does not
+		// build rather than guess the representation.
+		return "/* ERROR: type info required for a map element */ GoTypeInfoRequiredForMapElement"
 	}
 	if _, ok := goTypeParamTraitConstraintNameFromExpr(expr); ok {
 		return GoTypeToRust(expr)
@@ -1876,6 +1894,11 @@ func goTypesCollectionElemTypeToRust(t types.Type) string {
 	// interfaces lower to Box<dyn Trait>, which has no Default and can't be
 	// nil. Wrapping the element preserves Go's nullable interface semantics.
 	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
+		return goTypesTypeToRustWrapped(t)
+	}
+	// An element of map type is the map's handle (#318), as in
+	// goCollectionElemTypeToRust.
+	if _, ok := types.Unalias(t).(*types.Map); ok {
 		return goTypesTypeToRustWrapped(t)
 	}
 	return goTypesTypeToRust(t)

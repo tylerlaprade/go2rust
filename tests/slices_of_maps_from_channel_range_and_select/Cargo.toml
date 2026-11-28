@@ -1,0 +1,11 @@
+[package]
+name = "slices_of_maps_from_channel_range_and_select"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "slices_of_maps_from_channel_range_and_select"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

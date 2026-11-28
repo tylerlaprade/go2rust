@@ -1,0 +1,11 @@
+[package]
+name = "slices_of_maps_generic_make_promoted_field_and_send"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "slices_of_maps_generic_make_promoted_field_and_send"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

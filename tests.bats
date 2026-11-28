@@ -4496,6 +4496,10 @@ run_xfail_test() {
     run_test "tests/slice_literal_nil_slice_element"
 }
 
+@test "slice_of_maps_type_param_dependency" {
+    run_test "tests/slice_of_maps_type_param_dependency"
+}
+
 @test "slice_operations_advanced" {
     run_test "tests/slice_operations_advanced"
 }
@@ -4546,6 +4550,62 @@ run_xfail_test() {
 
 @test "slices_maps_cmp_from_source_goroutines" {
     run_test "tests/slices_maps_cmp_from_source_goroutines"
+}
+
+@test "slices_of_maps_element_writers" {
+    run_test "tests/slices_of_maps_element_writers"
+}
+
+@test "slices_of_maps_element_writers_goroutines" {
+    run_test "tests/slices_of_maps_element_writers_goroutines"
+}
+
+@test "slices_of_maps_from_channel_range_and_select" {
+    run_test "tests/slices_of_maps_from_channel_range_and_select"
+}
+
+@test "slices_of_maps_generic_make_promoted_field_and_send" {
+    run_test "tests/slices_of_maps_generic_make_promoted_field_and_send"
+}
+
+@test "slices_of_maps_handle_boundaries" {
+    run_test "tests/slices_of_maps_handle_boundaries"
+}
+
+@test "slices_of_maps_handle_boundaries_goroutines" {
+    run_test "tests/slices_of_maps_handle_boundaries_goroutines"
+}
+
+@test "slices_of_maps_more_review_cases" {
+    run_test "tests/slices_of_maps_more_review_cases"
+}
+
+@test "slices_of_maps_more_review_cases_goroutines" {
+    run_test "tests/slices_of_maps_more_review_cases_goroutines"
+}
+
+@test "slices_of_maps_package_globals_and_named_arrays" {
+    run_test "tests/slices_of_maps_package_globals_and_named_arrays"
+}
+
+@test "slices_of_maps_review_cases" {
+    run_test "tests/slices_of_maps_review_cases"
+}
+
+@test "slices_of_maps_review_cases_goroutines" {
+    run_test "tests/slices_of_maps_review_cases_goroutines"
+}
+
+@test "slices_of_maps_share" {
+    run_test "tests/slices_of_maps_share"
+}
+
+@test "slices_of_maps_share_goroutines" {
+    run_test "tests/slices_of_maps_share_goroutines"
+}
+
+@test "slices_of_maps_struct_field_and_clear" {
+    run_test "tests/slices_of_maps_struct_field_and_clear"
 }
 
 @test "slices_sort_func" {

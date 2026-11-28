@@ -1785,10 +1785,10 @@ let mut row = { let __slice_header = GoSliceHeader::go_slice_header(&row); Rc::n
     for (_, value) in { let __range_holder = rowsByName.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         println!("{} {}", format!("{}", "slice in map, range value:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(value.clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
     }
-    let mut tables = Rc::new(RefCell::new(Some(vec![BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(1i64)))), ("b".to_string(), Rc::new(RefCell::new(Some(2i64))))])])));
-    println!("{} {}", format!("{}", "slice of maps:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some({ let __arg_value = Box::new(Rc::new(RefCell::new(Some((*tables.borrow().as_ref().unwrap())[(0) as usize].clone().clone())))) as Box<dyn Any>; __arg_value })))).borrow().as_ref().unwrap())));
+    let mut tables = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(1i64)))), ("b".to_string(), Rc::new(RefCell::new(Some(2i64))))]))))])));
+    println!("{} {}", format!("{}", "slice of maps:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some({ let __arg_value = Box::new((*tables.borrow().as_ref().unwrap())[(0) as usize].clone().clone()) as Box<dyn Any>; __arg_value })))).borrow().as_ref().unwrap())));
     { let __range_holder = tables.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for table in __range_values.iter() {
-        println!("{} {}", format!("{}", "range over maps:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some((*table).clone())))) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+        println!("{} {}", format!("{}", "range over maps:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(table.clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
     } }
 
         // %T names the dynamic type, and the static type of a typed variable.

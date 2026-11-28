@@ -1,0 +1,11 @@
+[package]
+name = "slices_of_maps_struct_field_and_clear"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "slices_of_maps_struct_field_and_clear"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

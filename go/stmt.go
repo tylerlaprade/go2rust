@@ -1242,6 +1242,10 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 	if writeGoSliceElementHeaderFromVariable(out, rhs, expected) {
 		return
 	}
+	// s[i] = m for a []map: the element is m's handle (#318).
+	if writeMapHandleElementValue(out, rhs, expected) {
+		return
+	}
 	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" && arraySliceElementExpectedStoresBareCollection(expected) {
 		out.WriteString(zeroValueForTypesType(expected))
 		return
@@ -1781,6 +1785,13 @@ func shortDeclTargetIsEmptyInterface(lhs ast.Expr) bool {
 	return isEmptyInterfaceValueExpr(lhs)
 }
 
+// shortDeclRhsIsMapElementHandle reports whether rhs reads an element of a
+// slice or array of unnamed maps, which is the map's handle (#318).
+func shortDeclRhsIsMapElementHandle(rhs ast.Expr) bool {
+	index, ok := unwrapParens(rhs).(*ast.IndexExpr)
+	return ok && mapElementIndexExpression(index)
+}
+
 func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, newBinding bool) {
 	if newBinding && shortDeclTargetIsEmptyInterface(lhs) && writeEmptyInterfaceHandleClone(out, rhs) {
 		// An interface{} variable is its handle: a, b := <-ch, x gives a
@@ -1853,6 +1864,15 @@ func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs a
 		out.WriteString("__slice")
 		WriteWrapperOptionSuffix(out)
 		out.WriteString(" }")
+		return
+	}
+	if index, ok := unwrapParens(rhs).(*ast.IndexExpr); ok && newBinding && mapElementIndexExpression(index) {
+		// m, n := s[0], 0 of a []map: the variable is the element's map
+		// handle, as m := s[0] gives, and the element can be a nil map.
+		if ident, ok := lhs.(*ast.Ident); ok {
+			localZeroMapVars[ident.Name] = true
+		}
+		TranspileExpression(out, rhs)
 		return
 	}
 	if rhsIsPointerType(rhs) {
@@ -2105,6 +2125,18 @@ func writeIndexedSequenceCollectionFieldAssignment(out *strings.Builder, sel *as
 	}
 	fieldInfo := selectorFieldAccessInfo(sel)
 
+	// A map field is the map's handle: s[i].M = m makes the field share m's
+	// map, as r.M = m does, and s[i].M = nil gives it a nil map of its own
+	// (#318), promoted or not.
+	if isUnnamedMapType(fieldType) {
+		out.WriteString("{ let new_val = ")
+		writeMapHandleElementValue(out, rhs, fieldType)
+		out.WriteString("; ")
+		writeIndexedSequenceElementFieldPlace(out, indexExpr, fieldInfo, elemType)
+		out.WriteString(" = new_val; }")
+		return true
+	}
+
 	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
 		out.WriteString("{ *")
 		writeIndexedSequenceElementFieldHandle(out, indexExpr, fieldInfo, elemType)
@@ -2120,6 +2152,29 @@ func writeIndexedSequenceCollectionFieldAssignment(out *strings.Builder, sel *as
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = Some(new_val); }")
 	return true
+}
+
+// writeIndexedSequenceElementFieldPlace writes the field of s[i] as a place to
+// assign to: a promoted field is reached through mutable borrows of the
+// embedded structs.
+func writeIndexedSequenceElementFieldPlace(out *strings.Builder, indexExpr *ast.IndexExpr, fieldInfo FieldAccessInfo, elemType types.Type) {
+	if !fieldInfo.IsPromoted {
+		writeIndexedSequenceElementFieldHandle(out, indexExpr, fieldInfo, elemType)
+		return
+	}
+	out.WriteString("(*")
+	writeIndexedSequenceElementFieldBase(out, indexExpr, elemType)
+	for i, embedded := range fieldInfo.EmbeddedPath {
+		out.WriteString(".")
+		out.WriteString(ToSnakeCase(embedded))
+		WriteBorrowMethod(out, true)
+		if i < len(fieldInfo.EmbeddedPath)-1 {
+			out.WriteString(".as_mut().unwrap()")
+		} else {
+			out.WriteString(".as_mut().unwrap()).")
+		}
+	}
+	out.WriteString(fieldInfo.FieldName)
 }
 
 func writeIndexedSequenceElementFieldHandle(out *strings.Builder, indexExpr *ast.IndexExpr, fieldInfo FieldAccessInfo, elemType types.Type) {
@@ -2871,6 +2926,11 @@ func writeMapMutationUnwrap(out *strings.Builder, mapExpr ast.Expr) {
 		out.WriteString(".as_mut().unwrap_or_else(|| panic!(\"assignment to entry in nil map\"))")
 		return
 	}
+	// An element of a []map can be a nil map (#318).
+	if index, ok := unwrapParens(mapExpr).(*ast.IndexExpr); ok && mapElementIndexExpression(index) {
+		out.WriteString(".as_mut().unwrap_or_else(|| panic!(\"assignment to entry in nil map\"))")
+		return
+	}
 	out.WriteString(".as_mut().unwrap()")
 }
 
@@ -3441,6 +3501,9 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 	}
 	if isWrappedInterfaceSliceIndex(result) {
 		TranspileExpression(out, result)
+		return true
+	}
+	if writeDefinedMapFromElementHandle(out, expected, result) {
 		return true
 	}
 	if mapIndexExpressionKeepsHandle(result) {
@@ -6986,6 +7049,9 @@ func writeBlankNamedReturnValue(out *strings.Builder, result ast.Expr, expected 
 		out.WriteString(".clone()")
 		return
 	}
+	if writeDefinedMapFromElementHandle(out, expected, result) {
+		return
+	}
 	if mapIndexExpressionKeepsHandle(result) {
 		TranspileExpression(out, result)
 		return
@@ -7391,7 +7457,7 @@ func typeContainsTypeParam(typ types.Type) bool {
 }
 
 func isAssignmentSelfWrappingExpression(expr ast.Expr) bool {
-	switch e := expr.(type) {
+	switch e := unwrapParens(expr).(type) {
 	case *ast.CompositeLit:
 		return isCompositeLitSelfWrapping(e)
 	case *ast.SliceExpr:
@@ -7415,13 +7481,70 @@ func isTypedAssignmentSelfWrappingExpression(expr ast.Expr) bool {
 	return isAssignmentSelfWrappingExpression(expr)
 }
 
+// writeDefinedMapFromElementHandle writes the initializer of var c Counts =
+// s[0], where Counts is a defined map type and s a slice or array of its
+// unnamed map type: the newtype around the element's handle, so c and the
+// element share one map. It reports whether it wrote it.
+func writeDefinedMapFromElementHandle(out *strings.Builder, declType ast.Expr, value ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	index, ok := unwrapParens(value).(*ast.IndexExpr)
+	if declType == nil || typeInfo == nil || !ok || !mapElementIndexExpression(index) {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(declType)).(*types.Named)
+	if !ok || !types.Identical(named.Underlying(), typeInfo.GetType(value)) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(goTypesTypeToRust(named))
+	out.WriteString("(")
+	TranspileExpression(out, value)
+	out.WriteString(")")
+	WriteWrapperSuffix(out)
+	return true
+}
+
+// varDeclConvertsToOtherType reports whether var x T = value declares x of a
+// type T other than value's own, as var c Counts = s[0] for a []map: the
+// value is then converted to T, not taken as the handle it is.
+func varDeclConvertsToOtherType(declType ast.Expr, value ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if declType == nil || typeInfo == nil {
+		return false
+	}
+	declared, valueType := typeInfo.GetType(declType), typeInfo.GetType(value)
+	return declared != nil && valueType != nil && !types.Identical(declared, valueType)
+}
+
+// mapIndexExpressionKeepsHandle reports whether expr reads a handle out of
+// a collection: a map value that is a map, slice, pointer or the like, or an
+// element of an array or slice of an unnamed map type, which is the map's
+// handle (#318). A declaration, assignment or return takes the handle as it
+// is.
 func mapIndexExpressionKeepsHandle(expr ast.Expr) bool {
-	indexExpr, ok := expr.(*ast.IndexExpr)
+	indexExpr, ok := unwrapParens(expr).(*ast.IndexExpr)
 	if !ok {
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	return typeInfo != nil && typeInfo.IsMap(indexExpr.X) && mapValueTypeKeepsHandle(typeInfo.GetType(indexExpr))
+	if typeInfo == nil {
+		return false
+	}
+	if typeInfo.IsMap(indexExpr.X) {
+		return mapValueTypeKeepsHandle(typeInfo.GetType(indexExpr))
+	}
+	return mapElementIndexExpression(indexExpr)
+}
+
+// mapElementIndexExpression reports whether expr reads an element of an
+// array or slice of an unnamed map type, which is the map's handle (#318).
+func mapElementIndexExpression(expr *ast.IndexExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.IsMap(expr.X) {
+		return false
+	}
+	elemType, ok := sequenceElementTypeForIndexExpr(expr.X, typeInfo)
+	return ok && isUnnamedMapType(elemType)
 }
 
 func isWrappedInterfaceSliceIndex(expr ast.Expr) bool {
@@ -11931,7 +12054,19 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 		}
 		rustName := rustIdentForUseWithCapture(ident)
 		// Check if it's a range loop variable, constant, or bare variable
-		if _, isRange := rangeLoopVars[ident.Name]; isRange {
+		if rangeKind, isRange := rangeLoopVars[ident.Name]; isRange {
+			// A range value over a slice of maps is the map's handle (#318),
+			// and a channel carries the map bare. A value received from a
+			// channel or in a select is already bare.
+			if typeInfo != nil && isUnnamedMapType(typeInfo.GetType(ident)) && rangeKind != "channel_val" && rangeKind != "select_val" {
+				// The map is copied out in a statement of its own, so its
+				// guard is released before a send that blocks.
+				out.WriteString("{ let __map_value = (*")
+				out.WriteString(rustName)
+				WriteBorrowMethod(out, false)
+				out.WriteString(").clone().unwrap_or_default(); __map_value }")
+				return
+			}
 			// A range over a slice or array can bind a reference to the
 			// iterator element. Sending the range variable still copies its
 			// Go value into the channel rather than sending that reference.
@@ -13564,6 +13699,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else if _, ok := result.(*ast.SliceExpr); ok {
 						// Slice expressions already return wrapped values (Arc<Mutex<Option<Vec<T>>>>)
 						TranspileExpression(out, result)
+					} else if writeDefinedMapFromElementHandle(out, returnResultTypeExpr(fnType, i), result) {
+						// return s[0] from a func returning Counts, a defined
+						// map type: the element's handle in a Counts.
 					} else if mapIndexExpressionKeepsHandle(result) {
 						// Map values that are maps/slices/pointers/etc. already return cloneable handles.
 						TranspileExpression(out, result)
@@ -14398,6 +14536,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						var value strings.Builder
 						if existingShortDeclLHS[i] && existingBareScalarType[i] != nil {
 							writeBareCompoundAssignValue(&value, rhs, existingBareScalarType[i])
+						} else if existingShortDeclLHS[i] && shortDeclRhsIsMapElementHandle(rhs) {
+							// The existing variable takes the element's map
+							// handle, as m = s[0] does.
+							writeParallelAssignmentTempValueForTarget(&value, s.Lhs[i], rhs)
 						} else {
 							writeMultiRhsShortDeclInitializer(&value, s.Lhs[i], rhs, !existingShortDeclLHS[i])
 						}
@@ -14408,6 +14550,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString(";")
 						for i, lhs := range s.Lhs {
 							if !existingShortDeclLHS[i] {
+								continue
+							}
+							if existingBareScalarType[i] == nil && shortDeclRhsIsMapElementHandle(s.Rhs[i]) {
+								var line strings.Builder
+								writeParallelAssignmentTarget(&line, lhs, fmt.Sprintf("__tmp_%d", i), s.Rhs[i])
+								out.WriteString(" ")
+								out.WriteString(strings.TrimSpace(line.String()))
 								continue
 							}
 							writeTupleAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), existingBareScalarType[i] != nil)
@@ -15308,6 +15457,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												writeInterfaceHandleCopy(out, func() { TranspileExpression(out, rhs) })
 											} else if mapIndexExpressionKeepsHandle(rhs) {
 												// Map values that are maps/slices/pointers/etc. already return cloneable handles.
+												// An element of a []map can be a nil map (#318).
+												if index, ok := unwrapParens(rhs).(*ast.IndexExpr); ok && mapElementIndexExpression(index) && i < len(s.Lhs) {
+													if lhsIdent, ok := s.Lhs[i].(*ast.Ident); ok {
+														localZeroMapVars[lhsIdent.Name] = true
+													}
+												}
 												TranspileExpression(out, rhs)
 											} else if typeInfo := GetTypeInfo(); typeInfo != nil && isFunctionSignatureType(typeInfo.GetType(rhs)) && writeFunctionValueHandle(out, rhs) {
 												// Function values are already represented by cloneable handles.
@@ -15691,7 +15846,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										registerBareShortDecl(name)
 									}
 									TranspileExpression(out, valueSpec.Values[i])
-								} else if mapIndexExpressionKeepsHandle(valueSpec.Values[i]) {
+								} else if writeDefinedMapFromElementHandle(out, valueSpec.Type, valueSpec.Values[i]) {
+									// var c Counts = s[0]: the defined map shares the element's map.
+								} else if mapIndexExpressionKeepsHandle(valueSpec.Values[i]) && !varDeclConvertsToOtherType(valueSpec.Type, valueSpec.Values[i]) {
 									// Map values that are maps/slices/pointers/etc. already return cloneable handles.
 									TranspileExpression(out, valueSpec.Values[i])
 								} else if writeConcurrentMapSelectorHandleClone(out, valueSpec.Values[i]) {
@@ -16449,7 +16606,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						valueType = "&" + goTypesTypeToRust(elemType)
 					}
 				} else if _, ok := elemType.Underlying().(*types.Map); ok {
-					valueType = "&" + goTypesTypeToRust(elemType)
+					// An element of an unnamed map type is the map's handle
+					// (#318).
+					valueType = "&" + goTypesCollectionElemTypeToRust(elemType)
 				} else if _, ok := elemType.Underlying().(*types.Struct); ok {
 					valueType = "&" + goTypesTypeToRust(elemType)
 				} else if intf, ok := elemType.Underlying().(*types.Interface); ok {

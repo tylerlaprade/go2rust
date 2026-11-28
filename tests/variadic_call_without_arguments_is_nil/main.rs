@@ -241,7 +241,7 @@ pub fn f(xs: Arc<Mutex<Option<Vec<i64>>>>) -> bool {
     return { let __nil_result = (*xs.lock().unwrap()).is_none(); __nil_result };
 }
 
-pub fn g(prefix: Arc<Mutex<Option<String>>>, ms: Arc<Mutex<Option<Vec<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>) -> (i64, bool) {
+pub fn g(prefix: Arc<Mutex<Option<String>>>, ms: Arc<Mutex<Option<Vec<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>>>>) -> (i64, bool) {
     (
         ({ let __len = (*ms.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64,
         { let __nil_result = (*ms.lock().unwrap()).is_none(); __nil_result }
