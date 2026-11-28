@@ -6871,6 +6871,11 @@ func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
 			TranspileExpression(out, expr)
 			return
 		}
+		// A named slice of maps holds the maps' handles, as an unnamed one
+		// does (#318).
+		if writeMapHandleElementValue(out, expr, sliceType.Elem()) {
+			return
+		}
 		if writeNilStdlibInterfaceBareValue(out, expr, sliceType.Elem()) {
 			return
 		}

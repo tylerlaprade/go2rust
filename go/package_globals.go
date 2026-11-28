@@ -1416,7 +1416,9 @@ func writePackageGlobalMapSliceValueInsert(out *strings.Builder, indent string, 
 			out.WriteString(collectionElementZeroValue(sliceType.Elem()))
 		} else if writeMapHandleElementValue(out, elt, sliceType.Elem()) {
 			// A map element is its map's handle.
-		} else if !writeOwnedExpressionValue(out, elt) {
+		} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
+			// The element is written as the vector's element type is, an
+			// error as its handle (writeGoErrorHandleValue).
 			TranspileExpression(out, elt)
 		}
 		out.WriteString(");\n")

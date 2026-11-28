@@ -9427,6 +9427,13 @@ func writeMapHandleElementValue(out *strings.Builder, expr ast.Expr, elemType ty
 			out.WriteString(handle.String())
 			return true
 		}
+		// values[0].(map[string]int) for a []any keeps the handle the
+		// element holds too, so the slice shares the map and a nil map
+		// stays nil.
+		if handleType, _, ok := typeAssertionAnyHandleTarget(assertion); ok && writeAnySliceElementPointerHandleAssertionValue(&handle, assertion, handleType) {
+			out.WriteString(handle.String())
+			return true
+		}
 		WriteWrapperPrefix(out)
 		TranspileExpression(out, assertion)
 		WriteWrapperSuffix(out)

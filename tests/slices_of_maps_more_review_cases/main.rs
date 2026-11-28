@@ -938,13 +938,13 @@ fn main() {
     go_install_panic_exit();
     __go_init_all();
     let mut values = Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("v".to_string(), Rc::new(RefCell::new(Some(2i64))))])))).clone()) as Box<dyn Any>])));
-    let mut ms = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(({
+    let mut ms = Rc::new(RefCell::new(Some(vec![({
         let __idx = (0) as usize;
         let __seq_holder = values.clone();
         let __seq_guard = __seq_holder.borrow();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
-        { let __handle = any_val.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "map[string]int")).clone(); let __value = (*__handle.borrow()).clone().unwrap_or_default(); __value }
-    }))))])));
+        any_val.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "map[string]int")).clone()
+    })])));
     println!("{}", format!("{}", { let __map_holder = (*ms.borrow().as_ref().unwrap())[(0) as usize].clone().clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"v".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 
     let mut s = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("c".to_string(), Rc::new(RefCell::new(Some(3i64))))]))))])));

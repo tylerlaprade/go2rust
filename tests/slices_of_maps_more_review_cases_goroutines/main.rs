@@ -1170,13 +1170,13 @@ fn main() {
     println!("{}", format!("{}", output.recv().unwrap_or_default().len()));
 
     let mut values = Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("v".to_string(), Arc::new(Mutex::new(Some(2i64))))])))).clone()) as Box<dyn Any + Send + Sync>])));
-    let mut ms = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(({
+    let mut ms = Arc::new(Mutex::new(Some(vec![({
         let __idx = (0) as usize;
         let __seq_holder = values.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
-        { let __handle = any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "map[string]int")).clone(); let __value = (*__handle.lock().unwrap()).clone().unwrap_or_default(); __value }
-    }))))])));
+        any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "map[string]int")).clone()
+    })])));
     println!("{}", format!("{}", { let __map = { let __map_holder = { let __seq = { let __seq_holder = ms.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"v".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 
     let mut s = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("c".to_string(), Arc::new(Mutex::new(Some(3i64))))]))))])));

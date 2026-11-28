@@ -4492,6 +4492,14 @@ run_xfail_test() {
     run_test "tests/slices_maps_cmp_from_source_goroutines"
 }
 
+@test "slices_of_maps_element_writers" {
+    run_test "tests/slices_of_maps_element_writers"
+}
+
+@test "slices_of_maps_element_writers_goroutines" {
+    run_test "tests/slices_of_maps_element_writers_goroutines"
+}
+
 @test "slices_of_maps_from_channel_range_and_select" {
     run_test "tests/slices_of_maps_from_channel_range_and_select"
 }

@@ -1785,6 +1785,13 @@ func shortDeclTargetIsEmptyInterface(lhs ast.Expr) bool {
 	return isEmptyInterfaceValueExpr(lhs)
 }
 
+// shortDeclRhsIsMapElementHandle reports whether rhs reads an element of a
+// slice or array of unnamed maps, which is the map's handle (#318).
+func shortDeclRhsIsMapElementHandle(rhs ast.Expr) bool {
+	index, ok := unwrapParens(rhs).(*ast.IndexExpr)
+	return ok && mapElementIndexExpression(index)
+}
+
 func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, newBinding bool) {
 	if newBinding && shortDeclTargetIsEmptyInterface(lhs) && writeEmptyInterfaceHandleClone(out, rhs) {
 		// An interface{} variable is its handle: a, b := <-ch, x gives a
@@ -14503,6 +14510,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						var value strings.Builder
 						if existingShortDeclLHS[i] && existingBareScalarType[i] != nil {
 							writeBareCompoundAssignValue(&value, rhs, existingBareScalarType[i])
+						} else if existingShortDeclLHS[i] && shortDeclRhsIsMapElementHandle(rhs) {
+							// The existing variable takes the element's map
+							// handle, as m = s[0] does.
+							writeParallelAssignmentTempValueForTarget(&value, s.Lhs[i], rhs)
 						} else {
 							writeMultiRhsShortDeclInitializer(&value, s.Lhs[i], rhs, !existingShortDeclLHS[i])
 						}
@@ -14513,6 +14524,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString(";")
 						for i, lhs := range s.Lhs {
 							if !existingShortDeclLHS[i] {
+								continue
+							}
+							if existingBareScalarType[i] == nil && shortDeclRhsIsMapElementHandle(s.Rhs[i]) {
+								var line strings.Builder
+								writeParallelAssignmentTarget(&line, lhs, fmt.Sprintf("__tmp_%d", i), s.Rhs[i])
+								out.WriteString(" ")
+								out.WriteString(strings.TrimSpace(line.String()))
 								continue
 							}
 							writeTupleAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), existingBareScalarType[i] != nil)
