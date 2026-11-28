@@ -1362,8 +1362,8 @@ fn main() {
     let mut items = Arc::new(Mutex::new(Some(vec![Box::new("a".to_string()) as Box<dyn Any + Send + Sync>, Box::new(2.5) as Box<dyn Any + Send + Sync>])));
     let items_closure_clone = items.clone(); r#try(Arc::new(Mutex::new(Some(Arc::new(move || {
         let _ = ({
-        let __idx = (1) as usize;
         let __seq_holder = items_closure_clone.clone();
+        let __idx = (1) as usize;
         let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "string")).clone()

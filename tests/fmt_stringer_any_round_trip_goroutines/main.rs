@@ -1389,8 +1389,8 @@ fn main() {
     show(Arc::new(Mutex::new(Some({ let __arg_value = match (*s.lock().unwrap()).as_ref() { Some(__stringer) => __stringer.__go_into_any(), None => Box::new(GoNilAny) as Box<dyn Any + Send + Sync> }; __arg_value }))));
     let mut list = Arc::new(Mutex::new(Some(vec![match (*s.lock().unwrap()).as_ref() { Some(__stringer) => __stringer.__go_into_any(), None => Box::new(GoNilAny) as Box<dyn Any + Send + Sync> }, match (*st.lock().unwrap()).as_ref() { Some(__stringer) => __stringer.__go_into_any(), None => Box::new(GoNilAny) as Box<dyn Any + Send + Sync> }])));
     let (mut d, mut ok) = ({
-        let __idx = (0) as usize;
         let __seq_holder = list.clone();
+        let __idx = (0) as usize;
         let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         if let Some(typed_val) = any_val.downcast_ref::<Celsius>() {
@@ -1401,8 +1401,8 @@ fn main() {
     });
     println!("{} {}", format!("{}", { let __v = (*d.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", ok));
     { let (__tmp_0, __tmp_1) = ({
-        let __idx = (1) as usize;
         let __seq_holder = list.clone();
+        let __idx = (1) as usize;
         let __seq_guard = __seq_holder.lock().unwrap();
         match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Arc<Mutex<Option<Counter>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
@@ -1410,7 +1410,7 @@ fn main() {
         }
     }); ok = __tmp_1; };
     println!("{}", format!("{}", ok));
-    print!("{} {} {}\n", format!("{}", { let __text = match (Arc::new(Mutex::new(Some({ let __idx = (0) as usize; let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __type_name = __go_type_name(&**(Arc::new(Mutex::new(Some({ let __idx = (0) as usize; let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).lock().unwrap().as_ref().unwrap()); __type_name }), format!("{}", { let __type_name = __go_type_name(&**(Arc::new(Mutex::new(Some({ let __idx = (1) as usize; let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).lock().unwrap().as_ref().unwrap()); __type_name }));
+    print!("{} {} {}\n", format!("{}", { let __text = match (Arc::new(Mutex::new(Some({ let __seq_holder = list.clone(); let __idx = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __type_name = __go_type_name(&**(Arc::new(Mutex::new(Some({ let __seq_holder = list.clone(); let __idx = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).lock().unwrap().as_ref().unwrap()); __type_name }), format!("{}", { let __type_name = __go_type_name(&**(Arc::new(Mutex::new(Some({ let __seq_holder = list.clone(); let __idx = (1) as usize; let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).lock().unwrap().as_ref().unwrap()); __type_name }));
     let mut z: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(match (*st.lock().unwrap()).as_ref() { Some(__stringer) => __stringer.__go_into_any(), None => Box::new(GoNilAny) as Box<dyn Any + Send + Sync> })));
     {
     let _ts_subject = z.clone();

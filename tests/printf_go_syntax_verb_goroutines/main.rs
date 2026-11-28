@@ -4238,7 +4238,7 @@ pub fn __go2rust_gosyntax0_49(v: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>
         if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
         { (*s.lock().unwrap().as_mut().unwrap()).push_str(&", ".to_string()); };
     }
-        { (*s.lock().unwrap().as_mut().unwrap()).push_str(&{ let __s = __go2rust_gosyntax0_36(Arc::new(Mutex::new(Some({ let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __seq_holder = v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) })))); let __value = (*__s.lock().unwrap().as_ref().unwrap()).clone(); __value }); };
+        { (*s.lock().unwrap().as_mut().unwrap()).push_str(&{ let __s = __go2rust_gosyntax0_36(Arc::new(Mutex::new(Some({ let __seq_holder = v.clone(); let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) })))); let __value = (*__s.lock().unwrap().as_ref().unwrap()).clone(); __value }); };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     return Arc::new(Mutex::new(Some(format!("{}{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }, "}".to_string()))));

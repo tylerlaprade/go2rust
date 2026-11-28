@@ -1,0 +1,18 @@
+2
+assert [row col]
+a true
+comma-ok [row col]
+7
+pointer assert [row col]
+7 true
+pointer comma-ok [row col]
+b
+element copy [row col]
+show 1
+argument [row col]
+2
+call assert [row col]
+a true
+call comma-ok [row col]
+b
+call element copy [row col]

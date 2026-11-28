@@ -37,8 +37,9 @@ func anySequenceElementIndex(expr ast.Expr) (*ast.IndexExpr, bool) {
 }
 
 // writeAnySequenceElementClone writes a handle holding a copy of an element
-// of a slice or an array of the empty interface. The index is evaluated
-// before the sequence is borrowed, since it may read the sequence too.
+// of a slice or an array of the empty interface. As in Go, the sequence is
+// evaluated before the index (#373); it is borrowed after both, since the
+// index may read it too.
 func writeAnySequenceElementClone(out *strings.Builder, expr ast.Expr) bool {
 	index, ok := anySequenceElementIndex(expr)
 	if !ok {
@@ -55,11 +56,11 @@ func writeAnySequenceElementClone(out *strings.Builder, expr ast.Expr) bool {
 		out.WriteString("].as_ref())")
 		return true
 	}
-	out.WriteString("{ let __idx = ")
-	writeExpressionAsUsize(out, index.Index)
-	out.WriteString("; let __seq_holder = ")
+	out.WriteString("{ let __seq_holder = ")
 	TranspileExpressionContext(out, index.X, LValue)
-	out.WriteString(".clone(); let __seq_guard = __seq_holder")
+	out.WriteString(".clone(); let __idx = ")
+	writeExpressionAsUsize(out, index.Index)
+	out.WriteString("; let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) }")
 	return true

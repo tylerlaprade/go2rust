@@ -540,6 +540,14 @@ run_xfail_test() {
     run_test "tests/any_slice_element_comma_ok_goroutines"
 }
 
+@test "any_slice_element_evaluation_order" {
+    run_test "tests/any_slice_element_evaluation_order"
+}
+
+@test "any_slice_element_evaluation_order_goroutines" {
+    run_test "tests/any_slice_element_evaluation_order_goroutines"
+}
+
 @test "any_slice_element_of_slice_of_any_slices" {
     run_test "tests/any_slice_element_of_slice_of_any_slices"
 }

@@ -1205,8 +1205,8 @@ fn main() {
 
     let mut items = Rc::new(RefCell::new(Some(vec![Box::new(Vec_ { x: Rc::new(RefCell::new(Some(5))), y: Rc::new(RefCell::new(Some(5))), ..Default::default() }) as Box<dyn Any>, Box::new("x".to_string()) as Box<dyn Any>])));
     let (mut iv, mut ok) = ({
-        let __idx = (0) as usize;
         let __seq_holder = items.clone();
+        let __idx = (0) as usize;
         let __seq_guard = __seq_holder.borrow();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         if let Some(typed_val) = any_val.downcast_ref::<Vec_>() {
@@ -1220,5 +1220,5 @@ fn main() {
         return;
     }
     { let new_val = 0; *(*iv.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
-    println!("{} {} {}", format!("{}", match (Rc::new(RefCell::new(Some({ let __idx = (0) as usize; let __seq_holder = items.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match (Rc::new(RefCell::new(Some({ let __idx = (1) as usize; let __seq_holder = items.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", (*iv.borrow().as_ref().unwrap())));
+    println!("{} {} {}", format!("{}", match (Rc::new(RefCell::new(Some({ let __seq_holder = items.clone(); let __idx = (0) as usize; let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match (Rc::new(RefCell::new(Some({ let __seq_holder = items.clone(); let __idx = (1) as usize; let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", (*iv.borrow().as_ref().unwrap())));
 }

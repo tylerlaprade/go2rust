@@ -984,8 +984,8 @@ fn main() {
 
     let mut list = Arc::new(Mutex::new(Some(vec![Box::new(7i64) as Box<dyn Any + Send + Sync>, Box::new("x".to_string()) as Box<dyn Any + Send + Sync>])));
     let (mut n, mut ok) = ({
-        let __idx = (0) as usize;
         let __seq_holder = list.clone();
+        let __idx = (0) as usize;
         let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         if let Some(typed_val) = any_val.downcast_ref::<i64>() {
@@ -996,8 +996,8 @@ fn main() {
     });
     println!("{} {}", format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ok));
     let (mut s, mut ok) = ({
-        let __idx = (1) as usize;
         let __seq_holder = list.clone();
+        let __idx = (1) as usize;
         let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
@@ -1008,8 +1008,8 @@ fn main() {
     });
     println!("{} {}", format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ok));
     let (mut missing, mut ok) = ({
-        let __idx = (1) as usize;
         let __seq_holder = list.clone();
+        let __idx = (1) as usize;
         let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         if let Some(typed_val) = any_val.downcast_ref::<i64>() {
