@@ -1653,15 +1653,15 @@ fn main() {
         show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new(false) as Box<dyn Any>])))));
     } }
 
-    show(Rc::new(RefCell::new(Some("plain text".to_string()))), sprintf(Rc::new(RefCell::new(Some("plain text".to_string()))), Rc::new(RefCell::new(Some(vec![])))));
-    show(Rc::new(RefCell::new(Some("100%%".to_string()))), sprintf(Rc::new(RefCell::new(Some("100%%".to_string()))), Rc::new(RefCell::new(Some(vec![])))));
+    show(Rc::new(RefCell::new(Some("plain text".to_string()))), sprintf(Rc::new(RefCell::new(Some("plain text".to_string()))), Rc::new(RefCell::new(None))));
+    show(Rc::new(RefCell::new(Some("100%%".to_string()))), sprintf(Rc::new(RefCell::new(Some("100%%".to_string()))), Rc::new(RefCell::new(None))));
     show(Rc::new(RefCell::new(Some("%d%%".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d%%".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(50i64) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%d %s %v %t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d %s %v %t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>, Box::new(3.5) as Box<dyn Any>, Box::new(true) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%d %d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d %d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>, Box::new("x".to_string()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%!".to_string()))), sprintf(Rc::new(RefCell::new(Some("%!".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%z".to_string()))), sprintf(Rc::new(RefCell::new(Some("%z".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("trailing %".to_string()))), sprintf(Rc::new(RefCell::new(Some("trailing %".to_string()))), Rc::new(RefCell::new(Some(vec![])))));
+    show(Rc::new(RefCell::new(Some("trailing %".to_string()))), sprintf(Rc::new(RefCell::new(Some("trailing %".to_string()))), Rc::new(RefCell::new(None))));
     show(Rc::new(RefCell::new(Some("%5".to_string()))), sprintf(Rc::new(RefCell::new(Some("%5".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(6i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%-*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%-*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(6i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>])))));

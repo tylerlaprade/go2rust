@@ -1625,7 +1625,7 @@ fn main() {
         }
     }
     let mut nums = Arc::new(Mutex::new(Some(vec![1i64, 2i64, 3i64])));
-    println!("{} {} {}", format!("{}", sum(Arc::new(Mutex::new(Some(vec![]))))), format!("{}", sum(Arc::new(Mutex::new(Some(vec![1, 2]))))), format!("{}", sum(nums.clone())));
+    println!("{} {} {}", format!("{}", sum(Arc::new(Mutex::new(None)))), format!("{}", sum(Arc::new(Mutex::new(Some(vec![1, 2]))))), format!("{}", sum(nums.clone())));
     for v in &vec![
         Box::new(42i64) as Box<dyn Any + Send + Sync>,
         Box::new("hi".to_string()) as Box<dyn Any + Send + Sync>,
