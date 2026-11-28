@@ -2560,6 +2560,14 @@ run_xfail_test() {
     run_test "tests/map_field_local_alias"
 }
 
+@test "map_float_slice_values" {
+    run_test "tests/map_float_slice_values"
+}
+
+@test "map_float_slice_values_dependency" {
+    run_test "tests/map_float_slice_values_dependency"
+}
+
 @test "map_len_integer_key" {
     run_test "tests/map_len_integer_key"
 }
@@ -2670,6 +2678,14 @@ run_xfail_test() {
 
 @test "map_range_struct_key_copy_goroutines" {
     run_test "tests/map_range_struct_key_copy_goroutines"
+}
+
+@test "map_range_value_compound_assign" {
+    run_test "tests/map_range_value_compound_assign"
+}
+
+@test "map_range_value_compound_assign_goroutines" {
+    run_test "tests/map_range_value_compound_assign_goroutines"
 }
 
 @test "map_range_value_delete_key" {

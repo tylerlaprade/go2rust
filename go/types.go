@@ -1136,6 +1136,9 @@ func goTypeToRustBase(expr ast.Expr) string {
 		return "Vec<" + elemType + ">"
 	case *ast.MapType:
 		TrackImport("BTreeMap")
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			NoteMapValueType(typeInfo.GetType(t.Value))
+		}
 		keyType := goMapKeyTypeToRustBase(t.Key)
 		valueType := GoTypeToRust(t.Value)
 		return "BTreeMap<" + keyType + ", " + valueType + ">"
@@ -1821,6 +1824,7 @@ func goTypesTypeToRust(t types.Type) string {
 		return outerWrapper + "<" + innerWrapper + "<Option<" + goTypesTypeToRust(ut.Elem()) + ">>>"
 	case *types.Map:
 		TrackImport("BTreeMap")
+		NoteMapValueType(ut.Elem())
 		return "BTreeMap<" + goTypesMapKeyToRust(ut.Key()) + ", " + goTypesMapValueToRust(ut.Elem()) + ">"
 	case *types.Chan:
 		NeedGoChannel()

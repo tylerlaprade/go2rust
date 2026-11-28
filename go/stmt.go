@@ -9694,6 +9694,19 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 				return
 			}
 		}
+		if isRangeVar && !identShadowsRangeVar(ident) && isWrappedRangeVarType(rangeLoopVars[ident.Name]) && !rhsIsPointerType(expr) {
+			// A range value over a map is the map's cell for the value
+			// (writeMapRangeValueIterationCopy gives it one of its own), so
+			// "n += v" reads the value out of it, captured or not.
+			out.WriteString("(*")
+			out.WriteString(varName)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+			if !isCopyTypeExpression(expr) && isCloneableNonPointerExpr(expr) {
+				out.WriteString(".clone()")
+			}
+			return
+		}
 		if isLocalConst {
 			if writeConstIdentForCompoundExpected(out, ident, expected, RustIdentForUse(ident)) {
 				return
@@ -9725,7 +9738,9 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 			out.WriteString(varName)
 			return
 		}
-		if !isRangeVar && !isLocalConst && ident.Name != "true" && ident.Name != "false" &&
+		// A local that shadows a range variable, such as v := 100 in a
+		// closure inside the loop, is an ordinary wrapped variable.
+		if (!isRangeVar || identShadowsRangeVar(ident)) && !isLocalConst && ident.Name != "true" && ident.Name != "false" &&
 			ident.Name != "nil" && ident.Name != "_" {
 			out.WriteString("(*")
 			out.WriteString(varName)
