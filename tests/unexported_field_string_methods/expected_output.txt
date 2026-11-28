@@ -1,0 +1,7 @@
+{1 L2 a N(b) 1.5 true 7 I [] [] [0 0]}
+{3 L4  N() 0 false 0 I [] [] [0 0]} {hidden:5 Shown:L6 n: Label:N() r:0 f:false c:0 Out:I levels:[] Ranks:[] grid:[0 0]}
+{0 L0  N() 0 false 0 I [1 2] [L3] [0.5 2]}
+{hidden:0 Shown:L0 n: Label:N() r:0 f:false c:0 Out:I levels:[1 2] Ranks:[L3] grid:[0.5 2]}
+L0 [L1 L2] [R R]
+L2 L0
+{3 E}|{5 E}

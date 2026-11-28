@@ -1609,7 +1609,7 @@ impl Default for AnonymousStruct1 {
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", (*self.bit.borrow().as_ref().unwrap()));
+        let __go_fmt_0 = format!("{}", { let __hidden = (*self.bit.borrow().as_ref().unwrap()).0.clone(); let __hidden_value = (*__hidden.borrow().as_ref().unwrap()).clone(); format!("{}", __hidden_value) });
         let __go_fmt_1 = format!("{}", (*self.ch.borrow().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
