@@ -864,8 +864,8 @@ impl std::fmt::Display for IdentPtr {
 
 impl Expr for IdentPtr {
     fn pos(&self) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Ident = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Ident };
+        let __recv = unsafe { &*__recv_ptr };
         Ident::pos(__recv)
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
@@ -924,8 +924,8 @@ impl std::fmt::Display for StarExprPtr {
 
 impl Expr for StarExprPtr {
     fn pos(&self) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const StarExpr = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const StarExpr };
+        let __recv = unsafe { &*__recv_ptr };
         StarExpr::pos(__recv)
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {

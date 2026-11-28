@@ -41,7 +41,7 @@ pub fn report() {
     let mut failed = Rc::new(RefCell::new(Some(Rc::new(move || -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
         Rc::new(RefCell::new(None))
     }) as Rc<dyn Fn() -> Rc<RefCell<Option<Rc<dyn StdError>>>>>)));
-    let mut items = Rc::new(RefCell::new(Some(vec![Box::new(counts.clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(GoFuncValue::go_func_value(&(failed))))) as Box<dyn Any>, Box::new(3i64) as Box<dyn Any>])));
+    let mut items = Rc::new(RefCell::new(Some(vec![Box::new(counts.clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new({ let __func_value = (*failed.borrow()).clone(); __func_value }))) as Box<dyn Any>, Box::new(3i64) as Box<dyn Any>])));
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for item in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         print!("{}\n", __go_type_name(item.as_ref()));
     } }

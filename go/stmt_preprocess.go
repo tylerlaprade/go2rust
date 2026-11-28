@@ -547,11 +547,54 @@ func closuresSharingCaptures(info *CaptureInfo) map[string]bool {
 	return shared
 }
 
+// capturesUsedOutsideClosures are the captured variables of the statement
+// that it also uses outside its function literals, as c in
+// c.timer = time.AfterFunc(d, func() { c.stop() }): a literal moves the
+// clone it captures, and the assignment then writes through the clone.
+func capturesUsedOutsideClosures(info *CaptureInfo, stmt ast.Stmt) map[string]bool {
+	if info == nil || stmt == nil || len(info.CapturedVars) == 0 {
+		return nil
+	}
+	var used map[string]bool
+	var visit func(node ast.Node) bool
+	visit = func(node ast.Node) bool {
+		switch n := node.(type) {
+		case *ast.FuncLit:
+			return false
+		case *ast.SelectorExpr:
+			// x.f uses x, not a variable named f.
+			ast.Inspect(n.X, visit)
+			return false
+		case *ast.KeyValueExpr:
+			// A struct literal's key is a field name.
+			ast.Inspect(n.Value, visit)
+			return false
+		case *ast.Ident:
+			if _, cloned := info.CapturedVars[n.Name]; cloned {
+				if used == nil {
+					used = make(map[string]bool)
+				}
+				used[n.Name] = true
+			}
+		}
+		return true
+	}
+	ast.Inspect(stmt, visit)
+	return used
+}
+
 // pushSiblingClosureCaptureClones makes each function literal of the
 // statement clone the captured variables it shares with another literal of
-// the statement. It returns the function that restores the previous setting.
-func pushSiblingClosureCaptureClones(info *CaptureInfo) func() {
+// the statement, or that the statement uses outside its literals. It returns
+// the function that restores the previous setting.
+func pushSiblingClosureCaptureClones(info *CaptureInfo, stmt ast.Stmt) func() {
 	names := closuresSharingCaptures(info)
+	for name := range capturesUsedOutsideClosures(info, stmt) {
+		if names == nil {
+			names = make(map[string]bool)
+		}
+		names[name] = true
+	}
 	if len(names) == 0 {
 		return func() {}
 	}

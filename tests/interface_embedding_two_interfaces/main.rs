@@ -369,8 +369,8 @@ impl std::fmt::Display for RectPtr {
 
 impl Named for RectPtr {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Rect = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Rect };
+        let __recv = unsafe { &*__recv_ptr };
         Rect::name(__recv)
     }
     fn __go_clone_box_named(&self) -> Box<dyn Named + Send + Sync> {
@@ -439,8 +439,8 @@ impl Shape for Rect {
 
 impl Shape for RectPtr {
     fn area(&self) -> f64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Rect = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Rect };
+        let __recv = unsafe { &*__recv_ptr };
         Rect::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape + Send + Sync> {
@@ -503,8 +503,8 @@ impl std::fmt::Display for SquarePtr {
 
 impl Named for SquarePtr {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Square = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Square };
+        let __recv = unsafe { &*__recv_ptr };
         Square::name(__recv)
     }
     fn __go_clone_box_named(&self) -> Box<dyn Named + Send + Sync> {
@@ -573,8 +573,8 @@ impl Shape for Square {
 
 impl Shape for SquarePtr {
     fn area(&self) -> f64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Square = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Square };
+        let __recv = unsafe { &*__recv_ptr };
         Square::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape + Send + Sync> {
@@ -620,11 +620,11 @@ fn main() {
     ::sort::__go_init_all();
 
     let mut items = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(3.0))), h: Arc::new(Mutex::new(Some(4.0))), ..Default::default() }) as Box<dyn NamedShape + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new(SquarePtr(Arc::new(Mutex::new(Some(Square { s: Arc::new(Mutex::new(Some(2.0))), ..Default::default() }))).clone())) as Box<dyn NamedShape + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(1.0))), h: Arc::new(Mutex::new(Some(1.0))), ..Default::default() }) as Box<dyn NamedShape + Send + Sync>)))])));
-    let items_closure_clone = items.clone(); { let __sort_target = items_closure_clone.clone(); let __sort_less = Arc::new(Mutex::new(Some(Arc::new(move |i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>| -> bool {
+    let items_closure_clone = items.clone(); { let __sort_target = items_closure_clone.clone(); let __sort_less = Arc::new(Mutex::new(Some({ let items_closure_clone_closure_clone = items_closure_clone.clone(); Arc::new(move |i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>| -> bool {
         return {
             let __tmp_x = {
                 let __recv = {
-                    let __seq = { let __seq_holder = items_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned };
+                    let __seq = { let __seq_holder = items_closure_clone_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned };
                     __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
                 };
                 let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area();
@@ -632,7 +632,7 @@ fn main() {
             };
             let __tmp_y = {
                 let __recv = {
-                    let __seq = { let __seq_holder = items_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned };
+                    let __seq = { let __seq_holder = items_closure_clone_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned };
                     __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
                 };
                 let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area();
@@ -640,7 +640,7 @@ fn main() {
             };
             __tmp_x < __tmp_y
         };
-    }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i64))), Arc::new(Mutex::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
+    }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync> }))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i64))), Arc::new(Mutex::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     let mut plain: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
     { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for it in __range_values.iter() {
         println!("{} {} {}", format!("{}", (*(*it.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap())), { let __text = go_float_string(((*it.lock().unwrap().as_ref().unwrap()).area()) as f64, false); __text }, format!("{}", (*describe({ let __inner: Option<Box<dyn Named + Send + Sync>> = (*it.lock().unwrap()).clone().map(|__v| -> Box<dyn Named + Send + Sync> { __v }); Arc::new(Mutex::new(__inner)) }).lock().unwrap().as_ref().unwrap())));

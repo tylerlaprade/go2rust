@@ -819,8 +819,8 @@ impl std::fmt::Display for identPtr {
 
 impl expr for identPtr {
     fn expr_node(&self) {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const ident = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const ident };
+        let __recv = unsafe { &*__recv_ptr };
         ident::expr_node(__recv)
     }
     fn __go_clone_box_expr(&self) -> Box<dyn expr> {

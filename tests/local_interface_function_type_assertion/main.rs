@@ -820,8 +820,8 @@ impl std::fmt::Display for boxPtr {
 
 impl hasValue for boxPtr {
     fn value(&self) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const r#box = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const r#box };
+        let __recv = unsafe { &*__recv_ptr };
         r#box::value(__recv)
     }
     fn __go_clone_box_has_value(&self) -> Box<dyn hasValue> {

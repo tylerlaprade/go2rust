@@ -837,8 +837,8 @@ impl std::fmt::Display for IdentPtr {
 
 impl Expr for IdentPtr {
     fn expr_node(&self) {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Ident = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Ident };
+        let __recv = unsafe { &*__recv_ptr };
         Ident::expr_node(__recv)
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
@@ -896,8 +896,8 @@ impl std::fmt::Display for BadExprPtr {
 
 impl Expr for BadExprPtr {
     fn expr_node(&self) {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const BadExpr = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const BadExpr };
+        let __recv = unsafe { &*__recv_ptr };
         BadExpr::expr_node(__recv)
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {

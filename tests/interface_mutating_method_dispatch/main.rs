@@ -918,8 +918,8 @@ impl std::fmt::Display for wordPtr {
 
 impl Node for wordPtr {
     fn count(&self) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const word = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const word };
+        let __recv = unsafe { &*__recv_ptr };
         word::count(__recv)
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {

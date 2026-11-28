@@ -820,8 +820,8 @@ impl std::fmt::Display for ConcretePtr {
 
 impl Spec for ConcretePtr {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Concrete = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Concrete };
+        let __recv = unsafe { &*__recv_ptr };
         Concrete::name(__recv)
     }
     fn __go_clone_box_spec(&self) -> Box<dyn Spec> {

@@ -955,8 +955,8 @@ impl std::fmt::Display for SquarePtr {
 
 impl Shape for SquarePtr {
     fn area(&self) -> f64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Square = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Square };
+        let __recv = unsafe { &*__recv_ptr };
         Square::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape> {
@@ -1015,8 +1015,8 @@ impl std::fmt::Display for RectPtr {
 
 impl Shape for RectPtr {
     fn area(&self) -> f64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Rect = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Rect };
+        let __recv = unsafe { &*__recv_ptr };
         Rect::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape> {
@@ -1079,8 +1079,8 @@ impl std::fmt::Display for CirclePtr {
 
 impl Shape for CirclePtr {
     fn area(&self) -> f64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Circle = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Circle };
+        let __recv = unsafe { &*__recv_ptr };
         Circle::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape> {

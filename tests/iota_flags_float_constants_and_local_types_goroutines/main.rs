@@ -1026,6 +1026,16 @@ impl<T> std::fmt::Debug for GoChannel<T> {
     }
 }
 
+// Two channels are equal when they are the same channel, as == compares
+// them in Go, or both nil.
+impl<T> PartialEq for GoChannel<T> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.is_nil() && other.is_nil()) || std::sync::Arc::ptr_eq(&self.rx, &other.rx)
+    }
+}
+
+impl<T> Eq for GoChannel<T> {}
+
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
@@ -1772,19 +1782,19 @@ fn main() {
     let mut dbl = Arc::new(Mutex::new(Some(Arc::new(move |x: Arc<Mutex<Option<i64>>>| -> i64 {
         return { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x * __tmp_y };
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>)));
-    println!("{} {}", format!("{}", { let __f_holder = apply(Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(GoFuncValue::go_func_value(&(inc)))), Arc::new(Mutex::new(GoFuncValue::go_func_value(&(dbl)))), Arc::new(Mutex::new(GoFuncValue::go_func_value(&(inc))))])))); let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)(Arc::new(Mutex::new(Some(5)))) }), format!("{}", { let __f_holder = apply(Arc::new(Mutex::new(Some(vec![])))); let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)(Arc::new(Mutex::new(Some(7)))) }));
+    println!("{} {}", format!("{}", { let __f_holder = apply(Arc::new(Mutex::new(Some(vec![{ let __arg_value = Arc::new(Mutex::new({ let __func_value = (*inc.lock().unwrap()).clone(); __func_value })); __arg_value }, { let __arg_value = Arc::new(Mutex::new({ let __func_value = (*dbl.lock().unwrap()).clone(); __func_value })); __arg_value }, { let __arg_value = Arc::new(Mutex::new({ let __func_value = (*inc.lock().unwrap()).clone(); __func_value })); __arg_value }])))); let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)(Arc::new(Mutex::new(Some(5)))) }), format!("{}", { let __f_holder = apply(Arc::new(Mutex::new(Some(vec![])))); let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)(Arc::new(Mutex::new(Some(7)))) }));
     let mut fact: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>> = Arc::new(Mutex::new(None));
-    let fact_closure_clone = fact.clone(); { let __func_lit_target = fact_closure_clone.clone(); let new_val = Arc::new(move |n: Arc<Mutex<Option<i64>>>| -> i64 {
+    let fact_closure_clone = fact.clone(); { let __func_lit_target = fact_closure_clone.clone(); let new_val = { let fact_closure_clone_closure_clone = fact_closure_clone.clone(); Arc::new(move |n: Arc<Mutex<Option<i64>>>| -> i64 {
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x <= __tmp_y } {
         return 1;
     }
         return { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = {
-            let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = fact_closure_clone.lock().unwrap().as_ref().unwrap().clone();
+            let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = fact_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap().clone();
             (__f)(
                 Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y })))
             )
         }; __tmp_x * __tmp_y };
-    }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>; *__func_lit_target.lock().unwrap() = Some(new_val); };
+    }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> }; *__func_lit_target.lock().unwrap() = Some(new_val); };
     println!("{}", format!("{}", {
         let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = fact.lock().unwrap().as_ref().unwrap().clone();
         (__f)(

@@ -834,6 +834,33 @@ func (analysis *transpileFileAnalysis) recordExternalLocalInterfaceTypeSwitchImp
 		return
 	}
 	subjectType := typeInfo.GetType(expr)
+	// A case of a local interface type tries the external types that
+	// implement it, such as time.Duration for case stringer in a switch on
+	// an any value: each needs the impl of the case's trait.
+	for _, clauseNode := range node.Body.List {
+		clause := clauseNode.(*ast.CaseClause)
+		for _, caseExpr := range clause.List {
+			caseType := typeInfo.GetType(caseExpr)
+			caseIfaceName, ok := localNamedInterfaceTypeNameFromTypes(caseType)
+			if !ok {
+				continue
+			}
+			caseNamed, ok := types.Unalias(caseType).(*types.Named)
+			if !ok {
+				continue
+			}
+			caseIface, ok := caseNamed.Underlying().(*types.Interface)
+			if !ok {
+				continue
+			}
+			caseIface.Complete()
+			for _, candidate := range localInterfaceAssertionCandidates(caseIface, subjectType) {
+				if candidate.external {
+					record(caseIfaceName, caseIface, candidate.typ)
+				}
+			}
+		}
+	}
 	ifaceName, ok := localNamedInterfaceTypeNameFromTypes(subjectType)
 	if !ok {
 		return
@@ -1986,9 +2013,23 @@ func sourceMappedPointerWrapperImplementsImportedInterface(named *types.Named, i
 				continue
 			}
 			candidate, ok := types.Unalias(obj.Type()).Underlying().(*types.Interface)
-			if ok && types.Identical(candidate, iface) {
-				return true
+			if !ok || !types.Identical(candidate, iface) {
+				continue
 			}
+			// The package writes the newtype for an interface of an
+			// imported package only when that interface is translated, as
+			// recordImportedPointerInterfaceImplByName records it: not for
+			// runtime's stringer, say, which *time.Location also has.
+			if pkg != concretePkg {
+				named, ok := types.Unalias(obj.Type()).(*types.Named)
+				if !ok {
+					continue
+				}
+				if _, _, ok := importedTranspiledInterfaceFromType(named); !ok {
+					continue
+				}
+			}
+			return true
 		}
 	}
 	return false
@@ -2315,20 +2356,7 @@ func writeExternalLocalInterfaceMethod(out *strings.Builder, ifaceName string, m
 			}
 			out.WriteString(" };\n")
 		} else {
-			out.WriteString("            let ")
-			if receiverBorrowMutable {
-				out.WriteString("mut ")
-			}
-			out.WriteString("__recv_guard = self.0")
-			WriteBorrowMethod(out, receiverBorrowMutable)
-			out.WriteString(";\n")
-			out.WriteString("            let __recv = __recv_guard.")
-			if receiverBorrowMutable {
-				out.WriteString("as_mut")
-			} else {
-				out.WriteString("as_ref")
-			}
-			out.WriteString("().unwrap();\n")
+			writePointerWrapperReceiverRef(out, "            ", impl.sourcePointeeRustType, receiverBorrowMutable)
 		}
 		out.WriteString("            ")
 		out.WriteString(impl.sourcePointeeRustType)
@@ -2351,6 +2379,22 @@ func writeExternalLocalInterfaceMethod(out *strings.Builder, ifaceName string, m
 	out.WriteString("        ")
 	if impl.sourceIsInterface {
 		out.WriteString("(**self).")
+	} else if impl.sourcePointeeRustType != "" {
+		// The type's own method is called by its path: self.string() would
+		// find the trait's string first, through the &mut self receiver,
+		// and call itself.
+		out.WriteString("<")
+		out.WriteString(impl.sourcePointeeRustType)
+		out.WriteString(">::")
+		out.WriteString(ToSnakeCase(methodName))
+		out.WriteString("(self")
+		for _, argName := range argNames {
+			out.WriteString(", ")
+			out.WriteString(argName)
+		}
+		out.WriteString(")\n")
+		out.WriteString("    }\n")
+		return
 	} else {
 		out.WriteString("self.")
 	}
@@ -2535,6 +2579,13 @@ func writeExternalLocalInterfaceImpls(out *strings.Builder, first *bool, impls m
 	}
 	slices.Sort(ifaceNames)
 	for _, ifaceName := range ifaceNames {
+		// A source-translated package writes no trait for an interface its
+		// program never reaches, so it writes no impl of one either.
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.pkg != nil {
+			if obj := typeInfo.pkg.Scope().Lookup(ifaceName); obj != nil && sourceMappedDeclIsPruned(obj) {
+				continue
+			}
+		}
 		var concreteTypes []string
 		for concreteType := range impls[ifaceName] {
 			concreteTypes = append(concreteTypes, concreteType)
@@ -4057,6 +4108,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		}
 	}
 	registerMapKeyAnonymousStructs(file)
+	registerFuncLitsOfImportedFuncTypes(file)
 	packageGlobalNames = make(map[string]bool)
 	if currentContext != nil && currentContext.Package != nil {
 		if currentContext.Package.PackageGlobalGoPtrElemRust == nil {

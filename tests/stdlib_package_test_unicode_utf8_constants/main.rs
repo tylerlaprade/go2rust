@@ -529,7 +529,7 @@ fn main() {
         },
     ] {
         let tt = &tt.__go_value_clone();
-        if run(t.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = tt.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(GoFuncValue::go_func_value(&(tt.test))))) {
+        if run(t.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = tt.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), Arc::new(Mutex::new({ let __func_value = (*tt.test.lock().unwrap()).clone(); __func_value }))) {
         { let mut guard = passed.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     } else {
         { let mut guard = failed.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
