@@ -11295,6 +11295,12 @@ func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value as
 	if isUnnamedSliceType(fieldType) && writeGoSliceFreshCellFromVariable(out, value) {
 		return
 	}
+	// Row{M: s[0]} for a []map: the field shares the element's map, whose
+	// handle the element is (#318).
+	if index, ok := unwrapParens(value).(*ast.IndexExpr); ok && isUnnamedMapType(fieldType) && mapElementIndexExpression(index) {
+		TranspileExpression(out, value)
+		return
+	}
 	if isFunctionSignatureType(fieldType) && writeFuncValueFreshCellFromStorage(out, value, fieldType) {
 		return
 	}

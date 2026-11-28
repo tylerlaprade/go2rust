@@ -4520,6 +4520,10 @@ run_xfail_test() {
     run_test "tests/slices_of_maps_share_goroutines"
 }
 
+@test "slices_of_maps_struct_field_and_clear" {
+    run_test "tests/slices_of_maps_struct_field_and_clear"
+}
+
 @test "slices_sort_func" {
     run_test "tests/slices_sort_func"
 }

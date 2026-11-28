@@ -231,3 +231,25 @@ func run(ch chan map[string]int) int {
 		t.Fatalf("a channel-bound map should be wrapped once as an element:\n%s", rust)
 	}
 }
+
+// A struct literal's map field set from a slice-of-maps element shares the
+// element's handle, and clear gives each element a nil map handle
+// (slices_of_maps_struct_field_and_clear).
+func TestSliceOfMapsStructFieldAndClear(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Row struct{ M map[string]int }
+
+func run(s []map[string]int) Row {
+	r := Row{M: s[0]}
+	clear(s)
+	return r
+}
+`)
+	if !strings.Contains(rust, "Row { m: (*s.borrow().as_ref().unwrap())[(0) as usize].clone()") {
+		t.Fatalf("the field should take the element's handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "BTreeMap::new()") {
+		t.Fatalf("clear should give nil map handles, not bare maps:\n%s", rust)
+	}
+}

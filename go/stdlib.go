@@ -7518,7 +7518,8 @@ func writeClearMap(out *strings.Builder, arg ast.Expr) {
 }
 
 func writeClearSlice(out *strings.Builder, arg ast.Expr, elemType types.Type) {
-	zeroValue := zeroValueForTypesType(elemType)
+	// An element of map type is a handle, cleared to a nil map (#318).
+	zeroValue := collectionElementZeroValue(elemType)
 	if slice, ok := unwrapParens(arg).(*ast.SliceExpr); ok {
 		writeClearSliceExpr(out, slice, zeroValue)
 		return
