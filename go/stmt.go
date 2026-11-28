@@ -16380,6 +16380,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		var mapValueGoType types.Type
 		mapKeyNeedsValueBinding := false
 		mapKeyNeedsWrappedBinding := false
+		// A struct key shares its field cells with the key the map holds, so
+		// the loop binds Go's copy of it, as a range value is (#356).
+		mapKeyCopyCall := ""
 
 		if isMap {
 			keyType = "String"
@@ -16408,6 +16411,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else if isStdlibNamedInterfaceValueType(mapKeyType) {
 						keyRangeVarType = goTypesTypeToRustWrapped(mapKeyType)
 						mapKeyNeedsWrappedBinding = true
+					} else if copyCall := goValueCopyCallForType(mapKeyType); copyCall != ".clone()" {
+						mapKeyCopyCall = copyCall
 					}
 				}
 				valueType = goTypesMapValueToRust(mapValueType)
@@ -16633,6 +16638,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				valueTempRegistered = true
 			}
 		}
+		// The temporary the iterator binds a rebound key to: a name nothing
+		// in the loop refers to, so it hides no variable the value or the
+		// body uses (for k, __range_key := range m, or an outer
+		// __range_key read in the body).
+		mapRangeKeyTemp := "__range_key"
+		loopNames := map[string]bool{}
+		ast.Inspect(s, func(n ast.Node) bool {
+			if ident, ok := n.(*ast.Ident); ok {
+				loopNames[RustLocalIdent(ident.Name)] = true
+				loopNames[ident.Name] = true
+			}
+			return true
+		})
+		for loopNames[mapRangeKeyTemp] {
+			mapRangeKeyTemp += "_"
+		}
 		writeRangeKeyBinding := func() {
 			writeRangePatternBinding(out, s.Key, keyAssigned, keyBindingTemp)
 		}
@@ -16644,8 +16665,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(keyBindingTemp)
 				return
 			}
-			if (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding) && keyName != "" && keyName != "_" {
-				out.WriteString("__range_key")
+			if (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding || mapKeyCopyCall != "") && keyName != "" && keyName != "_" {
+				out.WriteString(mapRangeKeyTemp)
 				return
 			}
 			writeRangeKeyBinding()
@@ -16661,7 +16682,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			writeRangeValueBinding()
 		}
-		if !rangeAssignsExisting && (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding) && keyName != "" && keyName != "_" {
+		if !rangeAssignsExisting && (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding || mapKeyCopyCall != "") && keyName != "" && keyName != "_" {
 			var prelude strings.Builder
 			prelude.WriteString("        let ")
 			if keyAssigned {
@@ -16670,10 +16691,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			prelude.WriteString(RustLocalIdent(keyName))
 			prelude.WriteString(" = ")
 			if mapKeyNeedsValueBinding {
-				prelude.WriteString("__range_key.value()")
+				prelude.WriteString(mapRangeKeyTemp)
+				prelude.WriteString(".value()")
+			} else if mapKeyCopyCall != "" {
+				prelude.WriteString(mapRangeKeyTemp)
+				prelude.WriteString(mapKeyCopyCall)
 			} else {
 				WriteWrapperPrefix(&prelude)
-				prelude.WriteString("__range_key.clone()")
+				prelude.WriteString(mapRangeKeyTemp)
+				prelude.WriteString(".clone()")
 				WriteWrapperSuffix(&prelude)
 			}
 			prelude.WriteString(";\n")
@@ -16699,6 +16725,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			rangePrelude += prelude.String()
 		}
 		if rangeAssignsExisting {
+			if isMap && mapKeyCopyCall != "" && keyBindingTemp != "" {
+				// for k = range m: the existing k takes Go's copy of the
+				// key, as k := does (#356).
+				rangePrelude += "        let " + keyBindingTemp + " = " + keyBindingTemp + mapKeyCopyCall + ";\n"
+			}
 			appendRangeAssignmentPrelude(s.Key, keyBindingTemp)
 			appendRangeAssignmentPrelude(s.Value, valueBindingTemp)
 		}
