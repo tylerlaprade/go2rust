@@ -3124,11 +3124,14 @@ func writeNestedAnySlicePrintArg(out *strings.Builder, arg ast.Expr, argType typ
 		}
 		return "format!(\"[{}]\", " + value + ".iter().map(|" + row + "| " + cell + ").collect::<Vec<String>>().join(\" \"))"
 	}
+	// The rows are copied out of the outer handle first, so a String method
+	// that reads the outer collection does not wait on the lock printing
+	// would hold, as writeMapEntriesCopyMatch does for a map.
 	out.WriteString("{ let __any_rows_holder = ")
 	writeAnySliceHandleArg(out, arg)
-	out.WriteString(".clone(); let __any_rows_guard = __any_rows_holder")
+	out.WriteString(".clone(); let __any_rows_copy = { let __any_rows_guard = __any_rows_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; match __any_rows_guard.as_ref() { Some(__any_rows) => ")
+	out.WriteString("; __any_rows_guard.as_ref().cloned() }; match __any_rows_copy { Some(__any_rows) => ")
 	out.WriteString(rows("__any_rows", 1))
 	out.WriteString(", None => \"[]\".to_string() } }")
 	return true

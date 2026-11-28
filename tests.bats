@@ -3068,6 +3068,10 @@ run_xfail_test() {
     run_test "tests/nested_any_slice_literals_goroutines"
 }
 
+@test "nested_any_slice_stringer_reads_table_goroutines" {
+    run_test "tests/nested_any_slice_stringer_reads_table_goroutines"
+}
+
 @test "nested_closure_type_assert_capture" {
     run_test "tests/nested_closure_type_assert_capture"
 }
