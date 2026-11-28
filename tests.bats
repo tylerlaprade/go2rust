@@ -2668,6 +2668,10 @@ run_xfail_test() {
     run_test "tests/map_values_of_defined_integer_types"
 }
 
+@test "map_values_of_defined_integer_types_from_other_values" {
+    run_test "tests/map_values_of_defined_integer_types_from_other_values"
+}
+
 @test "map_values_of_defined_integer_types_goroutines" {
     run_test "tests/map_values_of_defined_integer_types_goroutines"
 }
