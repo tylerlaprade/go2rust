@@ -670,6 +670,18 @@ fn main() {
     for (_, v) in { let __range_holder = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<score>>>>::from([("s".to_string(), Arc::new(Mutex::new(Some(score(Arc::new(Mutex::new(Some(4 as i64))))))))])))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __rhs = (*((*v.lock().unwrap().as_mut().unwrap())).0.lock().unwrap().as_ref().unwrap()).clone(); let mut guard = s.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
     }
+    for (_, mut v) in { let __range_holder = counts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
+        {
+            let mut v = get_int();
+            { let __rhs = v; let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        }
+        let mut n_closure_clone = n.clone(); { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
+        let mut n_closure_clone = n_closure_clone.clone();
+        let mut v = Arc::new(Mutex::new(Some(100i64)));
+        { let __rhs = (*v.lock().unwrap().as_ref().unwrap()); let mut guard = n_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
+        let _ = &v;
+    }
     let mut t = Arc::new(Mutex::new(Some(tally { n: Arc::new(Mutex::new(Some(0))) })));
     for (_, v) in { let __range_holder = counts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __target = (*t.lock().unwrap().as_ref().unwrap()).n.clone(); let __rhs = (*v.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
@@ -682,6 +694,10 @@ fn main() {
     }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }
     println!("{} {} {} {} {} {} {}", format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*text.lock().unwrap().as_ref().unwrap()).clone(); __v }), { let __text = go_float_string(({ let __v = (*f.lock().unwrap().as_ref().unwrap()).clone(); __v }) as f64, false); __text }, format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*t.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", format_map(&counts)));
+}
+
+pub fn get_int() -> i64 {
+    10
 }
 
 impl GoValueClone for tally {

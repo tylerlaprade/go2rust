@@ -40,6 +40,18 @@ func main() {
 	for _, v := range map[string]score{"s": 4} {
 		s += v
 	}
+	// A local that shadows the range value is a variable of its own.
+	for _, v := range counts {
+		{
+			v := getInt()
+			n += v
+		}
+		func() {
+			v := 100
+			n += v
+		}()
+		_ = v
+	}
 	t := tally{}
 	for _, v := range counts {
 		t.n += v
@@ -59,3 +71,5 @@ func main() {
 	wg.Wait()
 	fmt.Println(n, text, f, s, t, total, counts)
 }
+
+func getInt() int { return 10 }
