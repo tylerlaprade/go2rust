@@ -1640,7 +1640,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
     }));;
         { let __map_key = [1i64]; let __map_value = Arc::new(Mutex::new(Some(Box::new(size {  }) as Box<dyn Any + Send + Sync>))); (*m_1.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
         { let __map_key = [2i64]; let __map_value = Arc::new(Mutex::new(Some(Box::new(7i64) as Box<dyn Any + Send + Sync>))); (*m_1.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
-        { let __map_key = ["a".to_string(), "b".to_string()]; let __map_value = Arc::new(Mutex::new(Some(tally(Arc::new(Mutex::new(Some(3 as i64))))))); (*byKey.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
+        { let __map_key = ["a".to_string(), "b".to_string()]; let __map_value = Arc::new(Mutex::new(Some(tally(Arc::new(Mutex::new(Some(3 as i64 as i64))))))); (*byKey.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
         while let Some(f) = __defer_stack.pop() {
             f();
         }
