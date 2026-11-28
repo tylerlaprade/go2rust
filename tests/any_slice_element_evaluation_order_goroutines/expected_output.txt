@@ -1,0 +1,44 @@
+2
+assert [row col]
+a true
+comma-ok [row col]
+7
+pointer assert [row col]
+7 true
+pointer comma-ok [row col]
+b
+element copy [row col]
+show 1
+argument [row col]
+2
+call assert [row col]
+a true
+call comma-ok [row col]
+b
+call element copy [row col]
+10
+replaced assert [row replace]
+z true
+replaced comma-ok [row replace]
+z
+replaced element copy [row replace]
+show 10
+replaced argument [row replace]
+10
+replaced constant row [replace]
+b
+cube [plane row col]
+2
+defined index [slot col]
+b
+index expression [row col]
+5
+map row [key col]
+2
+conversion row [move]
+2
+received row [col]
+2
+call and variable row [row move]
+20
+replaced map row [key replace]

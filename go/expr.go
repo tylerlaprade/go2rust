@@ -10982,17 +10982,29 @@ func writeBareAnyReferenceWrappedClone(out *strings.Builder, expr ast.Expr) bool
 // writeAnySliceElementBoxClone clones the dynamic value in items[i], where
 // items is []any. Its element is a bare Box<dyn Any>, not an interface cell,
 // so callers must keep the slice guard alive and clone through go_any_clone.
+// writeAnyElementOperandBindings orders items and i; the slice is borrowed
+// after both, since i may read it too.
 func writeAnySliceElementBoxClone(out *strings.Builder, expr ast.Expr) bool {
 	index, ok := anySliceElementAssertionSource(expr)
 	if !ok {
 		return false
 	}
 	NeedAnyClone()
-	out.WriteString("{ let __idx = (")
-	TranspileExpression(out, index.Index)
-	out.WriteString(") as usize; let __seq_holder = ")
-	writeAnySliceAssertionHolder(out, index.X)
-	out.WriteString("; let __seq_guard = __seq_holder")
+	out.WriteString("{ ")
+	writeAnyElementOperandBindings(out, index, func(name string, value func()) {
+		out.WriteString("let ")
+		out.WriteString(name)
+		out.WriteString(" = ")
+		value()
+		out.WriteString("; ")
+	}, func() {
+		writeAnySliceAssertionHolder(out, index.X)
+	}, func() {
+		out.WriteString("(")
+		TranspileExpression(out, index.Index)
+		out.WriteString(") as usize")
+	})
+	out.WriteString("let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }")
 	return true
@@ -15010,6 +15022,10 @@ func writePackageGlobalIdentMethodReceiver(out *strings.Builder, receiver *ast.I
 
 // TranspileExpressionContext transpiles an expression with context about how it's used
 func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprContext) {
+	if name, ok := stagedOperandBindings[expr]; ok && ctx != AddressOf {
+		out.WriteString(name)
+		return
+	}
 	if ctx != AddressOf && writeWideIntConstant(out, expr) {
 		return
 	}
@@ -22937,12 +22953,19 @@ func writeAnySliceElementAssertionValue(out *strings.Builder, e *ast.TypeAssertE
 		return false
 	}
 	out.WriteString("({\n")
-	out.WriteString("        let __idx = (")
-	TranspileExpression(out, index.Index)
-	out.WriteString(") as usize;\n")
-	out.WriteString("        let __seq_holder = ")
-	writeAnySliceAssertionHolder(out, index.X)
-	out.WriteString(";\n")
+	writeAnyElementOperandBindings(out, index, func(name string, value func()) {
+		out.WriteString("        let ")
+		out.WriteString(name)
+		out.WriteString(" = ")
+		value()
+		out.WriteString(";\n")
+	}, func() {
+		writeAnySliceAssertionHolder(out, index.X)
+	}, func() {
+		out.WriteString("(")
+		TranspileExpression(out, index.Index)
+		out.WriteString(") as usize")
+	})
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
@@ -22975,12 +22998,19 @@ func writeAnySliceElementAssertionCommaOk(out *strings.Builder, e *ast.TypeAsser
 		return false
 	}
 	out.WriteString("({\n")
-	out.WriteString("        let __idx = (")
-	TranspileExpression(out, index.Index)
-	out.WriteString(") as usize;\n")
-	out.WriteString("        let __seq_holder = ")
-	writeAnySliceAssertionHolder(out, index.X)
-	out.WriteString(";\n")
+	writeAnyElementOperandBindings(out, index, func(name string, value func()) {
+		out.WriteString("        let ")
+		out.WriteString(name)
+		out.WriteString(" = ")
+		value()
+		out.WriteString(";\n")
+	}, func() {
+		writeAnySliceAssertionHolder(out, index.X)
+	}, func() {
+		out.WriteString("(")
+		TranspileExpression(out, index.Index)
+		out.WriteString(") as usize")
+	})
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
@@ -23371,12 +23401,19 @@ func writeAnySliceElementPointerHandleAssertionValue(out *strings.Builder, e *as
 		return false
 	}
 	out.WriteString("({\n")
-	out.WriteString("        let __idx = (")
-	TranspileExpression(out, index.Index)
-	out.WriteString(") as usize;\n")
-	out.WriteString("        let __seq_holder = ")
-	writeAnySliceAssertionHolder(out, index.X)
-	out.WriteString(";\n")
+	writeAnyElementOperandBindings(out, index, func(name string, value func()) {
+		out.WriteString("        let ")
+		out.WriteString(name)
+		out.WriteString(" = ")
+		value()
+		out.WriteString(";\n")
+	}, func() {
+		writeAnySliceAssertionHolder(out, index.X)
+	}, func() {
+		out.WriteString("(")
+		TranspileExpression(out, index.Index)
+		out.WriteString(") as usize")
+	})
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
@@ -23400,12 +23437,19 @@ func writeAnySliceElementHandleAssertionCommaOk(out *strings.Builder, e *ast.Typ
 		return false
 	}
 	out.WriteString("({\n")
-	out.WriteString("        let __idx = (")
-	TranspileExpression(out, index.Index)
-	out.WriteString(") as usize;\n")
-	out.WriteString("        let __seq_holder = ")
-	writeAnySliceAssertionHolder(out, index.X)
-	out.WriteString(";\n")
+	writeAnyElementOperandBindings(out, index, func(name string, value func()) {
+		out.WriteString("        let ")
+		out.WriteString(name)
+		out.WriteString(" = ")
+		value()
+		out.WriteString(";\n")
+	}, func() {
+		writeAnySliceAssertionHolder(out, index.X)
+	}, func() {
+		out.WriteString("(")
+		TranspileExpression(out, index.Index)
+		out.WriteString(") as usize")
+	})
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
