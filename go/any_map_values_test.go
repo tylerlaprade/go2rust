@@ -262,3 +262,26 @@ func main() {
 		t.Fatalf("main prints the []any through the merged case and needs format_any_nested:\n%s", mainRS)
 	}
 }
+
+// An element of a [][]any is the inner slice itself, so boxing it into an
+// interface{} copies that slice instead of borrowing a cell
+// (any_slice_element_of_slice_of_any_slices).
+func TestBareAnySliceElementIsBoxedFromTheSliceItself(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	r0 := []any{1, "a"}
+	rows := [][]any{r0}
+	values := []any{rows[0]}
+	fmt.Println(values)
+}
+`)
+	if !strings.Contains(rust, "Box::new({ let __slice_value = (*rows.borrow().as_ref().unwrap())[(0) as usize].clone(); __slice_value") {
+		t.Fatalf("the bare inner slice should be copied as it is:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __slice_holder = (*rows.borrow().as_ref().unwrap())[(0) as usize]") {
+		t.Fatalf("the bare inner slice is not a cell to borrow:\n%s", rust)
+	}
+}

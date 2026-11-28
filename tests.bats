@@ -536,6 +536,10 @@ run_xfail_test() {
     run_test "tests/any_slice_element_comma_ok_goroutines"
 }
 
+@test "any_slice_element_of_slice_of_any_slices" {
+    run_test "tests/any_slice_element_of_slice_of_any_slices"
+}
+
 @test "any_slice_element_values" {
     run_test "tests/any_slice_element_values"
 }

@@ -10943,6 +10943,17 @@ func writeAnySliceCloneValue(out *strings.Builder, expr ast.Expr) {
 		out.WriteString("Vec::new()")
 		return
 	}
+	// An element of a [][]any is the slice itself, not a cell around it.
+	if _, ok := unwrapParens(expr).(*ast.IndexExpr); ok && isExpressionResultBare(unwrapParens(expr)) {
+		out.WriteString("{ let __slice_value = ")
+		TranspileExpression(out, expr)
+		if goSliceModeEnabled() {
+			out.WriteString("; __slice_value }")
+			return
+		}
+		out.WriteString("; __slice_value.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>() }")
+		return
+	}
 	out.WriteString("{ let __slice_holder = ")
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone(); let __slice_guard = __slice_holder")
