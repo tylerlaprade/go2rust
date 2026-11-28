@@ -1,0 +1,9 @@
+2 true
+1
+2
+true 2
+2 0 2
+[map[x:1] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[]]
+{[map[] map[y:2] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[] map[]] [map[] map[w:4]]}
+recovered: assignment to entry in nil map
+0

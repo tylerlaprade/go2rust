@@ -1859,6 +1859,15 @@ func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs a
 		out.WriteString(" }")
 		return
 	}
+	if index, ok := unwrapParens(rhs).(*ast.IndexExpr); ok && newBinding && mapElementIndexExpression(index) {
+		// m, n := s[0], 0 of a []map: the variable is the element's map
+		// handle, as m := s[0] gives, and the element can be a nil map.
+		if ident, ok := lhs.(*ast.Ident); ok {
+			localZeroMapVars[ident.Name] = true
+		}
+		TranspileExpression(out, rhs)
+		return
+	}
 	if rhsIsPointerType(rhs) {
 		// Pointer identifiers in parallel short declarations copy the handle.
 		if !writeSourceMappedPackageGlobalPointerHandleClone(out, rhs) {
@@ -2108,6 +2117,30 @@ func writeIndexedSequenceCollectionFieldAssignment(out *strings.Builder, sel *as
 		return false
 	}
 	fieldInfo := selectorFieldAccessInfo(sel)
+
+	// A map field is the map's handle: s[i].M = m makes the field share m's
+	// map, as r.M = m does, and s[i].M = nil gives it a nil map of its own
+	// (#318). A promoted field is reached through a shared borrow, so it
+	// takes a copy of the map.
+	if isUnnamedMapType(fieldType) {
+		if fieldInfo.IsPromoted {
+			out.WriteString("{ let new_val = { let __map_holder = ")
+			writeMapHandleElementValue(out, rhs, fieldType)
+			out.WriteString("; let __map_value = __map_holder")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".clone(); __map_value }; *")
+			writeIndexedSequenceElementFieldHandle(out, indexExpr, fieldInfo, elemType)
+			WriteBorrowMethod(out, true)
+			out.WriteString(" = new_val; }")
+			return true
+		}
+		out.WriteString("{ let new_val = ")
+		writeMapHandleElementValue(out, rhs, fieldType)
+		out.WriteString("; ")
+		writeIndexedSequenceElementFieldHandle(out, indexExpr, fieldInfo, elemType)
+		out.WriteString(" = new_val; }")
+		return true
+	}
 
 	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
 		out.WriteString("{ *")
@@ -7394,7 +7427,7 @@ func isTypedAssignmentSelfWrappingExpression(expr ast.Expr) bool {
 // handle (#318). A declaration, assignment or return takes the handle as it
 // is.
 func mapIndexExpressionKeepsHandle(expr ast.Expr) bool {
-	indexExpr, ok := expr.(*ast.IndexExpr)
+	indexExpr, ok := unwrapParens(expr).(*ast.IndexExpr)
 	if !ok {
 		return false
 	}
@@ -15262,6 +15295,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												writeInterfaceHandleCopy(out, func() { TranspileExpression(out, rhs) })
 											} else if mapIndexExpressionKeepsHandle(rhs) {
 												// Map values that are maps/slices/pointers/etc. already return cloneable handles.
+												// An element of a []map can be a nil map (#318).
+												if index, ok := unwrapParens(rhs).(*ast.IndexExpr); ok && mapElementIndexExpression(index) && i < len(s.Lhs) {
+													if lhsIdent, ok := s.Lhs[i].(*ast.Ident); ok {
+														localZeroMapVars[lhsIdent.Name] = true
+													}
+												}
 												TranspileExpression(out, rhs)
 											} else if typeInfo := GetTypeInfo(); typeInfo != nil && isFunctionSignatureType(typeInfo.GetType(rhs)) && writeFunctionValueHandle(out, rhs) {
 												// Function values are already represented by cloneable handles.

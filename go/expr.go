@@ -9400,6 +9400,13 @@ func writeMapHandleElementValue(out *strings.Builder, expr ast.Expr, elemType ty
 		}
 		return true
 	}
+	// A channel carries a map bare; the element is a handle around it.
+	if unary, ok := inner.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
+		WriteWrapperPrefix(out)
+		TranspileExpression(out, unary)
+		WriteWrapperSuffix(out)
+		return true
+	}
 	writeMapHandleCloneForOp(out, expr)
 	return true
 }

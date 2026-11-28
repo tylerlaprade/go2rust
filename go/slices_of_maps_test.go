@@ -79,3 +79,48 @@ func main() {
 		t.Fatalf("a slice-of-maps element should not be wrapped in another handle:\n%s", rust)
 	}
 }
+
+// The forms review found around slice-of-maps handles: make of a named slice
+// type gives nil map handles, a slice element's map field takes the map's
+// handle, a parallel declaration and a parenthesized return keep the
+// element's handle, a write through an element alias panics as Go does for
+// a nil map, and printing a long array of maps needs no Default
+// (slices_of_maps_review_cases).
+func TestSliceOfMapsHandleFormsFromReview(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Tables []map[string]int
+
+type row struct{ M map[string]int }
+
+func first(s []map[string]int) map[string]int { return (s[0]) }
+
+func main() {
+	t := make(Tables, 2)
+	rows := []row{{}}
+	m := map[string]int{"k": 1}
+	rows[0].M = m
+	s := []map[string]int{{"c": 3}}
+	p, n := s[0], 0
+	alias := s[0]
+	alias["x"] = 1
+	p["z"] = 9
+	var a [33]map[string]int
+	fmt.Println(len(t), n, len(first(s)), a)
+}
+`)
+	for _, want := range []string{
+		"Tables(Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(None)); (2) as usize]))))",
+		"{ let new_val = m.clone(); (*rows.borrow_mut().as_mut().unwrap())[(0) as usize].m = new_val; }",
+		"let (mut p, mut n) = ((*s.borrow().as_ref().unwrap())[(0) as usize].clone(), ",
+		"-> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> {\n    ((*s.borrow().as_ref().unwrap())[(0) as usize].clone())\n}",
+		`.as_mut().unwrap_or_else(|| panic!("assignment to entry in nil map"))`,
+		".as_ref().map(|__v| __v.to_vec()).unwrap_or_default()",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+}

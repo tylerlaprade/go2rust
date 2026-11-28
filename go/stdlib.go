@@ -3163,7 +3163,7 @@ func writeSliceOfMapsPrintArg(out *strings.Builder, arg ast.Expr, elemType types
 		out.WriteString("(*")
 		writeCollectionFormatHandleIdent(out, ident)
 		WriteBorrowMethod(out, false)
-		out.WriteString(").clone().unwrap_or_default()")
+		out.WriteString(").as_ref().map(|__v| __v.to_vec()).unwrap_or_default()")
 	} else if formatSliceArgumentIsBareValue(arg) {
 		TranspileExpression(out, arg)
 		out.WriteString(".clone()")
@@ -3172,7 +3172,7 @@ func writeSliceOfMapsPrintArg(out *strings.Builder, arg ast.Expr, elemType types
 		TranspileExpression(out, arg)
 		out.WriteString(")")
 		WriteBorrowMethod(out, false)
-		out.WriteString(").clone().unwrap_or_default()")
+		out.WriteString(").as_ref().map(|__v| __v.to_vec()).unwrap_or_default()")
 	}
 	out.WriteString("; format!(\"[{}]\", __maps.iter().map(|__m| ")
 	writeBareMapInSliceFormat(out, nilText)
@@ -3180,6 +3180,9 @@ func writeSliceOfMapsPrintArg(out *strings.Builder, arg ast.Expr, elemType types
 	return true
 }
 
+// The maps are copied out as a Vec, which has a Default for a nil slice where
+// a long array has none.
+//
 // writeSliceOfMapsDisplay writes the fmt form of the slice or array of maps
 // whose handle writeHandle writes, as a struct field prints it: each element,
 // the map's handle (#318), through format_map.
@@ -3190,7 +3193,7 @@ func writeSliceOfMapsDisplay(out *strings.Builder, writeHandle func(), nilText s
 	out.WriteString("{ let __maps = (*")
 	writeHandle()
 	WriteBorrowMethod(out, false)
-	out.WriteString(").clone().unwrap_or_default(); format!(\"[{}]\", __maps.iter().map(|__m| ")
+	out.WriteString(").as_ref().map(|__v| __v.to_vec()).unwrap_or_default(); format!(\"[{}]\", __maps.iter().map(|__m| ")
 	writeBareMapInSliceFormat(out, nilText)
 	out.WriteString(").collect::<Vec<_>>().join(\" \")) }")
 }
@@ -7204,6 +7207,13 @@ func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
 		return true
 	case *types.Slice:
 		elementType := zeroValueForTypesType(ut.Elem())
+		if isUnnamedMapType(ut.Elem()) {
+			// An element of map type is a handle (#318), and a new one is a
+			// nil map, as in the literal []map case.
+			var none strings.Builder
+			WriteWrappedNone(&none)
+			elementType = none.String()
+		}
 		WriteWrapperPrefix(out)
 		if namedName != "" {
 			out.WriteString(namedName)
