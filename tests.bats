@@ -560,6 +560,14 @@ run_xfail_test() {
     run_test "tests/any_slice_index_nil_bounds"
 }
 
+@test "any_slice_literal_values" {
+    run_test "tests/any_slice_literal_values"
+}
+
+@test "any_slice_literal_values_goroutines" {
+    run_test "tests/any_slice_literal_values_goroutines"
+}
+
 @test "any_slice_printed_by_another_package" {
     run_test "tests/any_slice_printed_by_another_package"
 }
@@ -3090,6 +3098,18 @@ run_xfail_test() {
 
 @test "negative_named_integer_conversions_goroutines" {
     run_test "tests/negative_named_integer_conversions_goroutines"
+}
+
+@test "nested_any_slice_literals" {
+    run_test "tests/nested_any_slice_literals"
+}
+
+@test "nested_any_slice_literals_goroutines" {
+    run_test "tests/nested_any_slice_literals_goroutines"
+}
+
+@test "nested_any_slice_stringer_reads_table_goroutines" {
+    run_test "tests/nested_any_slice_stringer_reads_table_goroutines"
 }
 
 @test "nested_closure_type_assert_capture" {

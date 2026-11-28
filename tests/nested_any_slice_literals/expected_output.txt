@@ -1,0 +1,16 @@
+2 2 1
+[[1 a] [2]] [[1 a]]
+1 a
+[1 a]
+2
+[2]
+[1 a] a
+ok a
+not a string
+2
+[[1.5 true] [<nil>]] 2 true true
+map[e:[] k:[1 x]] 2 x
+[[[1] [b 2]]] b 2
+7 {p 3} 8 [1 2] map[z:1]
+2 more
+1;a;2;more;
