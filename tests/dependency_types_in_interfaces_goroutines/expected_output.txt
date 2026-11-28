@@ -1,0 +1,8 @@
+3 dep.tally
+lbl dep.label
+{1 2} dep.point
+n7 dep.named
+[1 2] []dep.tally
+3 lbl {1 2} n7 [1 2]
+3 3|n7|lbl
+tally has no String

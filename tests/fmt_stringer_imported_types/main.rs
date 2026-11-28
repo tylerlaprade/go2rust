@@ -210,7 +210,7 @@ fn main() {
             (Rc::new(RefCell::new(None::<fmt_Stringer>)), false)
         }
     });
-    let mut w: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(example_com_fmt_stringer_imported_types_model::r#mod::Label { text: Rc::new(RefCell::new(Some("y".to_string()))), ..Default::default() }) as Box<dyn Any>)));
+    let mut w: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ go_register_any_runtime_type::<example_com_fmt_stringer_imported_types_model::r#mod::Label>("model.Label", |__value| { let __typed = __value.downcast_ref::<example_com_fmt_stringer_imported_types_model::r#mod::Label>().expect("registered interface formatter type mismatch"); format!("{}", __typed) }, |__value| { let __typed = __value.downcast_ref::<example_com_fmt_stringer_imported_types_model::r#mod::Label>().expect("registered interface clone type mismatch"); Box::new(__typed.__go_value_clone()) as Box<dyn Any> }, None); Box::new(example_com_fmt_stringer_imported_types_model::r#mod::Label { text: Rc::new(RefCell::new(Some("y".to_string()))), ..Default::default() }) as Box<dyn Any> })));
     let (mut st, mut ok2) = ({
         let val = w.clone();
         let guard = val.borrow();
