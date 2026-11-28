@@ -312,6 +312,7 @@ func writeSprintVariadicSlice(out *strings.Builder, arg ast.Expr) {
 // take. A slice held bare, as rows[0] of a [][]any or a range value over one,
 // goes in a handle of its own.
 func writeAnySliceHandleArg(out *strings.Builder, arg ast.Expr) {
+	arg = unwrapParens(arg)
 	if formatSliceArgumentIsBareValue(arg) {
 		WriteWrapperPrefix(out)
 		TranspileExpression(out, arg)
@@ -952,16 +953,16 @@ func writeMapDisplayForType(out *strings.Builder, mapType types.Type, writeHandl
 		writeMapOfMapsDisplay(out, writeHandle, innerSlices)
 		return
 	}
+	if mapValuesAreAnySlices(mapType) {
+		writeMapOfAnySlicesDisplay(out, writeHandle, mapKeysAreBasicArrays(mapType))
+		return
+	}
 	if mapKeysAreBasicArrays(mapType) {
 		writeMapWithArrayKeysDisplayOf(out, writeHandle, mapValuesAreEmptyInterfaces(mapType))
 		return
 	}
 	if nilText, ok := mapValuesAreSlicesOfMaps(mapType); ok {
 		writeMapOfSlicesOfMapsDisplay(out, writeHandle, nilText)
-		return
-	}
-	if mapValuesAreAnySlices(mapType) {
-		writeMapOfAnySlicesDisplay(out, writeHandle)
 		return
 	}
 	if mapValuesAreEmptyInterfaces(mapType) {
@@ -3460,9 +3461,15 @@ func mapValuesAreAnySlices(mapType types.Type) bool {
 // writeMapOfAnySlicesDisplay prints a map of []any as fmt does,
 // map[k:[1 x]], in key order: each value is the handle of its []any, which
 // format_any_slice takes (#343).
-func writeMapOfAnySlicesDisplay(out *strings.Builder, writeHandle func()) {
+func writeMapOfAnySlicesDisplay(out *strings.Builder, writeHandle func(), arrayKeys bool) {
 	NeedGoDisplayValue()
 	NeedFormatMap()
+	// An array key, map[[1]int][]any, prints as the array does.
+	keyText := "go_display_value(__k)"
+	if arrayKeys {
+		NeedFormatSlice()
+		keyText = "format_slice_values(&__k[..])"
+	}
 	NeedFormatAnySlice()
 	TrackImport("Any")
 	TrackImport("Display")
@@ -3470,7 +3477,9 @@ func writeMapOfAnySlicesDisplay(out *strings.Builder, writeHandle func()) {
 	out.WriteString("{ let __map_holder = ")
 	writeHandle()
 	writeMapEntriesCopyMatch(out)
-	out.WriteString("format!(\"map[{}]\", __map.iter().map(|(__k, __v)| format!(\"{}:{}\", go_display_value(__k), format_any_slice(__v))).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
+	out.WriteString("format!(\"map[{}]\", __map.iter().map(|(__k, __v)| format!(\"{}:{}\", ")
+	out.WriteString(keyText)
+	out.WriteString(", format_any_slice(__v))).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
 }
 
 func writeCollectionFormatHandleIdent(out *strings.Builder, ident *ast.Ident) {

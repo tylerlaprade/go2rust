@@ -9092,7 +9092,7 @@ func writeBareFixedArrayCompositeLiteral(out *strings.Builder, expr ast.Expr, ex
 			out.WriteString(", ")
 		}
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(elemType))
+			writeNestedCollectionLiteralZero(out, elemType)
 			continue
 		}
 		writeNestedCollectionLiteralElement(out, elt, elemType)
@@ -9194,7 +9194,7 @@ func writeBareSliceCompositeLiteral(out *strings.Builder, expr ast.Expr, expecte
 			out.WriteString(", ")
 		}
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(elemType))
+			writeNestedCollectionLiteralZero(out, elemType)
 		} else {
 			writeNestedCollectionLiteralElement(out, elt, elemType)
 		}
@@ -9216,6 +9216,17 @@ func writeBareSliceCompositeLiteral(out *strings.Builder, expr ast.Expr, expecte
 	return true
 }
 
+// writeNestedCollectionLiteralZero writes the element a keyed literal leaves
+// unset, as the slots before 2 in {2: "x"}: a nil interface for an element
+// of an empty interface type, which has no Default.
+func writeNestedCollectionLiteralZero(out *strings.Builder, elemType types.Type) {
+	if isEmptyInterfaceType(elemType) {
+		writeNilAnyBox(out)
+		return
+	}
+	out.WriteString(zeroValueForTypesType(elemType))
+}
+
 // writeNestedCollectionLiteralElement writes an element of a slice or array
 // literal nested in another literal, as {1, "a"} in [][]any{{1, "a"}}: an
 // element of an empty interface type is boxed, as in a []any literal of its
@@ -9229,6 +9240,28 @@ func writeNestedCollectionLiteralElement(out *strings.Builder, elt ast.Expr, ele
 	if !writeArraySliceLiteralElementValue(out, elt, elemType) {
 		TranspileExpression(out, elt)
 	}
+}
+
+// anyBoxedCallResultIsValue reports whether boxing call's result into an
+// interface boxes the value the call returns, not the cell it returns it
+// in: anything but a pointer, a channel or another type boxed as its
+// handle.
+func anyBoxedCallResultIsValue(call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(call)
+	if typ == nil || isEmptyInterfaceType(typ) || isGoErrorType(typ) {
+		return false
+	}
+	if _, isInterface := types.Unalias(typ).Underlying().(*types.Interface); isInterface {
+		return false
+	}
+	if _, isTuple := typ.(*types.Tuple); isTuple {
+		return false
+	}
+	return !anyBoxedConcreteValueKeepsHandle(typ)
 }
 
 // writeInterfaceSliceLiteralElement writes elt as an element of a slice or
@@ -9289,7 +9322,14 @@ func writeInterfaceSliceLiteralElement(out *strings.Builder, elt ast.Expr, elemT
 				out.WriteString("(*")
 				out.WriteString(ident.Name)
 				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).clone()")
+				out.WriteString(".as_ref().unwrap())")
+				// A struct goes in as Go's copy of it, which shares no
+				// field cell with the variable.
+				copyCall := ".clone()"
+				if typeInfo := GetTypeInfo(); typeInfo != nil && isEmptyInterfaceType(elemType) {
+					copyCall = goValueCopyCallForType(typeInfo.GetType(ident))
+				}
+				out.WriteString(copyCall)
 			} else {
 				TranspileExpression(out, elt)
 			}
@@ -9299,6 +9339,10 @@ func writeInterfaceSliceLiteralElement(out *strings.Builder, elt ast.Expr, elemT
 	} else if isEmptyInterfaceType(elemType) && isCurrentReceiverFieldSelector(elt) && writeOwnedExpressionValue(out, elt) {
 		// A field of the method's receiver goes in as its
 		// value, not as the field's cell.
+	} else if call, ok := unwrapParens(elt).(*ast.CallExpr); ok && isEmptyInterfaceType(elemType) && anyBoxedCallResultIsValue(call) {
+		// A call or a conversion returns its value in a cell; the box
+		// holds the value, as var x any = f() does (#371).
+		writeAnyBoxInnerValue(out, call)
 	} else {
 		TranspileExpression(out, elt)
 	}
@@ -16744,7 +16788,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						// composite literal (Go spec: elided type). Don't wrap - the
 						// outer container provides the type (e.g., Vec<Vec<i32>>).
 						out.WriteString("vec![")
-						for i, elt := range e.Elts {
+						// Keyed elements, {2: "x"}, take their positions,
+						// and the positions before them are zero values.
+						for i, elt := range orderedArrayLiteralValues(e.Elts) {
 							if i > 0 {
 								out.WriteString(", ")
 							}
@@ -16752,6 +16798,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							// cannot be nil: a nil element is an empty map,
 							// as in an explicit []map[K]V literal.
 							elemType := typ.Underlying().(*types.Slice).Elem()
+							if elt == nil {
+								writeNestedCollectionLiteralZero(out, elemType)
+								continue
+							}
 							if ident, ok := unwrapParens(elt).(*ast.Ident); ok && ident.Name == "nil" {
 								if _, isMap := types.Unalias(elemType).Underlying().(*types.Map); isMap {
 									out.WriteString(zeroValueForTypesType(elemType))

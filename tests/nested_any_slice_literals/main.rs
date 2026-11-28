@@ -812,8 +812,8 @@ fn format_any(value: &dyn Any) -> String {
 }
 
 fn format_any_slice_values(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
-    let guard = slice.borrow();
-    if let Some(ref s) = *guard {
+    let __header = { let guard = slice.borrow(); (*guard).clone() };
+    if let Some(ref s) = __header {
         let formatted: Vec<String> = s.iter().map(|v| format_any(v.as_ref())).collect();
         formatted.join(" ")
     } else {
@@ -1109,7 +1109,7 @@ fn main() {
         // Values go in as Go copies them; a pointer shares its target.
     let mut n = Rc::new(RefCell::new(Some(7i64)));
     let mut p = Rc::new(RefCell::new(Some(pair { name: Rc::new(RefCell::new(Some("p".to_string()))), n: Rc::new(RefCell::new(Some(3))), ..Default::default() })));
-    let mut mixed = Rc::new(RefCell::new(Some(vec![vec![Box::new((*n.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new((*p.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new(n.clone().clone()) as Box<dyn Any>], vec![Box::new(Rc::new(RefCell::new(Some(vec![1i64, 2i64]))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("z".to_string(), Rc::new(RefCell::new(Some(1i64))))])))).clone()) as Box<dyn Any>]])));
+    let mut mixed = Rc::new(RefCell::new(Some(vec![vec![Box::new((*n.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new((*p.borrow().as_ref().unwrap()).__go_value_clone()) as Box<dyn Any>, Box::new(n.clone().clone()) as Box<dyn Any>], vec![Box::new(Rc::new(RefCell::new(Some(vec![1i64, 2i64]))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("z".to_string(), Rc::new(RefCell::new(Some(1i64))))])))).clone()) as Box<dyn Any>]])));
     { let new_val = 8; *n.borrow_mut() = Some(new_val); };
     println!("{} {} {} {} {}", format!("{}", match (Rc::new(RefCell::new(Some(go_any_clone((*mixed.borrow().as_ref().unwrap())[(0) as usize].clone()[(0) as usize].as_ref()))))).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match (Rc::new(RefCell::new(Some(go_any_clone((*mixed.borrow().as_ref().unwrap())[(0) as usize].clone()[(1) as usize].as_ref()))))).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", { let __v = (*(({
         let __idx = (2) as usize;

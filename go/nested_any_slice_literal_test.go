@@ -33,3 +33,32 @@ func main() {
 		t.Fatalf("a slice or map of []any should print each []any with format_any_slice:\n%s", rust)
 	}
 }
+
+// A call in a []any literal boxes the value it returns, not the cell it
+// returns it in, and a struct variable goes in as Go's copy (#371).
+func TestAnySliceLiteralBoxesCallValuesAndStructCopies(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type pair struct{ N int }
+
+type tally int
+
+func mk() tally { return 4 }
+
+func main() {
+	p := pair{1}
+	vals := []any{mk(), p}
+	fmt.Println(vals)
+}
+`)
+	for _, want := range []string{
+		"Box::new((*mk().borrow().as_ref().unwrap()).clone()) as Box<dyn Any>",
+		"Box::new((*p.borrow().as_ref().unwrap()).__go_value_clone()) as Box<dyn Any>",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %s:\n%s", want, rust)
+		}
+	}
+}

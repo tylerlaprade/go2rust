@@ -2820,10 +2820,17 @@ func generateAnySliceFormatter(out *strings.Builder, nestedElements bool) {
 		nestedArg = ", format_any_nested"
 		topLevelArg = ", format_any"
 	}
+	// With GoSlice, the header is copied out and the guard released before
+	// any element prints, so an element's String method may read the same
+	// slice; the copy shares the elements, it does not clone them.
+	headerRead := "let guard = " + guard + ";\n    if let Some(ref s) = *guard {"
+	if goSliceModeEnabled() {
+		headerRead = "let __header = { let guard = " + guard + "; (*guard).clone() };\n    if let Some(ref s) = __header {"
+	}
 	out.WriteString(`
 fn format_any_slice_values(slice: ` + sliceType + valuesParams + `) -> String {
-    let guard = ` + guard + `;
-    if let Some(ref s) = *guard {
+    ` + headerRead)
+	out.WriteString(`
         let formatted: Vec<String> = s.iter().map(|v| ` + formatValue + `(v.as_ref())).collect();
         formatted.join(" ")
     } else {

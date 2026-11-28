@@ -560,6 +560,14 @@ run_xfail_test() {
     run_test "tests/any_slice_index_nil_bounds"
 }
 
+@test "any_slice_literal_values" {
+    run_test "tests/any_slice_literal_values"
+}
+
+@test "any_slice_literal_values_goroutines" {
+    run_test "tests/any_slice_literal_values_goroutines"
+}
+
 @test "any_slice_printed_by_another_package" {
     run_test "tests/any_slice_printed_by_another_package"
 }
