@@ -67,6 +67,11 @@ func main() {
 	markFn((args[0]))
 	fmt.Println(args)
 
+	// A parenthesized element is the same handle.
+	byName := map[string]map[string]int{"a": (args[0])}
+	byName["a"]["w"] = 4
+	fmt.Println(len(args[0]))
+
 	// A map read through a pointer to an element, and an element returned
 	// as a defined map type, share the element's map.
 	es := []map[string]int{{"x": 1}}

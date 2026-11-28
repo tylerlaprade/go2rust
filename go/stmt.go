@@ -7457,7 +7457,7 @@ func typeContainsTypeParam(typ types.Type) bool {
 }
 
 func isAssignmentSelfWrappingExpression(expr ast.Expr) bool {
-	switch e := expr.(type) {
+	switch e := unwrapParens(expr).(type) {
 	case *ast.CompositeLit:
 		return isCompositeLitSelfWrapping(e)
 	case *ast.SliceExpr:
