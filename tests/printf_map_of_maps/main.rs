@@ -691,7 +691,7 @@ impl std::io::Write for GoSlice<u8> {
 
 fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
-    V: Display,
+    V: Display + Clone,
 {
     format_map_nil(map, "<nil>")
 }
@@ -700,18 +700,19 @@ where
 // [] for a nil slice, as Go prints one.
 fn format_map_nil<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>, __nil_text: &str) -> String
 where
-    V: Display,
+    V: Display + Clone,
 {
-    let guard = map.borrow();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-
+    // The entries are copied out first, in key order, so a value's String
+    // method that reads this map does not wait on the lock printing holds.
+    let items: Option<Vec<(K, Rc<RefCell<Option<V>>>)>> = { let guard = map.borrow(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()) };
+    if let Some(items) = items {
         let formatted: Vec<String> = items
-            .into_iter()
+            .iter()
             .map(|(k, v)| {
-                let v_guard = v.borrow();
-                if let Some(ref val) = *v_guard {
+                // The value is copied out too, so its String method may
+                // read its own entry.
+                let value = { let v_guard = v.borrow(); v_guard.clone() };
+                if let Some(ref val) = value {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
                     format!("{}:{}", go_display_value(k), __nil_text)
@@ -838,8 +839,8 @@ fn main() {
     let mut nested = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("x".to_string(), Rc::new(RefCell::new(Some(1i64)))), ("y".to_string(), Rc::new(RefCell::new(Some(2i64))))]))))), ("b".to_string(), Rc::new(RefCell::new(None)))]))));
     { let __map_key = "c".to_string(); let __map_value = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([])))); (*nested.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "z".to_string(); let __map_value = Rc::new(RefCell::new(Some(9))); (*{ let __map_holder = nested.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"c".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    println!("{} {}", format!("{}", { let __map_holder = nested.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map(__v))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }), format!("{}", ({ let __len = (*nested.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
+    println!("{} {}", format!("{}", { let __map_holder = nested.clone(); let __map_entries = { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map(__v))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }), format!("{}", ({ let __len = (*nested.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     let mut byID = Rc::new(RefCell::new(Some(BTreeMap::<i64, Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<bool>>>>>>>>::from([(2i64, Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<bool>>>>::from([("t".to_string(), Rc::new(RefCell::new(Some(true))))]))))), (1i64, Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<bool>>>>::from([("f".to_string(), Rc::new(RefCell::new(Some(false))))])))))]))));
-    println!("{}", format!("{}", { let __map_holder = byID.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map(__v))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
-    print!("{}\n", { let __map_holder = nested.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map(__v))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } });
+    println!("{}", format!("{}", { let __map_holder = byID.clone(); let __map_entries = { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map(__v))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
+    print!("{}\n", { let __map_holder = nested.clone(); let __map_entries = { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map(__v))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } });
 }

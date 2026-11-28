@@ -149,6 +149,7 @@ type HelperTracker struct {
 	needsFormatNestedPointerSliceWrapped bool
 	needsFormatAny                       bool
 	needsFormatAnySlice                  bool
+	needsFormatAnyMap                    bool
 	needsFormatAnyNested                 bool
 	needsAnyEq                           bool
 	needsAnyClone                        bool
@@ -181,6 +182,7 @@ type HelperTracker struct {
 	needsGoAtomicPointer       bool
 	needsGoTypeName            bool
 	needsGoFloatString         bool
+	needsGoDisplayValue        bool
 	needsGoComplexDisplay      bool // the program has complex numbers
 	needsGoErrorChain          bool
 	needsGoSprintf             bool
@@ -363,6 +365,11 @@ func (ht *HelperTracker) GenerateHelpers() string {
 			ht.needsFormatMap = ht.needsFormatMap || arm.needsFormatMap
 			ht.needsFormatSlice = ht.needsFormatSlice || arm.needsFormatSlice
 			needsFormatAnyPointer = needsFormatAnyPointer || arm.needsFormatPointer
+			// An arm another package registered, such as the []any one,
+			// can print its elements through format_any_nested.
+			if strings.Contains(arm.expr, "format_any_nested(") {
+				ht.needsFormatAnyNested = true
+			}
 		}
 	}
 	if needsFormatAnyPointer {
@@ -396,12 +403,16 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	if ht.needsFormatAny {
 		// format_any_slice prints its elements as nested values, and only a
 		// pointer case makes that differ from format_any.
-		needsNestedEntry := ht.needsFormatAnyNested || (needsFormatAnyPointer && ht.needsFormatAnySlice)
+		needsNestedEntry := ht.needsFormatAnyNested || (needsFormatAnyPointer && (ht.needsFormatAnySlice || ht.needsFormatAnyMap))
 		generateAnyFormatter(&result, anyFormatArms, needsFormatAnyPointer, needsNestedEntry, programAnyRuntimeOpsEnabled())
 	}
 
 	if ht.needsFormatAnySlice {
 		generateAnySliceFormatter(&result, needsFormatAnyPointer)
+	}
+
+	if ht.needsFormatAnyMap {
+		generateAnyMapFormatter(&result, needsFormatAnyPointer)
 	}
 
 	if ht.needsAnyEq {
@@ -523,7 +534,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateGoTypeNameHelper(&result, anyTypeNames, programAnyRuntimeOpsEnabled())
 	}
 
-	if ht.needsGoFloatString || ht.needsFormatAny || ht.needsFormatSlice || ht.needsFormatMap {
+	if ht.needsGoFloatString || ht.needsGoDisplayValue || ht.needsFormatAny || ht.needsFormatSlice || ht.needsFormatMap {
 		generateGoFloatStringHelper(&result, ht.needsGoComplexDisplay)
 	}
 
@@ -624,6 +635,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsFormatSlice ||
 		ht.needsFormatAny ||
 		ht.needsFormatAnySlice ||
+		ht.needsFormatAnyMap ||
 		ht.needsAnyEq ||
 		ht.needsAnyClone ||
 		ht.needsAnyHandleCopy ||
@@ -651,6 +663,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsGoAtomicPointer ||
 		ht.needsGoTypeName ||
 		ht.needsGoFloatString ||
+		ht.needsGoDisplayValue ||
 		ht.needsGoErrorChain ||
 		ht.needsBase64 ||
 		ht.needsSha256 ||
@@ -775,6 +788,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	if ht.needsFormatAnySlice {
 		add("format_any_slice", "format_any_variadic")
 	}
+	if ht.needsFormatAnyMap {
+		add("format_any_map")
+	}
 	if ht.needsFormatAnyNested {
 		add("format_any_nested")
 	}
@@ -860,6 +876,10 @@ func (ht *HelperTracker) ImportNames() []string {
 	// module only names go_float_string when it prints a float directly.
 	if ht.needsGoFloatString {
 		add("go_float_string")
+	}
+	// Code that prints a map's keys inline calls go_display_value itself.
+	if ht.needsGoDisplayValue {
+		add("go_display_value")
 	}
 	if ht.needsGoErrorChain {
 		add("GoWrapError", "go_error_wrap", "go_errors_join", "go_error_chain", "go_errors_unwrap", "go_errors_is")
@@ -1334,6 +1354,19 @@ func sortedAnyCloneTypes(anyCloneTypes map[string]bool) []string {
 
 func writeAnyCloneTypeArms(out *strings.Builder, anyCloneTypes map[string]bool, traitObject string) {
 	for _, rustType := range sortedAnyCloneTypes(anyCloneTypes) {
+		if rustType == "Vec<"+traitObject+">" {
+			if goSliceModeEnabled() {
+				// A boxed []any: a copy of the interface copies the slice's
+				// header, which shares its elements, as in Go. GoSlice's
+				// Clone needs no Clone of the elements.
+				out.WriteString("    if let Some(v) = value.downcast_ref::<" + rustType + ">() { return Some(Box::new(v.clone()) as " + traitObject + "); }\n")
+				continue
+			}
+			// A std Vec of interface values has no Clone, so each element
+			// is copied as an interface value.
+			out.WriteString("    if let Some(v) = value.downcast_ref::<" + rustType + ">() { return Some(Box::new(v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<" + rustType + ">()) as " + traitObject + "); }\n")
+			continue
+		}
 		trackImportsForAnyPayloadType(rustType)
 		out.WriteString("    if let Some(v) = value.downcast_ref::<")
 		out.WriteString(rustType)
@@ -2803,6 +2836,63 @@ fn format_any_slice(slice: ` + sliceType + `) -> String {
 
 fn format_any_variadic(slice: ` + sliceType + `) -> String {
     format_any_slice_values(slice` + topLevelArg + `)
+}
+`)
+}
+
+// generateAnyMapFormatter emits format_any_map, which prints a
+// map[K]interface{} as fmt does: its keys in order, and each value as a value
+// inside a collection, which matters only when nestedElements says
+// format_any_nested prints it differently from format_any.
+func generateAnyMapFormatter(out *strings.Builder, nestedElements bool) {
+	TrackImport("Any")
+	TrackImport("BTreeMap")
+	TrackImport("Display")
+	TrackImport("Ord")
+	mapType := "&Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<Box<dyn Any>>>>>>>>"
+	guard, valueGuard := "map.borrow()", "v.borrow()"
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		mapType = "&Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>>>>"
+		guard, valueGuard = "map.lock().unwrap()", "v.lock().unwrap()"
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
+	}
+	formatValue := "format_any"
+	if nestedElements {
+		formatValue = "format_any_nested"
+	}
+	out.WriteString(`
+fn format_any_map<K: Display + Ord + Clone>(map: ` + mapType + `) -> String {
+    // The entries are taken out first, so a value's String method that
+    // reads this map does not wait on the lock printing it holds.
+    let entries = { let guard = ` + guard + `; guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<std::vec::Vec<_>>()) };
+    if let Some(entries) = entries {
+        let formatted: Vec<String> = entries
+            .iter()
+            .map(|(k, v)| {
+                // The value is copied out too, so its String method may
+                // read its own entry; one with no copy prints in place.
+                let copied = { let v_guard = ` + valueGuard + `; v_guard.as_ref().map(|val| go_any_try_clone(val.as_ref())) };
+                match copied {
+                    Some(Some(val)) => format!("{}:{}", go_display_value(k), ` + formatValue + `(val.as_ref())),
+                    Some(None) => {
+                        let v_guard = ` + valueGuard + `;
+                        match v_guard.as_ref() {
+                            Some(val) => format!("{}:{}", go_display_value(k), ` + formatValue + `(val.as_ref())),
+                            None => format!("{}:<nil>", go_display_value(k)),
+                        }
+                    }
+                    None => format!("{}:<nil>", go_display_value(k)),
+                }
+            })
+            .collect();
+        format!("map[{}]", formatted.join(" "))
+    } else {
+        "map[]".to_string()
+    }
 }
 `)
 }

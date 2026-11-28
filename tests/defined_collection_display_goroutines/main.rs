@@ -691,7 +691,7 @@ impl std::io::Write for GoSlice<u8> {
 
 fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String
 where
-    V: Display,
+    V: Display + Clone,
 {
     format_map_nil(map, "<nil>")
 }
@@ -700,18 +700,19 @@ where
 // [] for a nil slice, as Go prints one.
 fn format_map_nil<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>, __nil_text: &str) -> String
 where
-    V: Display,
+    V: Display + Clone,
 {
-    let guard = map.lock().unwrap();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-
+    // The entries are copied out first, in key order, so a value's String
+    // method that reads this map does not wait on the lock printing holds.
+    let items: Option<Vec<(K, Arc<Mutex<Option<V>>>)>> = { let guard = map.lock().unwrap(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()) };
+    if let Some(items) = items {
         let formatted: Vec<String> = items
-            .into_iter()
+            .iter()
             .map(|(k, v)| {
-                let v_guard = v.lock().unwrap();
-                if let Some(ref val) = *v_guard {
+                // The value is copied out too, so its String method may
+                // read its own entry.
+                let value = { let v_guard = v.lock().unwrap(); v_guard.clone() };
+                if let Some(ref val) = value {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
                     format!("{}:{}", go_display_value(k), __nil_text)
@@ -1202,7 +1203,7 @@ pub struct Pairs(pub Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<[i64; 2]
 
 impl Display for Pairs {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "{}", { let __map_holder = self.0.clone(); let __map_guard = __map_holder.lock().unwrap(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_slice_values(&__v.lock().unwrap().as_ref().unwrap()[..]))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } })
+        write!(f, "{}", { let __map_holder = self.0.clone(); let __map_entries = { let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_slice_values(&__v.lock().unwrap().as_ref().unwrap()[..]))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } })
     }
 }
 
@@ -1373,7 +1374,7 @@ fn main() {
     let mut places = Arc::new(Mutex::new(Some(Places(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Point>>>>::from([("p".to_string(), Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() }))))]))))))));
 
         // Directly, and as slice elements, struct fields and map values.
-    println!("{} {} {}", format!("{}", format_map_nil(&{ let __named_map = (*lists.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }, "[]")), format!("{}", { let __map_holder = { let __named_map = (*pairs.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }.clone(); let __map_guard = __map_holder.lock().unwrap(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_slice_values(&__v.lock().unwrap().as_ref().unwrap()[..]))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }), format!("{}", format_map(&{ let __named_map = (*places.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map })));
+    println!("{} {} {}", format!("{}", format_map_nil(&{ let __named_map = (*lists.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }, "[]")), format!("{}", { let __map_holder = { let __named_map = (*pairs.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }.clone(); let __map_entries = { let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_slice_values(&__v.lock().unwrap().as_ref().unwrap()[..]))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }), format!("{}", format_map(&{ let __named_map = (*places.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map })));
     println!("{} {} {}", format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![({ let __v = (*lists.lock().unwrap().as_ref().unwrap()).clone(); __v })]))))), format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![({ let __v = (*pairs.lock().unwrap().as_ref().unwrap()).clone(); __v })]))))), format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![({ let __v = (*places.lock().unwrap().as_ref().unwrap()).clone(); __v })]))))));
     println!("{}", format!("{}", Holder { l: lists.clone(), p: places.clone(), ..Default::default() }));
     println!("{} {}", format!("{}", format_map(&Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Lists>>>>::from([("x".to_string(), Arc::new(Mutex::new(Some({ let __v = (*lists.lock().unwrap().as_ref().unwrap()).clone(); __v }.clone()))))])))))), format!("{}", format_map(&Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Places>>>>::from([("y".to_string(), Arc::new(Mutex::new(Some({ let __v = (*places.lock().unwrap().as_ref().unwrap()).clone(); __v }.clone()))))])))))));

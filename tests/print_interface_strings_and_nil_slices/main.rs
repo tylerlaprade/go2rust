@@ -690,7 +690,7 @@ impl std::io::Write for GoSlice<u8> {
 
 fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String
 where
-    V: Display,
+    V: Display + Clone,
 {
     format_map_nil(map, "<nil>")
 }
@@ -699,18 +699,19 @@ where
 // [] for a nil slice, as Go prints one.
 fn format_map_nil<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>, __nil_text: &str) -> String
 where
-    V: Display,
+    V: Display + Clone,
 {
-    let guard = map.lock().unwrap();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-
+    // The entries are copied out first, in key order, so a value's String
+    // method that reads this map does not wait on the lock printing holds.
+    let items: Option<Vec<(K, Arc<Mutex<Option<V>>>)>> = { let guard = map.lock().unwrap(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()) };
+    if let Some(items) = items {
         let formatted: Vec<String> = items
-            .into_iter()
+            .iter()
             .map(|(k, v)| {
-                let v_guard = v.lock().unwrap();
-                if let Some(ref val) = *v_guard {
+                // The value is copied out too, so its String method may
+                // read its own entry.
+                let value = { let v_guard = v.lock().unwrap(); v_guard.clone() };
+                if let Some(ref val) = value {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
                     format!("{}:{}", go_display_value(k), __nil_text)
@@ -1271,7 +1272,7 @@ fn main() {
 
     let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<i64>>>>>::from([("j".to_string(), Arc::new(Mutex::new(None))), ("k".to_string(), Arc::new(Mutex::new(Some(vec![1i64]))))]))));
     let mut mm = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>::from([("a".to_string(), Arc::new(Mutex::new(None)))]))));
-    println!("{} {}", format!("{}", format_map_nil(&m, "[]")), format!("{}", { let __map_holder = mm.clone(); let __map_guard = __map_holder.lock().unwrap(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map(__v))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
+    println!("{} {}", format!("{}", format_map_nil(&m, "[]")), format!("{}", { let __map_holder = mm.clone(); let __map_entries = { let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map(__v))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
     println!("{}", format!("{}", format_nested_slice(&Arc::new(Mutex::new(Some(vec![Vec::new(), vec![2i64]]))))));
     println!("{} {}", format!("{}", T { s: Default::default(), m: Default::default(), p: Default::default() }), format!("{}", format_any_slice(&Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(None::<Vec<i64>>))) as Box<dyn Any + Send + Sync>]))))));
     print!("{} {}\n", format!("{}", T { s: Default::default(), m: Default::default(), p: Default::default() }), format!("{:#}", format_map_nil(&m, "[]")));

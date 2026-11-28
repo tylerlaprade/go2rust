@@ -528,12 +528,20 @@ run_xfail_test() {
     run_test "tests/any_selector_return"
 }
 
+@test "any_slice_asserted_into_any_slice_literal" {
+    run_test "tests/any_slice_asserted_into_any_slice_literal"
+}
+
 @test "any_slice_element_comma_ok" {
     run_test "tests/any_slice_element_comma_ok"
 }
 
 @test "any_slice_element_comma_ok_goroutines" {
     run_test "tests/any_slice_element_comma_ok_goroutines"
+}
+
+@test "any_slice_element_of_slice_of_any_slices" {
+    run_test "tests/any_slice_element_of_slice_of_any_slices"
 }
 
 @test "any_slice_element_values" {
@@ -550,6 +558,10 @@ run_xfail_test() {
 
 @test "any_slice_index_nil_bounds" {
     run_test "tests/any_slice_index_nil_bounds"
+}
+
+@test "any_slice_printed_by_another_package" {
+    run_test "tests/any_slice_printed_by_another_package"
 }
 
 @test "any_slice_range_late_read" {
@@ -638,6 +650,10 @@ run_xfail_test() {
 
 @test "append_string_to_bytes" {
     run_test "tests/append_string_to_bytes"
+}
+
+@test "array_key_map_value_string_reads_map" {
+    run_test "tests/array_key_map_value_string_reads_map"
 }
 
 @test "array_map_keys" {
@@ -2616,6 +2632,14 @@ run_xfail_test() {
     run_test "tests/map_pointer_value_literal_assignment"
 }
 
+@test "map_printer_value_string_reads_its_entry_goroutines" {
+    run_test "tests/map_printer_value_string_reads_its_entry_goroutines"
+}
+
+@test "map_printers_release_the_lock_goroutines" {
+    run_test "tests/map_printers_release_the_lock_goroutines"
+}
+
 @test "map_range_key_comma_ok" {
     run_test "tests/map_range_key_comma_ok"
 }
@@ -2670,6 +2694,14 @@ run_xfail_test() {
 
 @test "maps_basic" {
     run_test "tests/maps_basic"
+}
+
+@test "maps_of_interface_values" {
+    run_test "tests/maps_of_interface_values"
+}
+
+@test "maps_of_interface_values_goroutines" {
+    run_test "tests/maps_of_interface_values_goroutines"
 }
 
 @test "maps_operations" {
