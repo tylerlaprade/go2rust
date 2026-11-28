@@ -124,3 +124,37 @@ func main() {
 		}
 	}
 }
+
+// make of a type parameter's slice of maps gives nil map handles, a promoted
+// map field of a slice element takes the map's handle, and a ranged map
+// handle sent on a channel is sent as the map
+// (slices_of_maps_generic_make_promoted_field_and_send).
+func TestSliceOfMapsGenericMakePromotedFieldAndSend(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Inner struct{ M map[string]int }
+
+type Row struct{ Inner }
+
+func alloc[S ~[]map[string]int]() S { return make(S, 2) }
+
+func main() {
+	rows := []Row{{}}
+	m := map[string]int{"k": 1}
+	rows[0].M = m
+	ch := make(chan map[string]int, 1)
+	for _, v := range alloc[[]map[string]int]() {
+		ch <- v
+	}
+}
+`)
+	for _, want := range []string{
+		"vec![Rc::new(RefCell::new(None)); (2) as usize]",
+		".inner.borrow_mut().as_mut().unwrap()).m = new_val; }",
+		"(*v.borrow()).clone().unwrap_or_default()",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+}

@@ -2120,24 +2120,12 @@ func writeIndexedSequenceCollectionFieldAssignment(out *strings.Builder, sel *as
 
 	// A map field is the map's handle: s[i].M = m makes the field share m's
 	// map, as r.M = m does, and s[i].M = nil gives it a nil map of its own
-	// (#318). A promoted field is reached through a shared borrow, so it
-	// takes a copy of the map.
+	// (#318), promoted or not.
 	if isUnnamedMapType(fieldType) {
-		if fieldInfo.IsPromoted {
-			out.WriteString("{ let new_val = { let __map_holder = ")
-			writeMapHandleElementValue(out, rhs, fieldType)
-			out.WriteString("; let __map_value = __map_holder")
-			WriteBorrowMethod(out, false)
-			out.WriteString(".clone(); __map_value }; *")
-			writeIndexedSequenceElementFieldHandle(out, indexExpr, fieldInfo, elemType)
-			WriteBorrowMethod(out, true)
-			out.WriteString(" = new_val; }")
-			return true
-		}
 		out.WriteString("{ let new_val = ")
 		writeMapHandleElementValue(out, rhs, fieldType)
 		out.WriteString("; ")
-		writeIndexedSequenceElementFieldHandle(out, indexExpr, fieldInfo, elemType)
+		writeIndexedSequenceElementFieldPlace(out, indexExpr, fieldInfo, elemType)
 		out.WriteString(" = new_val; }")
 		return true
 	}
@@ -2157,6 +2145,29 @@ func writeIndexedSequenceCollectionFieldAssignment(out *strings.Builder, sel *as
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = Some(new_val); }")
 	return true
+}
+
+// writeIndexedSequenceElementFieldPlace writes the field of s[i] as a place to
+// assign to: a promoted field is reached through mutable borrows of the
+// embedded structs.
+func writeIndexedSequenceElementFieldPlace(out *strings.Builder, indexExpr *ast.IndexExpr, fieldInfo FieldAccessInfo, elemType types.Type) {
+	if !fieldInfo.IsPromoted {
+		writeIndexedSequenceElementFieldHandle(out, indexExpr, fieldInfo, elemType)
+		return
+	}
+	out.WriteString("(*")
+	writeIndexedSequenceElementFieldBase(out, indexExpr, elemType)
+	for i, embedded := range fieldInfo.EmbeddedPath {
+		out.WriteString(".")
+		out.WriteString(ToSnakeCase(embedded))
+		WriteBorrowMethod(out, true)
+		if i < len(fieldInfo.EmbeddedPath)-1 {
+			out.WriteString(".as_mut().unwrap()")
+		} else {
+			out.WriteString(".as_mut().unwrap()).")
+		}
+	}
+	out.WriteString(fieldInfo.FieldName)
 }
 
 func writeIndexedSequenceElementFieldHandle(out *strings.Builder, indexExpr *ast.IndexExpr, fieldInfo FieldAccessInfo, elemType types.Type) {
@@ -11920,6 +11931,15 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 		rustName := rustIdentForUseWithCapture(ident)
 		// Check if it's a range loop variable, constant, or bare variable
 		if _, isRange := rangeLoopVars[ident.Name]; isRange {
+			// A range value over a slice of maps is the map's handle (#318),
+			// and a channel carries the map bare.
+			if typeInfo != nil && isUnnamedMapType(typeInfo.GetType(ident)) {
+				out.WriteString("(*")
+				out.WriteString(rustName)
+				WriteBorrowMethod(out, false)
+				out.WriteString(").clone().unwrap_or_default()")
+				return
+			}
 			// A range over a slice or array can bind a reference to the
 			// iterator element. Sending the range variable still copies its
 			// Go value into the channel rather than sending that reference.

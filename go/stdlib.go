@@ -7181,7 +7181,7 @@ func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
 	}
 	if elemType, ok := goTypeParamSliceConstraintElem(unaliased); ok {
 		WriteWrapperPrefix(out)
-		writeSliceMakeBody(out, call.Args, zeroValueForTypesType(elemType), goTypesCollectionElemTypeToRust(elemType))
+		writeSliceMakeBody(out, call.Args, sliceMakeElementZero(elemType), goTypesCollectionElemTypeToRust(elemType))
 		WriteWrapperSuffix(out)
 		return true
 	}
@@ -7206,14 +7206,7 @@ func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
 		WriteWrapperSuffix(out)
 		return true
 	case *types.Slice:
-		elementType := zeroValueForTypesType(ut.Elem())
-		if isUnnamedMapType(ut.Elem()) {
-			// An element of map type is a handle (#318), and a new one is a
-			// nil map, as in the literal []map case.
-			var none strings.Builder
-			WriteWrappedNone(&none)
-			elementType = none.String()
-		}
+		elementType := sliceMakeElementZero(ut.Elem())
 		WriteWrapperPrefix(out)
 		if namedName != "" {
 			out.WriteString(namedName)
@@ -7242,6 +7235,18 @@ func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
 		return true
 	}
 	return false
+}
+
+// sliceMakeElementZero is the value make gives each element of a slice of
+// elemType: an element of map type is a handle (#318), and a new one is a
+// nil map, as in the literal []map case.
+func sliceMakeElementZero(elemType types.Type) string {
+	if isUnnamedMapType(elemType) {
+		var none strings.Builder
+		WriteWrappedNone(&none)
+		return none.String()
+	}
+	return zeroValueForTypesType(elemType)
 }
 
 // writeSliceMakeBody emits the inner Vec expression for make([]T, ...) variants.
