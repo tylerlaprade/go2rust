@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/types"
+	"strconv"
 	"strings"
 )
 
@@ -75,6 +76,9 @@ func anyFormatArmForType(typ types.Type) (anyFormatArm, bool) {
 		if anyFormatElemImplementsDisplay(t.Elem()) {
 			return anyFormatArm{expr: "format_slice(v)", needsFormatSlice: true}, true
 		}
+		if expr, ok := anyFormatNestedAnySliceExpr(t); ok {
+			return anyFormatArm{expr: expr}, true
+		}
 	case *types.Array:
 		// An array of scalars is boxed as the Rust array itself.
 		if anyArrayHasCloneableScalars(t) && anyFormatElemImplementsDisplay(t.Elem()) {
@@ -97,6 +101,49 @@ func anyFormatArmForType(typ types.Type) (anyFormatArm, bool) {
 		}
 	}
 	return anyFormatArm{}, false
+}
+
+// anyFormatNestedAnySliceExpr prints a [][]any, or a deeper slice of []any
+// rows, boxed as its handle: each row as format_any_slice prints one, in
+// brackets of the outer slice's own (#374). The rows are copied out of the
+// handle first, so an element's String method may read the same slice; the
+// copy is a GoSlice header that shares the rows, so it needs GoSlice mode.
+func anyFormatNestedAnySliceExpr(t *types.Slice) (string, bool) {
+	if !goSliceModeEnabled() {
+		return "", false
+	}
+	depth := 0
+	elem := types.Type(t)
+	for {
+		slice, ok := types.Unalias(elem).(*types.Slice)
+		if !ok {
+			return "", false
+		}
+		if isEmptyInterfaceType(slice.Elem()) {
+			break
+		}
+		depth++
+		elem = slice.Elem()
+	}
+	if depth == 0 {
+		return "", false
+	}
+	var rows func(value string, level int) string
+	rows = func(value string, level int) string {
+		row := "__any_row_" + strconv.Itoa(level)
+		cell := "format!(\"[{}]\", " + row + ".iter().map(|__e| format_any_nested(__e.as_ref())).collect::<Vec<String>>().join(\" \"))"
+		if level < depth {
+			cell = rows(row, level+1)
+		}
+		return "format!(\"[{}]\", " + value + ".iter().map(|" + row + "| " + cell + ").collect::<Vec<String>>().join(\" \"))"
+	}
+	var expr strings.Builder
+	expr.WriteString("{ let __any_rows_copy = { let __any_rows_guard = v")
+	WriteBorrowMethod(&expr, false)
+	expr.WriteString("; (*__any_rows_guard).clone() }; match __any_rows_copy { Some(__any_rows) => ")
+	expr.WriteString(rows("__any_rows", 1))
+	expr.WriteString(`, None => "[]".to_string() } }`)
+	return expr.String(), true
 }
 
 // anyFormatTypeIsLocalStruct reports whether typ is a struct type declared at
