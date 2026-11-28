@@ -1,0 +1,11 @@
+[package]
+name = "atomic_value_copies_interface_values"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "atomic_value_copies_interface_values"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

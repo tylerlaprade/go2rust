@@ -335,6 +335,17 @@ func writeExternalStubMethodCallArgument(out *strings.Builder, sel *ast.Selector
 	if isAtomicValueMethodSelector(sel) && writeAtomicValueMethodCallArgument(out, arg) {
 		return
 	}
+	// An interface value is stored as a copy, as Go stores it: assigning to
+	// the variable afterwards leaves the stored value alone.
+	if isAtomicValueMethodSelector(sel) && !isNilIdentExpr(arg) {
+		if typeInfo := GetTypeInfo(); typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(arg)) {
+			NeedAnyHandleCopy()
+			out.WriteString("go_any_handle_copy(&")
+			writeExternalStubCallArgument(out, arg, expected)
+			out.WriteString(")")
+			return
+		}
+	}
 	writeExternalStubCallArgument(out, arg, expected)
 }
 

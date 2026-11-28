@@ -161,3 +161,30 @@ func main() {
 		t.Fatalf("external local interface methods should call the inherent method explicitly, not recurse:\n%s", mainRS)
 	}
 }
+
+func TestAtomicValueCopiesInterfaceValuesAndComparesPayloads(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync/atomic"
+
+func run() (any, bool) {
+	var v atomic.Value
+	var x any = 10
+	v.Store(x)
+	x = 20
+	y := v.Load()
+	return y, v.CompareAndSwap(10, 11)
+}
+`)
+
+	for _, want := range []string{
+		".store(go_any_handle_copy(&x.clone()));",
+		"let mut y = go_any_handle_copy(&(*v.borrow_mut().as_mut().unwrap()).load());",
+		"(Some(stored), Some(old)) => Self::__go_values_eq(stored.as_ref(), old.as_ref()),",
+		`panic!("go2rust: atomic.Value.CompareAndSwap cannot compare values of this type yet")`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("atomic.Value should copy interface values and compare payloads; missing %q:\n%s", want, rust)
+		}
+	}
+}

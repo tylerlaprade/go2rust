@@ -685,6 +685,67 @@ impl std::io::Write for GoSlice<u8> {
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct GoNilAny;
 
+fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
+    if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<i8>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<i16>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u8>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u16>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<usize>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<isize>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<f64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<f32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<&'static str>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<GoNilAny>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    None
+}
+
+fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
+    go_any_try_clone(value).unwrap_or_else(|| panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>"))
+}
+
+#[allow(dead_code)]
+fn go_any_handle_copy(handle: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
+    let __copy = match handle.lock().unwrap().as_ref() {
+        None => None,
+        Some(value) => match go_any_try_clone(&**value) {
+            Some(copy) => Some(copy),
+            None => return handle.clone(),
+        },
+    };
+    Arc::new(Mutex::new(__copy))
+}
+
+/// Stores Go's copy of source's value in target's cell. A source that no
+/// one else holds gives up its value; a value whose type has no copy comes
+/// back for the caller to share instead.
+#[allow(dead_code)]
+fn go_any_store(target: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, source: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Option<Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>> {
+    if Arc::ptr_eq(target, &source) {
+        return None;
+    }
+    let __value = if Arc::strong_count(&source) == 1 {
+        source.lock().unwrap().take()
+    } else {
+        let __copy = match source.lock().unwrap().as_ref() {
+            None => None,
+            Some(value) => match go_any_try_clone(&**value) {
+                Some(copy) => Some(copy),
+                None => return Some(source.clone()),
+            },
+        };
+        __copy
+    };
+    *target.lock().unwrap() = __value;
+    None
+}
+
 fn go_install_panic_exit() {
     // Go lets a program call main again; the hook goes in once, so a
     // later call keeps the hook that go_silence_panic_hook wrapped around it.
@@ -1050,6 +1111,26 @@ impl atomic_Value {
         }
     }
 
+    // Go's == on two interface values' payloads: false for different
+    // dynamic types. A comparable type the stub cannot name, such as a
+    // channel or a pointer, stops the program rather than report a mismatch.
+    fn __go_values_eq(__go_left: &(dyn std::any::Any + Send + Sync), __go_right: &(dyn std::any::Any + Send + Sync)) -> bool {
+        if __go_left.type_id() != __go_right.type_id() {
+            return false;
+        }
+        macro_rules! __go_eq_as {
+            ($($__go_t:ty),*) => {
+                $(
+                    if let (Some(__go_l), Some(__go_r)) = (__go_left.downcast_ref::<$__go_t>(), __go_right.downcast_ref::<$__go_t>()) {
+                        return __go_l == __go_r;
+                    }
+                )*
+            };
+        }
+        __go_eq_as!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, bool, char, String, &'static str);
+        panic!("go2rust: atomic.Value.CompareAndSwap cannot compare values of this type yet")
+    }
+
     pub fn load(&self) -> std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::any::Any + Send + Sync>>>> {
         match self.__go_slot.lock().unwrap().as_ref() {
             Some(stored) => stored.clone(),
@@ -1075,8 +1156,15 @@ impl atomic_Value {
         let new = Self::__go_handle(new);
         self.__go_check(&new);
         let mut slot = self.__go_slot.lock().unwrap();
+        // The stored value and old compare as Go compares two interface
+        // values: equal dynamic types and values, with a panic for a type
+        // that is not comparable.
         let matches = match slot.as_ref() {
-            Some(stored) => std::sync::Arc::ptr_eq(stored, &old) || (stored.lock().unwrap().is_none() && old.lock().unwrap().is_none()),
+            Some(stored) => std::sync::Arc::ptr_eq(stored, &old) || match (stored.lock().unwrap().as_ref(), old.lock().unwrap().as_ref()) {
+                (None, None) => true,
+                (Some(stored), Some(old)) => Self::__go_values_eq(stored.as_ref(), old.as_ref()),
+                _ => false,
+            },
             None => old.lock().unwrap().is_none(),
         };
         if matches {
@@ -1131,7 +1219,7 @@ fn __go_init_globals() {
 
 impl c {
     pub fn done(&self) -> GoChannel<AnonymousStruct1> {
-        let mut d = (*self.done.lock().unwrap().as_mut().unwrap()).load();
+        let mut d = go_any_handle_copy(&(*self.done.lock().unwrap().as_mut().unwrap()).load());
         if !{ let __nil_result = (*d.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
         return ({
         let val = d.clone();
@@ -1144,7 +1232,7 @@ impl c {
     });
     }
         { let new_val = Box::new(GoChannel::<AnonymousStruct1>::new().clone()) as Box<dyn Any + Send + Sync>; *d.lock().unwrap() = Some(new_val); };
-        (*self.done.lock().unwrap().as_mut().unwrap()).store(d.clone());
+        (*self.done.lock().unwrap().as_mut().unwrap()).store(go_any_handle_copy(&d.clone()));
         return ({
         let val = d.clone();
         let guard = val.lock().unwrap();
@@ -1166,7 +1254,7 @@ fn main() {
     __go_init_all();
     let mut x = Arc::new(Mutex::new(Some(c { done: Arc::new(Mutex::new(Some(Default::default()))) })));
     let mut ch = { let __recv = x.clone(); let __recv_ptr: *const c = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const c }; let __result = unsafe { &*__recv_ptr }.done(); __result };
-    let (mut d, _) = ({ let val = (*(*x.lock().unwrap().as_ref().unwrap()).done.lock().unwrap().as_mut().unwrap()).load().clone(); let guard = val.lock().unwrap(); match guard.as_ref().and_then(|any_val| any_val.downcast_ref::<GoChannel<AnonymousStruct1>>()) { Some(typed_val) => (typed_val.clone(), true), None => (<GoChannel<AnonymousStruct1>>::default(), false) } });
+    let (mut d, _) = ({ let val = go_any_handle_copy(&(*(*x.lock().unwrap().as_ref().unwrap()).done.lock().unwrap().as_mut().unwrap()).load()).clone(); let guard = val.lock().unwrap(); match guard.as_ref().and_then(|any_val| any_val.downcast_ref::<GoChannel<AnonymousStruct1>>()) { Some(typed_val) => (typed_val.clone(), true), None => (<GoChannel<AnonymousStruct1>>::default(), false) } });
     if d.is_nil() {
         (*(*x.lock().unwrap().as_ref().unwrap()).done.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some(Box::new({ let __channel = closed_1.lock().unwrap().as_ref().unwrap().clone(); __channel }) as Box<dyn Any + Send + Sync>))));
     } else {

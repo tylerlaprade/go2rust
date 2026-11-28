@@ -25294,7 +25294,23 @@ func writeElemPtrPromotedMethodCall(out *strings.Builder, sel *ast.SelectorExpr,
 	return true
 }
 
+// atomicValueLoadsCopied holds the atomic.Value Load calls being written
+// inside their copy, so the copy wraps each one once.
+var atomicValueLoadsCopied = map[*ast.CallExpr]bool{}
+
 func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
+	// atomic.Value.Load gives the caller its own interface value, a copy of
+	// the one stored, as Go's does: assigning to it leaves the stored value
+	// alone.
+	if sel, ok := call.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "Load" && !atomicValueLoadsCopied[call] && isAtomicValueMethodSelector(sel) {
+		NeedAnyHandleCopy()
+		atomicValueLoadsCopied[call] = true
+		out.WriteString("go_any_handle_copy(&")
+		TranspileCall(out, call)
+		out.WriteString(")")
+		delete(atomicValueLoadsCopied, call)
+		return
+	}
 	if sel, arity, ok := methodCallArgsReadReceiver(call); ok {
 		var inner strings.Builder
 		transpileCallInOrder(&inner, call)

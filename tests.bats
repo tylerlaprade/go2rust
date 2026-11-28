@@ -696,6 +696,14 @@ run_xfail_test() {
     run_test "tests/atomic_typed_counters_plain"
 }
 
+@test "atomic_value_copies_interface_values" {
+    run_test "tests/atomic_value_copies_interface_values"
+}
+
+@test "atomic_value_copies_interface_values_goroutines" {
+    run_test "tests/atomic_value_copies_interface_values_goroutines"
+}
+
 @test "atomic_value_stores_channels" {
     run_test "tests/atomic_value_stores_channels"
 }

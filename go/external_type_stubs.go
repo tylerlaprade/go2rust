@@ -2262,6 +2262,26 @@ impl atomic_Value {
         }
     }
 
+    // Go's == on two interface values' payloads: false for different
+    // dynamic types. A comparable type the stub cannot name, such as a
+    // channel or a pointer, stops the program rather than report a mismatch.
+    fn __go_values_eq(__go_left: &(ANY_OBJECT), __go_right: &(ANY_OBJECT)) -> bool {
+        if __go_left.type_id() != __go_right.type_id() {
+            return false;
+        }
+        macro_rules! __go_eq_as {
+            ($($__go_t:ty),*) => {
+                $(
+                    if let (Some(__go_l), Some(__go_r)) = (__go_left.downcast_ref::<$__go_t>(), __go_right.downcast_ref::<$__go_t>()) {
+                        return __go_l == __go_r;
+                    }
+                )*
+            };
+        }
+        __go_eq_as!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, bool, char, String, &'static str);
+        panic!("go2rust: atomic.Value.CompareAndSwap cannot compare values of this type yet")
+    }
+
     pub fn load(&self) -> HANDLE {
         match self.__go_slot.READ.as_ref() {
             Some(stored) => stored.clone(),
@@ -2287,8 +2307,15 @@ impl atomic_Value {
         let new = Self::__go_handle(new);
         self.__go_check(&new);
         let mut slot = self.__go_slot.WRITE;
+        // The stored value and old compare as Go compares two interface
+        // values: equal dynamic types and values, with a panic for a type
+        // that is not comparable.
         let matches = match slot.as_ref() {
-            Some(stored) => PTR_EQ(stored, &old) || (stored.READ.is_none() && old.READ.is_none()),
+            Some(stored) => PTR_EQ(stored, &old) || match (stored.READ.as_ref(), old.READ.as_ref()) {
+                (None, None) => true,
+                (Some(stored), Some(old)) => Self::__go_values_eq(stored.as_ref(), old.as_ref()),
+                _ => false,
+            },
             None => old.READ.is_none(),
         };
         if matches {
