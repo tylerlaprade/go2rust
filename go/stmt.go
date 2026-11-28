@@ -5965,6 +5965,12 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 	if isUnnamedSliceType(valueType) && writeGoSliceFreshCellFromVariable(out, expr) {
 		return
 	}
+	// A value of a defined integer type stored in a map[K]tally, a constant
+	// as in m[k] = 3 or arithmetic as in m[k] = t + 1, is written as a
+	// declaration of one is: the newtype around its number (#336).
+	if named, ok := types.Unalias(valueType).(*types.Named); ok && isNamedIntegerType(named) && writeNamedIntegerWrappedInitializer(out, expr) {
+		return
+	}
 	if isFunctionSignatureType(valueType) && writeFuncValueFreshCellFromStorage(out, expr, valueType) {
 		return
 	}

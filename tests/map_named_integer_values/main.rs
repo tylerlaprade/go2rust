@@ -1491,7 +1491,7 @@ fn main() {
 
     let mut h = Arc::new(Mutex::new(Some(Holder { values: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Index>>>>::from([])))), ..Default::default() })));
     let mut idx: Arc<Mutex<Option<Index>>> = Arc::new(Mutex::new(Some(Index(Arc::new(Mutex::new(Some(7 as i64)))))));
-    { let __map_key = "answer".to_string(); let __map_value = Arc::new(Mutex::new(Some((*idx.lock().unwrap().as_ref().unwrap()).clone()))); (*(*h.lock().unwrap().as_ref().unwrap()).values.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "answer".to_string(); let __map_value = Arc::new(Mutex::new(Some(Index(Arc::new(Mutex::new(Some({ let __named_value = (*{ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()); __named_value }))))))); (*(*h.lock().unwrap().as_ref().unwrap()).values.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
 
     let (mut missing, mut ok) = { let __map = { let __map_holder = (*h.lock().unwrap().as_ref().unwrap()).values.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"missing".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Arc::new(Mutex::new(Some(v.lock().unwrap().as_ref().unwrap().clone()))), true), None => (Arc::new(Mutex::new(Some(Index(Arc::new(Mutex::new(Some(0))))))), false) } };
     println!("{} {}", format!("{}", { let __v = (*missing.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ok));
