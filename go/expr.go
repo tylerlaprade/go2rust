@@ -10936,11 +10936,14 @@ func writeAnySliceCloneValueBox(out *strings.Builder, expr ast.Expr) bool {
 	if typ == nil {
 		return false
 	}
-	slice, ok := types.Unalias(typ).Underlying().(*types.Slice)
+	// A value of a defined slice type is boxed as that type, as its own
+	// value, not as a []any.
+	slice, ok := types.Unalias(typ).(*types.Slice)
 	if !ok || !isEmptyInterfaceType(slice.Elem()) {
 		return false
 	}
 	NeedAnyClone()
+	RegisterAnySliceOfAnyPayload()
 	out.WriteString("Box::new(")
 	writeAnySliceCloneValue(out, expr)
 	out.WriteString(") as ")
@@ -10953,10 +10956,29 @@ func writeAnySliceCloneValue(out *strings.Builder, expr ast.Expr) {
 		out.WriteString("Vec::new()")
 		return
 	}
+	// An element of a [][]any, and a slice asserted out of an interface,
+	// x.([]any), are the slice itself, not a cell around it.
+	_, isAssertion := unwrapParens(expr).(*ast.TypeAssertExpr)
+	if _, ok := unwrapParens(expr).(*ast.IndexExpr); isAssertion || ok && isExpressionResultBare(unwrapParens(expr)) {
+		out.WriteString("{ let __slice_value = ")
+		TranspileExpression(out, expr)
+		if goSliceModeEnabled() {
+			out.WriteString("; __slice_value }")
+			return
+		}
+		out.WriteString("; __slice_value.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>() }")
+		return
+	}
 	out.WriteString("{ let __slice_holder = ")
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone(); let __slice_guard = __slice_holder")
 	WriteBorrowMethod(out, false)
+	if goSliceModeEnabled() {
+		// The interface holds a copy of the slice's header, which shares
+		// its elements, as in Go.
+		out.WriteString("; __slice_guard.as_ref().cloned().unwrap_or_default() }")
+		return
+	}
 	out.WriteString("; __slice_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default() }")
 }
 
@@ -13039,7 +13061,9 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 		WriteWrappedNone(out)
 		return
 	}
-	if isNilableWrappedMapValueType(valueType) && isTypedAssignmentSelfWrappingExpression(value) {
+	// A value that wraps itself goes in as it is, unless the map holds
+	// interfaces: map[string]any{"b": []int{1, 2}} boxes the slice below.
+	if isNilableWrappedMapValueType(valueType) && !types.IsInterface(valueType) && isTypedAssignmentSelfWrappingExpression(value) {
 		TranspileExpression(out, value)
 		return
 	}
@@ -16897,6 +16921,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						}
 						// A fmt.Stringer goes in as the value it holds.
 						if writeFmtStringerAnyBox(out, elt) {
+							continue
+						}
+						// A []any goes in as the owned copy of its elements
+						// it is boxed as everywhere else.
+						if writeAnySliceCloneValueBox(out, elt) {
 							continue
 						}
 					}

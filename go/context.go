@@ -1083,6 +1083,36 @@ func RegisterAnyCloneType(typ types.Type) {
 	}
 }
 
+// RegisterAnySliceOfAnyPayload records that the program boxes a []any into
+// an empty interface, as the owned Vec of its boxed elements that
+// writeAnySliceCloneValueBox writes. format_any prints it as fmt prints the
+// slice, each element as a value inside it, and go_any_try_clone copies it
+// element by element, since a Box<dyn Any> has no Clone.
+func RegisterAnySliceOfAnyPayload() {
+	helpers := activeHelperTracker()
+	if helpers == nil {
+		return
+	}
+	NeedFormatAnyNested()
+	rustType := "Vec<" + rustAnyTraitObject() + ">"
+	if helpers.anyCloneTypes == nil {
+		helpers.anyCloneTypes = make(map[string]bool)
+	}
+	helpers.anyCloneTypes[rustType] = true
+	if helpers.anyFormatArms == nil {
+		helpers.anyFormatArms = make(map[string]anyFormatArm)
+	}
+	arm := anyFormatArm{expr: `format!("[{}]", v.iter().map(|__e| format_any_nested(__e.as_ref())).collect::<Vec<_>>().join(" "))`}
+	helpers.anyFormatArms[rustType] = arm
+	if helpers.anyTypeNames == nil {
+		helpers.anyTypeNames = make(map[string]string)
+	}
+	helpers.anyTypeNames[rustType] = "[]interface {}"
+	// Another package of the program may be the one that prints or copies
+	// the slice.
+	recordProgramAnyCase(rustType, arm, true, "[]interface {}")
+}
+
 // RegisterOpaqueErrorAnyPayload records that the program boxes an error
 // handle into an empty interface, which is how an error travels when its
 // dynamic type cannot be named (see writeOpaqueGoErrorAnyBox). The handle is
@@ -1235,6 +1265,18 @@ func NeedGoInteger() {
 	}
 }
 
+// NeedFormatAnyMap marks that we need the format_any_map helper, and the
+// go_display_value its keys print through.
+func NeedFormatAnyMap() {
+	NeedFormatAny()
+	NeedFormatMap()
+	// format_any_map copies each value out of its entry before printing it.
+	NeedAnyClone()
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsFormatAnyMap = true
+	}
+}
+
 // NeedFormatAnySlice marks that we need the format_any_slice helper
 func NeedFormatAnySlice() {
 	NeedFormatAny()
@@ -1331,6 +1373,14 @@ func NeedGoErrorChain() {
 func NeedGoFloatString() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoFloatString = true
+	}
+}
+
+// NeedGoDisplayValue records that the code being written calls
+// go_display_value, so a module other than the crate root imports it.
+func NeedGoDisplayValue() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoDisplayValue = true
 	}
 }
 

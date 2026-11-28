@@ -1306,6 +1306,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsFormatNestedPointerSliceWrapped = dst.needsFormatNestedPointerSliceWrapped || src.needsFormatNestedPointerSliceWrapped
 	dst.needsFormatAny = dst.needsFormatAny || src.needsFormatAny
 	dst.needsFormatAnySlice = dst.needsFormatAnySlice || src.needsFormatAnySlice
+	dst.needsFormatAnyMap = dst.needsFormatAnyMap || src.needsFormatAnyMap
 	dst.needsFormatAnyNested = dst.needsFormatAnyNested || src.needsFormatAnyNested
 	dst.needsAnyEq = dst.needsAnyEq || src.needsAnyEq
 	dst.needsAnyClone = dst.needsAnyClone || src.needsAnyClone
@@ -1356,6 +1357,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsGoAtomicPointer = dst.needsGoAtomicPointer || src.needsGoAtomicPointer
 	dst.needsGoTypeName = dst.needsGoTypeName || src.needsGoTypeName
 	dst.needsGoFloatString = dst.needsGoFloatString || src.needsGoFloatString
+	dst.needsGoDisplayValue = dst.needsGoDisplayValue || src.needsGoDisplayValue
 	dst.needsGoComplexDisplay = dst.needsGoComplexDisplay || src.needsGoComplexDisplay
 	dst.needsGoErrorChain = dst.needsGoErrorChain || src.needsGoErrorChain
 	dst.needsGoSprintf = dst.needsGoSprintf || src.needsGoSprintf

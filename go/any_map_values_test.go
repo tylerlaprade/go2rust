@@ -1,0 +1,310 @@
+package main
+
+import (
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// A map of interface{} values boxes a slice literal in a map literal and a
+// value assigned into it, and prints each value through format_any.
+func TestMapOfInterfaceValuesBoxesAndPrints(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	m := map[string]any{"b": []int{1, 2}, "a": true}
+	m["c"] = 3
+	fmt.Println(m)
+}
+`)
+	for _, want := range []string{
+		`("b".to_string(), Rc::new(RefCell::new(Some(Box::new(`,
+		`let __map_value = Rc::new(RefCell::new(Some(Box::new(3i64) as Box<dyn Any>)));`,
+		"format_any_map(&m)",
+		"fn format_any_map<K: Display + Ord + Clone>(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+// A []any held in an interface prints element by element and copies as a
+// slice header, and a []any inside a []any literal is boxed the same way.
+func TestBoxedSliceOfInterfacesPrintsAndCopies(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	var x any = []any{1, []any{2}}
+	y := x
+	fmt.Println(x, y)
+}
+`)
+	for _, want := range []string{
+		`value.downcast_ref::<Vec<Box<dyn Any>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }`,
+		`format!("[{}]", v.iter().map(|__e| format_any_nested(__e.as_ref())).collect::<Vec<_>>().join(" "))`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "Box::new(Rc::new(RefCell::new(Some(vec![Box::new(2i64)") {
+		t.Fatalf("the inner []any should be boxed as its owned elements:\n%s", rust)
+	}
+}
+
+// A struct field holding a map prints as the map does when printed by itself:
+// array keys, slice values and interface{} values.
+func TestStructMapFieldsPrintAsTheMapDoes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type S struct {
+	Pairs  map[[2]int]string
+	Lists  map[string][]int
+	Fields map[string]any
+}
+
+func main() {
+	fmt.Println(S{})
+}
+`)
+	if strings.Contains(rust, "format_map(&self.pairs)") {
+		t.Fatalf("a map with array keys has no Display keys for format_map:\n%s", rust)
+	}
+	for _, want := range []string{
+		`format_map_nil(&self.lists, "[]")`,
+		"format_any_map(&self.fields)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+// A copy of an interface holding a []any copies the slice's header, which
+// shares its elements as in Go, and a value of a defined []any type is boxed
+// as that type rather than copied out as a []any.
+func TestBoxedAnySliceCopySharesElementsAndDefinedSliceKeepsItsType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Items []any
+
+func main() {
+	var a any = []any{1, "x"}
+	b := a
+	s := Items([]any{1})
+	values := []any{s, []any{3}}
+	m := map[string]any{"items": s}
+	fmt.Println(a, b, len(values), len(m))
+}
+`)
+	if !strings.Contains(rust, "if let Some(v) = value.downcast_ref::<Vec<Box<dyn Any>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }") {
+		t.Fatalf("copying a boxed []any should copy its header:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __slice_holder = s.clone();") {
+		t.Fatalf("a defined []any should be boxed as its own type:\n%s", rust)
+	}
+}
+
+// A struct's Display is generated whether or not it is printed, so each map
+// field form must build: array keys print as their elements with array or
+// interface{} values, a map of a type parameter's type keeps its plain form,
+// format_any_map takes the entries out before printing them, and a []any
+// held in a []any shares its elements.
+func TestMapFieldFormsBuildForArrayKeysAndTypeParams(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Pair[K comparable] struct {
+	m map[K]any
+}
+
+type Grid struct {
+	cells map[[2]int][2]int
+	tags  map[[2]int]any
+}
+
+func main() {
+	s := []any{1}
+	xs := []any{s}
+	g := Grid{}
+	p := Pair[string]{}
+	m := map[string]any{"a": 1}
+	fmt.Println(xs, g, len(p.m), m)
+}
+`)
+	for _, want := range []string{
+		`format!("{}:{}", format_slice_values(&__k[..]), format_slice_values(&__v`,
+		"let __map_entries = { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__key, __value)| (__key.clone(), __value.clone())).collect::<Vec<_>>()) };",
+		"let __value_copy = { let __value_guard = __value.borrow(); __value_guard.as_ref().map(|__value| go_any_try_clone(__value.as_ref())) };",
+		`format!("{}:{}", format_slice_values(&__key[..]), __value_text)`,
+		"let entries = { let guard = map.borrow(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<std::vec::Vec<_>>()) };",
+		"let copied = { let v_guard = v.borrow(); v_guard.as_ref().map(|val| go_any_try_clone(val.as_ref())) };",
+		"__slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any>",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+	impl := rust[strings.Index(rust, "for Pair<K>"):]
+	impl = impl[:strings.Index(impl, "\n}\n")]
+	if strings.Contains(impl, "format_any_map") {
+		t.Fatalf("a map of a type parameter's type should keep its plain form:\n%s", impl)
+	}
+}
+
+// An array-key map of interface{} values is copied out of its cell before
+// its values print, so a value's String method may read the map. With
+// goroutines the cell is a mutex, which would otherwise deadlock
+// (array_key_map_value_string_reads_map).
+func TestArrayKeyMapReleasesItsLockBeforeFormattingValues(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+var m = map[[1]int]any{}
+
+type size struct{}
+
+func (size) String() string { return fmt.Sprint(len(m)) }
+
+func main() {
+	m[[1]int{1}] = size{}
+	fmt.Println(m)
+}
+`)
+	entries := strings.Index(rust, "let __map_entries = { let __map_guard = __map_holder.borrow();")
+	if entries == -1 {
+		t.Fatalf("the map's entries should be copied out of its cell:\n%s", rust)
+	}
+	format := strings.Index(rust[entries:], "format_any_nested(")
+	if format == -1 || !strings.Contains(rust[entries:entries+format], "match __map_entries") {
+		t.Fatalf("the values should print after the map's cell is released:\n%s", rust)
+	}
+}
+
+// Every map printer copies the map's entries out before it formats a key or
+// a value, so a String method that reads the map does not wait on the lock
+// printing holds (map_printers_release_the_lock_goroutines).
+func TestMapPrintersCopyEntriesBeforeFormatting(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type item struct{ n int }
+
+func (i item) String() string { return fmt.Sprint(i.n) }
+
+type holder struct{ M map[string][]item }
+
+func main() {
+	nested := map[string]map[string]int{"k": {"x": 1}}
+	fmt.Println(holder{M: map[string][]item{"a": {{1}}}}, nested)
+}
+`)
+	for _, want := range []string{
+		"let items: Option<Vec<(K, Rc<RefCell<Option<V>>>)>> = { let guard = map.borrow(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()) };",
+		"let value = { let v_guard = v.borrow(); v_guard.clone() };",
+		"let __map_entries = { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => format!(\"map[{}]\"",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "let guard = map.borrow();\n    if let Some(ref m) = *guard {") {
+		t.Fatalf("format_map_nil should not format while it holds the map:\n%s", rust)
+	}
+}
+
+// A package that prints an interface{} value gets format_any_nested when
+// the []any case another package registered calls it
+// (any_slice_printed_by_another_package).
+func TestMergedAnySliceCaseBringsNestedFormatter(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), "module example.com/anyslicepkg\n\ngo 1.22\n")
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+func Get() any {
+	xs := []any{1, "a"}
+	var v any = xs
+	return v
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import (
+	"fmt"
+
+	"example.com/anyslicepkg/dep"
+)
+
+func main() {
+	fmt.Println(dep.Get())
+}
+`)
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "format_any_nested(__e.as_ref())") && !strings.Contains(mainRS, "fn format_any_nested(") {
+		t.Fatalf("the []any case calls format_any_nested, which should be defined:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "fn format_any_nested(") {
+		t.Fatalf("main prints the []any through the merged case and needs format_any_nested:\n%s", mainRS)
+	}
+}
+
+// An element of a [][]any is the inner slice itself, so boxing it into an
+// interface{} copies that slice instead of borrowing a cell
+// (any_slice_element_of_slice_of_any_slices).
+func TestBareAnySliceElementIsBoxedFromTheSliceItself(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	r0 := []any{1, "a"}
+	rows := [][]any{r0}
+	values := []any{rows[0]}
+	fmt.Println(values)
+}
+`)
+	if !strings.Contains(rust, "Box::new({ let __slice_value = (*rows.borrow().as_ref().unwrap())[(0) as usize].clone(); __slice_value") {
+		t.Fatalf("the bare inner slice should be copied as it is:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __slice_holder = (*rows.borrow().as_ref().unwrap())[(0) as usize]") {
+		t.Fatalf("the bare inner slice is not a cell to borrow:\n%s", rust)
+	}
+}
+
+// A slice asserted out of an interface{}, x.([]any), is the slice itself, so
+// boxing it into another []any copies it instead of borrowing a cell
+// (any_slice_asserted_into_any_slice_literal).
+func TestAssertedAnySliceIsBoxedFromTheSliceItself(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	var x any = []any{1}
+	ys := []any{x.([]any)}
+	fmt.Println(ys)
+}
+`)
+	if !strings.Contains(rust, "Box::new({ let __slice_value = ") {
+		t.Fatalf("the asserted slice should be copied as it is:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __slice_holder = ({") {
+		t.Fatalf("the asserted slice is not a cell to borrow:\n%s", rust)
+	}
+}

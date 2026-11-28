@@ -1,0 +1,11 @@
+[package]
+name = "map_printer_value_string_reads_its_entry_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_printer_value_string_reads_its_entry_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

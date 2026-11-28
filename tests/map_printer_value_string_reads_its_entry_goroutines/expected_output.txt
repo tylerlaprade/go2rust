@@ -1,0 +1,2 @@
+{map[a:[item1/2 item2/2]]}
+map[a:[item1/2 item2/2]]

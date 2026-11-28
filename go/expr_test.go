@@ -3860,8 +3860,10 @@ func call(values []any) int {
 		strings.Contains(rust, "Box::new((*values.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any") {
 		t.Fatalf("[]any passed as one variadic any argument should not clone the Vec<Box<dyn Any>> directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()") {
-		t.Fatalf("[]any passed as one variadic any argument should clone elements through go_any_clone:\n%s", rust)
+	// The boxed slice is a copy of the slice's header, which shares its
+	// elements, as in Go: GoSlice's Clone needs no Clone of the elements.
+	if !strings.Contains(rust, "__slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any") {
+		t.Fatalf("[]any passed as one variadic any argument should box a copy of the slice's header:\n%s", rust)
 	}
 }
 
