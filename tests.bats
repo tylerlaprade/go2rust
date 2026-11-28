@@ -5144,6 +5144,10 @@ run_xfail_test() {
     run_test "tests/type_embedding"
 }
 
+@test "type_named_like_helper_binding_dependency" {
+    run_test "tests/type_named_like_helper_binding_dependency"
+}
+
 @test "type_named_like_helper_binding_goroutines" {
     run_test "tests/type_named_like_helper_binding_goroutines"
 }

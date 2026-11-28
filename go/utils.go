@@ -321,11 +321,34 @@ func RustTypeNameForUse(s string) string {
 		// type count int, is one the helper's let count = ... cannot shadow
 		// (#335). Every use of the name goes through here, so it takes
 		// another name everywhere.
-		if currentContext != nil && currentContext.Session != nil && currentContext.Session.HelperBindingTypeNames[s] {
-			return s + "_"
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.pkg != nil {
+			if renamed, ok := helperBindingTypeRename(typeInfo.pkg.Path(), s); ok {
+				return renamed
+			}
 		}
 		return EscapeRustIdent(s)
 	}
+}
+
+// RustTypeNameForPackageUse writes the name of a type declared in the package
+// at pkgPath, which may be another package than the one being written.
+func RustTypeNameForPackageUse(pkgPath, s string) string {
+	if renamed, ok := helperBindingTypeRename(pkgPath, s); ok {
+		return renamed
+	}
+	switch s {
+	case "Box", "Option", "Result", "String", "Vec":
+		return s + "_"
+	}
+	return EscapeRustIdent(s)
+}
+
+func helperBindingTypeRename(pkgPath, s string) (string, bool) {
+	if currentContext == nil || currentContext.Session == nil {
+		return "", false
+	}
+	renamed, ok := currentContext.Session.HelperBindingTypeRenames[pkgPath][s]
+	return renamed, ok
 }
 
 func RustLocalIdent(s string) string {

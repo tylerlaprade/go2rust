@@ -31,3 +31,24 @@ func run() count {
 		t.Fatalf("a tuple struct named count would clash with the helper's let count:\n%s", rust)
 	}
 }
+
+// The renamed type takes a name nothing else in the package has, so
+// type count_ keeps its own name beside the renamed type count.
+func TestTypeNamedLikeHelperBindingAvoidsTakenNames(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type count_ struct{ Value int }
+
+type count int
+
+func run() (count, count_) {
+	return 2, count_{Value: 3}
+}
+`)
+	if !strings.Contains(rust, "pub struct count__(") {
+		t.Fatalf("type count should be written as count__ beside count_:\n%s", rust)
+	}
+	if strings.Count(rust, "pub struct count_ ") != 1 {
+		t.Fatalf("type count_ should keep its name once:\n%s", rust)
+	}
+}

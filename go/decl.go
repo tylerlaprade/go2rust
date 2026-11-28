@@ -4319,8 +4319,19 @@ var packageTypeDefinitionTypeExprs = map[*types.TypeName]ast.Expr{}
 // helper's let count: a let binding cannot shadow a tuple struct in scope, so
 // the type takes another Rust name (#335).
 func recordHelperBindingTypeName(obj types.Object) {
+	if currentContext == nil || currentContext.Session == nil {
+		return
+	}
+	recordHelperBindingTypeRename(currentContext.Session.HelperBindingTypeRenames, obj)
+}
+
+// recordHelperBindingTypeRename records the Rust name of such a type under its
+// package's path, a name nothing else in the package or the helpers uses:
+// count_ for type count int, or count__ when the package also declares
+// count_.
+func recordHelperBindingTypeRename(renames map[string]map[string]string, obj types.Object) {
 	typeName, ok := obj.(*types.TypeName)
-	if !ok || !helperBindingNames[typeName.Name()] || currentContext == nil || currentContext.Session == nil {
+	if !ok || renames == nil || typeName.Pkg() == nil || !helperBindingNames[typeName.Name()] {
 		return
 	}
 	named, ok := typeName.Type().(*types.Named)
@@ -4331,7 +4342,52 @@ func recordHelperBindingTypeName(obj types.Object) {
 	case *types.Struct, *types.Interface:
 		return
 	}
-	currentContext.Session.HelperBindingTypeNames[typeName.Name()] = true
+	pkg := typeName.Pkg()
+	pkgRenames := renames[pkg.Path()]
+	if _, done := pkgRenames[typeName.Name()]; done {
+		return
+	}
+	if pkgRenames == nil {
+		pkgRenames = make(map[string]string)
+		renames[pkg.Path()] = pkgRenames
+	}
+	taken := func(candidate string) bool {
+		if pkg.Scope().Lookup(candidate) != nil || helperBindingNames[candidate] {
+			return true
+		}
+		for _, used := range pkgRenames {
+			if used == candidate {
+				return true
+			}
+		}
+		return false
+	}
+	candidate := typeName.Name() + "_"
+	for taken(candidate) {
+		candidate += "_"
+	}
+	pkgRenames[typeName.Name()] = candidate
+}
+
+// recordHelperBindingTypeRenames records the renamed types among the
+// package-level type definitions in files.
+func recordHelperBindingTypeRenames(renames map[string]map[string]string, files []*ast.File, info *types.Info) {
+	if info == nil {
+		return
+	}
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok || genDecl.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range genDecl.Specs {
+				if typeSpec, ok := spec.(*ast.TypeSpec); ok && typeSpec.Assign == 0 {
+					recordHelperBindingTypeRename(renames, info.Defs[typeSpec.Name])
+				}
+			}
+		}
+	}
 }
 
 func registerPackageTypeDefinitionTypeExprs(files []*ast.File, typeInfo *TypeInfo) {
