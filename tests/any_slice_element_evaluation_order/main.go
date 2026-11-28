@@ -46,6 +46,16 @@ func reset() {
 	swapped = [][]any{{1, "a"}}
 }
 
+var at = 0
+
+// moveAt moves at before it returns the column; int(at) is a conversion,
+// not a call, so the row is read with the moved at.
+func moveAt(i int) int {
+	trace = append(trace, "move")
+	at = 1
+	return i
+}
+
 func main() {
 	rows := [][]any{{1, "a"}, {2, "b"}}
 	n := rows[pick("row", 1)][pick("col", 0)].(int)
@@ -120,4 +130,13 @@ func main() {
 	byName := map[string][]any{"k": {5, "e"}}
 	fmt.Println(byName[fmt.Sprint(pick("key", 0), "")[:0]+"k"][pick("col", 0)].(int))
 	flush("map row")
+
+	at = 0
+	fmt.Println(rows[int(at)][moveAt(0)].(int))
+	flush("conversion row")
+
+	picks := make(chan int, 1)
+	picks <- 1
+	fmt.Println(rows[<-picks][pick("col", 0)].(int))
+	flush("received row")
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/ast"
+	"go/token"
 	"go/types"
 	"strconv"
 	"strings"
@@ -97,7 +98,7 @@ var stagedOperandBindings = map[ast.Expr]string{}
 // bind writes one binding in the caller's layout, holder and index write
 // the two values.
 func writeAnyElementOperandBindings(out *strings.Builder, index *ast.IndexExpr, bind func(name string, value func()), holder func(), idx func()) {
-	if !containsCallExpr(index.X) {
+	if !containsEffectfulOperation(index.X) {
 		bind("__idx", idx)
 		bind("__seq_holder", holder)
 		return
@@ -123,9 +124,9 @@ func writeAnyElementOperandBindings(out *strings.Builder, index *ast.IndexExpr, 
 }
 
 // stageableSequenceIndexCalls returns, outermost first, the index operands
-// of x = root[i1]...[in] that hold a call, when root and every other part
-// of x hold none: staging those operands leaves x a read of variables. It
-// reports false when another part of x makes a call.
+// of x = root[i1]...[in] that make a call or a receive, when root and every
+// other part of x make none: staging those operands leaves x a read of
+// variables. It reports false when another part of x makes one.
 func stageableSequenceIndexCalls(x ast.Expr) ([]ast.Expr, bool) {
 	var chain []ast.Expr
 	for {
@@ -139,14 +140,62 @@ func stageableSequenceIndexCalls(x ast.Expr) ([]ast.Expr, bool) {
 		chain = append(chain, index.Index)
 		x = index.X
 	}
-	if len(chain) == 0 || containsCallExpr(x) {
+	if len(chain) == 0 || containsEffectfulOperation(x) {
 		return nil, false
 	}
 	var staged []ast.Expr
 	for i := len(chain) - 1; i >= 0; i-- {
-		if containsCallExpr(chain[i]) {
+		if containsEffectfulOperation(chain[i]) {
 			staged = append(staged, chain[i])
 		}
 	}
 	return staged, true
+}
+
+// containsEffectfulOperation reports whether expr makes a function or
+// method call or a receive, the operations Go orders left to right. A
+// conversion such as int(i), and a builtin such as len, read their operands
+// but are not calls: a variable they read is read with the other variables,
+// after the calls (#373). The decision comes from go/types; without it,
+// every call counts.
+func containsEffectfulOperation(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	found := false
+	ast.Inspect(expr, func(node ast.Node) bool {
+		if found {
+			return false
+		}
+		switch n := node.(type) {
+		case *ast.FuncLit:
+			return false
+		case *ast.UnaryExpr:
+			if n.Op == token.ARROW {
+				found = true
+				return false
+			}
+		case *ast.CallExpr:
+			if typeInfo == nil || typeInfo.info == nil {
+				found = true
+				return false
+			}
+			if tv, ok := typeInfo.info.Types[n.Fun]; ok && tv.IsType() {
+				return true
+			}
+			if ident, ok := unwrapParens(n.Fun).(*ast.Ident); ok {
+				if builtin, ok := typeInfo.info.Uses[ident].(*types.Builtin); ok && pureBuiltins[builtin.Name()] {
+					return true
+				}
+			}
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
+}
+
+// pureBuiltins are the builtins whose call reads its operands and nothing
+// else.
+var pureBuiltins = map[string]bool{
+	"len": true, "cap": true, "complex": true, "real": true, "imag": true, "min": true, "max": true,
 }

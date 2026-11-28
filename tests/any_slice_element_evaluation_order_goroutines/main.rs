@@ -1599,11 +1599,14 @@ pub(crate) static table_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<O
 
 pub(crate) static swapped: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<Vec<Box<dyn Any + Send + Sync>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
+pub(crate) static at_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<i64>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+
 
 fn __go_init_globals() {
     *trace.lock().unwrap() = Some(Vec::nil());
     *table_1.lock().unwrap() = Some(Vec::nil());
     *swapped.lock().unwrap() = Some(Vec::nil());
+    *at_1.lock().unwrap() = Some(0);
     {
         let mut __go_slice = Vec::<Vec<Box<dyn Any + Send + Sync>>>::with_capacity(2);
         __go_slice.push(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("a".to_string()) as Box<dyn Any + Send + Sync>]);
@@ -1617,6 +1620,7 @@ fn __go_init_globals() {
         let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());
         *swapped.lock().unwrap() = Some(__go_slice);
     }
+    *at_1.lock().unwrap() = Some(0);
 }
 
 
@@ -1654,6 +1658,14 @@ pub fn replace(i: Arc<Mutex<Option<i64>>>) -> i64 {
 
 pub fn reset() {
     { let new_val = { let __collection_holder = Arc::new(Mutex::new(Some(vec![vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("a".to_string()) as Box<dyn Any + Send + Sync>]]))).clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *swapped.lock().unwrap() = new_val; };
+}
+
+/// moveAt moves at before it returns the column; int(at) is a conversion,
+/// not a call, so the row is read with the moved at.
+pub fn move_at(i: Arc<Mutex<Option<i64>>>) -> i64 {
+    { let new_val = { let __collection_holder = { let __append_target = trace.clone(); let __append_value = "move".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *trace.lock().unwrap() = new_val; };
+    { let new_val = 1; *at_1.lock().unwrap() = Some(new_val); };
+    return { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v };
 }
 
 fn main() {
@@ -1846,6 +1858,28 @@ fn main() {
         any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
     })));
     flush(Arc::new(Mutex::new(Some("map row".to_string()))));
+
+    { let new_val = 0; *at_1.lock().unwrap() = Some(new_val); };
+    println!("{}", format!("{}", ({
+        let __idx = (move_at(Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(*Arc::new(Mutex::new(Some(({ let __v = (*at_1.lock().unwrap().as_ref().unwrap()); __v }) as i64))).lock().unwrap().as_ref().unwrap()) as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
+    })));
+    flush(Arc::new(Mutex::new(Some("conversion row".to_string()))));
+
+    let mut picks = GoChannel::<i64>::new_buffered(1 as usize);
+    picks.send(1);
+    println!("{}", format!("{}", ({
+        let __seq_operand_0 = picks.recv().unwrap_or_default();
+        let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
+    })));
+    flush(Arc::new(Mutex::new(Some("received row".to_string()))));
 }
 
 pub(crate) fn __go_init_all() {

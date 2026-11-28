@@ -76,3 +76,35 @@ func main() {
 		t.Fatalf("rows[0][pickcol()] should bind the column before the row:\n%s", body)
 	}
 }
+
+// A conversion in the row's index is not a call: int(i) reads i with the
+// other variables, after the column's call, so the row index is not bound
+// before it.
+func TestAnySliceElementDoesNotStageAConversion(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+var i = 0
+
+var rows = [][]any{{1}, {2}}
+
+func pickcol() int {
+	i = 1
+	return 0
+}
+
+func main() {
+	fmt.Println(rows[int(i)][pickcol()].(int))
+}
+`)
+	body := rust[strings.Index(rust, "fn main()"):]
+	if strings.Contains(body, "__seq_operand_") {
+		t.Fatalf("a conversion should not be bound before the column:\n%s", body)
+	}
+	col := strings.Index(body, "pickcol()")
+	holder := strings.Index(body, "let __seq_holder = ")
+	if col < 0 || holder < 0 || col > holder {
+		t.Fatalf("the column should be bound before the row is read:\n%s", body)
+	}
+}

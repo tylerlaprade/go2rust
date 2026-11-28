@@ -5,10 +5,9 @@ macro_rules! vec {
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
 use std::any::Any;
-use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
-use std::rc::{Rc};
+use std::sync::{Arc, Mutex};
 
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
@@ -691,12 +690,12 @@ fn go_format_any_pointer(nested: bool, address: *const (), is_nil: impl FnOnce()
     }
     if is_nil() { "<nil>".to_string() } else { format!("{:p}", address) }
 }
-fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
     C: AsRef<[T]>,
     T: Display,
 {
-    let guard = slice.borrow();
+    let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
         let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
         format!("[{}]", formatted.join(" "))
@@ -713,15 +712,15 @@ where
     format!("[{}]", formatted.join(" "))
 }
 
-fn format_slice_wrapped<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+fn format_slice_wrapped<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
-    C: AsRef<[Rc<RefCell<Option<T>>>]>,
+    C: AsRef<[Arc<Mutex<Option<T>>>]>,
     T: Display,
 {
-    let guard = slice.borrow();
+    let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
         let formatted: Vec<String> = s.as_ref().iter().map(|v| {
-            let inner = v.borrow();
+            let inner = v.lock().unwrap();
             match inner.as_ref() {
                 Some(value) => format!("&{}", value),
                 None => "<nil>".to_string(),
@@ -733,11 +732,11 @@ where
     }
 }
 
-fn format_any(value: &dyn Any) -> String {
+fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     format_any_at(value, false)
 }
 
-fn format_any_at(value: &dyn Any, nested: bool) -> String {
+fn format_any_at(value: &(dyn Any + Send + Sync), nested: bool) -> String {
     if let Some(v) = value.downcast_ref::<i32>() {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<i64>() {
@@ -768,35 +767,35 @@ fn format_any_at(value: &dyn Any, nested: bool) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
-    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<point>>>>() {
-        go_format_any_pointer(nested, Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.borrow()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
+    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<point>>>>() {
+        go_format_any_pointer(nested, Arc::as_ptr(v) as *const (), || v.try_lock().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.lock().unwrap()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
 
-fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
-    if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<i8>() { return Some(Box::new(*v) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<i16>() { return Some(Box::new(*v) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<u32>() { return Some(Box::new(*v) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<u64>() { return Some(Box::new(*v) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<u8>() { return Some(Box::new(*v) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<u16>() { return Some(Box::new(*v) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<usize>() { return Some(Box::new(*v) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<isize>() { return Some(Box::new(*v) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<f64>() { return Some(Box::new(*v) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<f32>() { return Some(Box::new(*v) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<&'static str>() { return Some(Box::new(*v) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<point>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
+    if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<i8>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<i16>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u8>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u16>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<usize>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<isize>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<f64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<f32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<&'static str>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<point>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     None
 }
 
-fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
+fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
     go_any_try_clone(value).unwrap_or_else(|| panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>"))
 }
 
@@ -823,6 +822,62 @@ fn go_panic_payload_text(__payload: &dyn Any) -> String {
     }
     if let Some(__text) = __payload.downcast_ref::<String>() {
         return go_runtime_error_text_of_string(__text.clone());
+    }
+    go_panic_value_text(__payload)
+}
+
+fn go_panic_value_text(__payload: &dyn Any) -> String {
+    // A boxed payload holds the Go value itself, so its string is printed
+    // as it is.
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return __text.clone();
+    }
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return __text.to_string();
+    }
+    if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any + Send + Sync>>() {
+        let __text = go_panic_value_text(&**__inner);
+        if __text == GO_UNPRINTABLE_PANIC_VALUE {
+            return format_any(&**__inner);
+        }
+        return __text;
+    }
+    if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any + Send>>() {
+        return go_panic_value_text(&**__inner);
+    }
+    if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any>>() {
+        return go_panic_value_text(&**__inner);
+    }
+    if let Some(__err) = __payload.downcast_ref::<std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>>>() {
+        return __err.lock().unwrap().as_ref().map(|__err| __err.to_string()).unwrap_or_else(|| String::from("nil"));
+    }
+    macro_rules! go_panic_display_text {
+        ($($t:ty),*) => {
+            $(if let Some(__value) = __payload.downcast_ref::<$t>() {
+                return __value.to_string();
+            })*
+        };
+    }
+    go_panic_display_text!(i64, i32, i16, i8, u64, u32, u16, u8, usize, isize, bool, char);
+    // Go prints a float in a panic as +1.500000e+000; a float32 is widened
+    // to float64 first, as Go's print does.
+    let __float = __payload
+        .downcast_ref::<f64>()
+        .copied()
+        .or_else(|| __payload.downcast_ref::<f32>().map(|__value| *__value as f64));
+    if let Some(__value) = __float {
+        if __value.is_nan() {
+            return String::from("NaN");
+        }
+        if __value.is_infinite() {
+            return String::from(if __value > 0.0 { "+Inf" } else { "-Inf" });
+        }
+        let __text = format!("{:+.6e}", __value);
+        if let Some((__mantissa, __exponent)) = __text.split_once('e') {
+            let __exponent: i32 = __exponent.parse().unwrap_or(0);
+            return format!("{}e{}{:03}", __mantissa, if __exponent < 0 { '-' } else { '+' }, __exponent.abs());
+        }
+        return __text;
     }
     String::from(GO_UNPRINTABLE_PANIC_VALUE)
 }
@@ -856,6 +911,185 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
+struct GoChannel<T> {
+    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
+    rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
+    is_nil: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    len: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    capacity: usize,
+}
+
+impl<T> GoChannel<T> {
+    fn new() -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(0);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            capacity: 0,
+        }
+    }
+
+    fn new_buffered(cap: usize) -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(cap);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            capacity: cap,
+        }
+    }
+
+    fn send(&self, val: T) {
+        if self.is_nil() {
+            return;
+        }
+        let tx = self.tx.lock().unwrap().clone();
+        if let Some(tx) = tx {
+            if tx.send(val).is_ok() && self.capacity > 0 {
+                self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            }
+        }
+    }
+
+    fn try_send(&self, val: T) -> bool {
+        if self.is_nil() {
+            return false;
+        }
+        let tx = self.tx.lock().unwrap().clone();
+        if let Some(tx) = tx {
+            if tx.try_send(val).is_ok() {
+                if self.capacity > 0 {
+                    self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                }
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
+    fn recv(&self) -> Option<T> {
+        if self.is_nil() {
+            return None;
+        }
+        let value = self.rx.lock().unwrap().recv().ok();
+        if value.is_some() && self.capacity > 0 {
+            let _ = self.len.fetch_update(
+                std::sync::atomic::Ordering::SeqCst,
+                std::sync::atomic::Ordering::SeqCst,
+                |__go_current| __go_current.checked_sub(1),
+            );
+        }
+        value
+    }
+
+    fn try_recv(&self) -> Option<T> {
+        if self.is_nil() {
+            return None;
+        }
+        let value = self.rx.lock().unwrap().try_recv().ok();
+        if value.is_some() && self.capacity > 0 {
+            let _ = self.len.fetch_update(
+                std::sync::atomic::Ordering::SeqCst,
+                std::sync::atomic::Ordering::SeqCst,
+                |__go_current| __go_current.checked_sub(1),
+            );
+        }
+        value
+    }
+
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
+    fn close(&self) {
+        *self.tx.lock().unwrap() = None;
+    }
+
+    fn is_nil(&self) -> bool {
+        self.is_nil.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
+    fn len(&self) -> usize {
+        self.len.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
+    fn capacity(&self) -> usize {
+        self.capacity
+    }
+}
+
+impl<T> Clone for GoChannel<T> {
+    fn clone(&self) -> Self {
+        GoChannel {
+            tx: self.tx.clone(),
+            rx: self.rx.clone(),
+            is_nil: self.is_nil.clone(),
+            len: self.len.clone(),
+            capacity: self.capacity,
+        }
+    }
+}
+
+impl<T> Default for GoChannel<T> {
+    fn default() -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(0);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            capacity: 0,
+        }
+    }
+}
+
+impl<T> std::fmt::Debug for GoChannel<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "GoChannel")
+    }
+}
+
+// Two channels are equal when they are the same channel, as == compares
+// them in Go, or both nil.
+impl<T> PartialEq for GoChannel<T> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.is_nil() && other.is_nil()) || std::sync::Arc::ptr_eq(&self.rx, &other.rx)
+    }
+}
+
+impl<T> Eq for GoChannel<T> {}
+
+impl<T> Iterator for GoChannel<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<T> {
+        self.recv()
+    }
+}
+
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
@@ -875,7 +1109,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
-    if val.is::<Rc<RefCell<Option<point>>>>() { return "*main.point" }
+    if val.is::<Arc<Mutex<Option<point>>>>() { return "*main.point" }
     std::any::type_name_of_val(val)
 }
 
@@ -933,12 +1167,12 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 
 #[derive(Debug, Clone)]
 pub struct point {
-    pub x: Rc<RefCell<Option<i64>>>,
+    pub x: Arc<Mutex<Option<i64>>>,
 }
 
 impl point {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.x.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             x: __go_clone_0_0,
         }
@@ -948,7 +1182,7 @@ impl point {
 
 impl Default for point {
     fn default() -> Self {
-        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
         Self {
             x: __go_default_0_0,
         }
@@ -957,393 +1191,393 @@ impl Default for point {
 
 impl std::fmt::Display for point {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", (*self.x.borrow().as_ref().unwrap()));
+        let __go_fmt_0 = format!("{}", (*self.x.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
 #[derive(Debug)]
-pub struct slot_(pub Rc<RefCell<Option<i64>>>);
+pub struct slot_(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for slot_ {
     fn clone(&self) -> Self {
-        let __value = (*self.0.borrow()).clone();
-        slot_(Rc::new(RefCell::new(__value)))
+        let __value = (*self.0.lock().unwrap()).clone();
+        slot_(Arc::new(Mutex::new(__value)))
     }
 }
 
 impl Default for slot_ {
     fn default() -> Self {
-        Self(Rc::new(RefCell::new(Some(Default::default()))))
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
 impl Display for slot_ {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.0.borrow().as_ref().unwrap())
+        write!(f, "{}", self.0.lock().unwrap().as_ref().unwrap())
     }
 }
 
 impl PartialEq for slot_ {
     fn eq(&self, other: &Self) -> bool {
-        let __left = { self.0.borrow().as_ref().cloned() };
-        let __right = { other.0.borrow().as_ref().cloned() };
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
         __left == __right
     }
 }
 
 impl PartialEq<i64> for slot_ {
     fn eq(&self, other: &i64) -> bool {
-        *self.0.borrow().as_ref().unwrap() == *other
+        *self.0.lock().unwrap().as_ref().unwrap() == *other
     }
 }
 
 impl PartialOrd for slot_ {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let __left = { self.0.borrow().as_ref().cloned() };
-        let __right = { other.0.borrow().as_ref().cloned() };
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
         __left.partial_cmp(&__right)
     }
 }
 
 impl PartialOrd<i64> for slot_ {
     fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other)
+        self.0.lock().unwrap().as_ref().unwrap().partial_cmp(other)
     }
 }
 
 impl PartialEq<slot_> for i64 {
     fn eq(&self, other: &slot_) -> bool {
-        *self == *other.0.borrow().as_ref().unwrap()
+        *self == *other.0.lock().unwrap().as_ref().unwrap()
     }
 }
 
 impl PartialOrd<slot_> for i64 {
     fn partial_cmp(&self, other: &slot_) -> Option<std::cmp::Ordering> {
-        self.partial_cmp(other.0.borrow().as_ref().unwrap())
+        self.partial_cmp(other.0.lock().unwrap().as_ref().unwrap())
     }
 }
 
 impl std::ops::Add for slot_ {
     type Output = slot_;
     fn add(self, other: Self) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::Add<i64> for slot_ {
     type Output = slot_;
     fn add(self, other: i64) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + other))))
     }
 }
 
 impl std::ops::Add<slot_> for i64 {
     type Output = slot_;
     fn add(self, other: slot_) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(self + *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::Sub for slot_ {
     type Output = slot_;
     fn sub(self, other: Self) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::Sub<i64> for slot_ {
     type Output = slot_;
     fn sub(self, other: i64) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - other))))
     }
 }
 
 impl std::ops::Sub<slot_> for i64 {
     type Output = slot_;
     fn sub(self, other: slot_) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(self - *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::Mul for slot_ {
     type Output = slot_;
     fn mul(self, other: Self) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::Mul<i64> for slot_ {
     type Output = slot_;
     fn mul(self, other: i64) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * other))))
     }
 }
 
 impl std::ops::Mul<slot_> for i64 {
     type Output = slot_;
     fn mul(self, other: slot_) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(self * *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::Div for slot_ {
     type Output = slot_;
     fn div(self, other: Self) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::Div<i64> for slot_ {
     type Output = slot_;
     fn div(self, other: i64) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / other))))
     }
 }
 
 impl std::ops::Div<slot_> for i64 {
     type Output = slot_;
     fn div(self, other: slot_) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(self / *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::Neg for slot_ {
     type Output = slot_;
     fn neg(self) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(-*self.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::Rem for slot_ {
     type Output = slot_;
     fn rem(self, other: Self) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::Rem<i64> for slot_ {
     type Output = slot_;
     fn rem(self, other: i64) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % other))))
     }
 }
 
 impl std::ops::Rem<slot_> for i64 {
     type Output = slot_;
     fn rem(self, other: slot_) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(self % *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::BitAnd for slot_ {
     type Output = slot_;
     fn bitand(self, other: Self) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & *other.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() & *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::BitAnd<i64> for slot_ {
     type Output = slot_;
     fn bitand(self, other: i64) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() & other))))
     }
 }
 
 impl std::ops::BitAnd<slot_> for i64 {
     type Output = slot_;
     fn bitand(self, other: slot_) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(self & *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::BitOr for slot_ {
     type Output = slot_;
     fn bitor(self, other: Self) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | *other.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() | *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::BitOr<i64> for slot_ {
     type Output = slot_;
     fn bitor(self, other: i64) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() | other))))
     }
 }
 
 impl std::ops::BitOr<slot_> for i64 {
     type Output = slot_;
     fn bitor(self, other: slot_) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(self | *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::BitXor for slot_ {
     type Output = slot_;
     fn bitxor(self, other: Self) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ *other.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() ^ *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::BitXor<i64> for slot_ {
     type Output = slot_;
     fn bitxor(self, other: i64) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
+        slot_(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() ^ other))))
     }
 }
 
 impl std::ops::BitXor<slot_> for i64 {
     type Output = slot_;
     fn bitxor(self, other: slot_) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(self ^ *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::Not for slot_ {
     type Output = slot_;
     fn not(self) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some(!*self.0.borrow().as_ref().unwrap()))))
+        slot_(Arc::new(Mutex::new(Some(!*self.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
 impl std::ops::Shl for slot_ {
     type Output = slot_;
     fn shl(self, other: slot_) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (*other.0.borrow().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (*other.0.lock().unwrap().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i32> for slot_ {
     type Output = slot_;
     fn shl(self, other: i32) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i8> for slot_ {
     type Output = slot_;
     fn shl(self, other: i8) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i16> for slot_ {
     type Output = slot_;
     fn shl(self, other: i16) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i64> for slot_ {
     type Output = slot_;
     fn shl(self, other: i64) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u32> for slot_ {
     type Output = slot_;
     fn shl(self, other: u32) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u8> for slot_ {
     type Output = slot_;
     fn shl(self, other: u8) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u16> for slot_ {
     type Output = slot_;
     fn shl(self, other: u16) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u64> for slot_ {
     type Output = slot_;
     fn shl(self, other: u64) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<usize> for slot_ {
     type Output = slot_;
     fn shl(self, other: usize) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr for slot_ {
     type Output = slot_;
     fn shr(self, other: slot_) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (*other.0.borrow().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (*other.0.lock().unwrap().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i32> for slot_ {
     type Output = slot_;
     fn shr(self, other: i32) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i8> for slot_ {
     type Output = slot_;
     fn shr(self, other: i8) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i16> for slot_ {
     type Output = slot_;
     fn shr(self, other: i16) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i64> for slot_ {
     type Output = slot_;
     fn shr(self, other: i64) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u32> for slot_ {
     type Output = slot_;
     fn shr(self, other: u32) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u8> for slot_ {
     type Output = slot_;
     fn shr(self, other: u8) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u16> for slot_ {
     type Output = slot_;
     fn shr(self, other: u16) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u64> for slot_ {
     type Output = slot_;
     fn shr(self, other: u64) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<usize> for slot_ {
     type Output = slot_;
     fn shr(self, other: usize) -> slot_ {
-        slot_(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
+        slot_(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
@@ -1351,273 +1585,288 @@ impl Eq for slot_ {}
 
 impl Ord for slot_ {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let __left = { self.0.borrow().as_ref().cloned() };
-        let __right = { other.0.borrow().as_ref().cloned() };
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
         __left.cmp(&__right)
     }
 }
 
 
-pub(crate) struct GoGlobal<T> {
-    value: std::cell::UnsafeCell<Option<T>>,
-}
-unsafe impl<T> Sync for GoGlobal<T> {}
-impl<T> GoGlobal<T> {
-    pub(crate) const fn new() -> Self {
-        Self { value: std::cell::UnsafeCell::new(None) }
-    }
-    pub(crate) fn borrow(&'static self) -> &'static Option<T> {
-        unsafe { &*self.value.get() }
-    }
-    pub(crate) fn borrow_mut(&'static self) -> &'static mut Option<T> {
-        unsafe { &mut *self.value.get() }
-    }
-    pub(crate) fn clone(&'static self) -> std::rc::Rc<std::cell::RefCell<Option<T>>> where T: Clone {
-        std::rc::Rc::new(std::cell::RefCell::new(self.borrow().clone()))
-    }
-}
+pub(crate) static trace: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
-pub(crate) static trace: GoGlobal<Vec<String>> = GoGlobal::new();
+pub(crate) static table_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<Vec<Box<dyn Any + Send + Sync>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
-pub(crate) static table_1: GoGlobal<Vec<Vec<Box<dyn Any>>>> = GoGlobal::new();
+pub(crate) static swapped: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<Vec<Box<dyn Any + Send + Sync>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
-pub(crate) static swapped: GoGlobal<Vec<Vec<Box<dyn Any>>>> = GoGlobal::new();
+pub(crate) static at_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<i64>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 
 fn __go_init_globals() {
-    *trace.borrow_mut() = Some(Vec::nil());
-    *table_1.borrow_mut() = Some(Vec::nil());
-    *swapped.borrow_mut() = Some(Vec::nil());
+    *trace.lock().unwrap() = Some(Vec::nil());
+    *table_1.lock().unwrap() = Some(Vec::nil());
+    *swapped.lock().unwrap() = Some(Vec::nil());
+    *at_1.lock().unwrap() = Some(0);
     {
-        let mut __go_slice = Vec::<Vec<Box<dyn Any>>>::with_capacity(2);
-        __go_slice.push(vec![Box::new(1i64) as Box<dyn Any>, Box::new("a".to_string()) as Box<dyn Any>]);
-        __go_slice.push(vec![Box::new(2i64) as Box<dyn Any>, Box::new("b".to_string()) as Box<dyn Any>]);
+        let mut __go_slice = Vec::<Vec<Box<dyn Any + Send + Sync>>>::with_capacity(2);
+        __go_slice.push(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("a".to_string()) as Box<dyn Any + Send + Sync>]);
+        __go_slice.push(vec![Box::new(2i64) as Box<dyn Any + Send + Sync>, Box::new("b".to_string()) as Box<dyn Any + Send + Sync>]);
         let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());
-        *table_1.borrow_mut() = Some(__go_slice);
+        *table_1.lock().unwrap() = Some(__go_slice);
     }
     {
-        let mut __go_slice = Vec::<Vec<Box<dyn Any>>>::with_capacity(1);
-        __go_slice.push(vec![Box::new(1i64) as Box<dyn Any>, Box::new("a".to_string()) as Box<dyn Any>]);
+        let mut __go_slice = Vec::<Vec<Box<dyn Any + Send + Sync>>>::with_capacity(1);
+        __go_slice.push(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("a".to_string()) as Box<dyn Any + Send + Sync>]);
         let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());
-        *swapped.borrow_mut() = Some(__go_slice);
+        *swapped.lock().unwrap() = Some(__go_slice);
     }
+    *at_1.lock().unwrap() = Some(0);
 }
 
 
-pub fn pick(name: Rc<RefCell<Option<String>>>, i: Rc<RefCell<Option<i64>>>) -> i64 {
-    { let new_val = { let __collection_holder = { let __append_target = trace.clone(); let __append_value = (*name.borrow().as_ref().unwrap()).clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *trace.borrow_mut() = new_val; };
-    (*i.borrow().as_ref().unwrap())
+pub fn pick(name: Arc<Mutex<Option<String>>>, i: Arc<Mutex<Option<i64>>>) -> i64 {
+    { let new_val = { let __collection_holder = { let __append_target = trace.clone(); let __append_value = ({ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *trace.lock().unwrap() = new_val; };
+    return { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v };
 }
 
-pub fn flush(label: Rc<RefCell<Option<String>>>) {
-    println!("{} {}", format!("{}", { let __v = (*label.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&trace.clone())));
-    { let new_val = None; *trace.borrow_mut() = new_val; };
+pub fn flush(label: Arc<Mutex<Option<String>>>) {
+    println!("{} {}", format!("{}", { let __v = (*label.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&trace.clone())));
+    { let new_val = None; *trace.lock().unwrap() = new_val; };
 }
 
-pub fn show(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
-    println!("{} {}", format!("{}", "show".to_string()), format!("{}", match v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
+pub fn show(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) {
+    println!("{} {}", format!("{}", "show".to_string()), format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
 }
 
-pub fn row(i: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Vec<Box<dyn Any>>>>> {
-    { let new_val = { let __collection_holder = { let __append_target = trace.clone(); let __append_value = "row".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *trace.borrow_mut() = new_val; };
-    Rc::new(RefCell::new(Some((*table_1.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone())))
+pub fn row(i: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>> {
+    { let new_val = { let __collection_holder = { let __append_target = trace.clone(); let __append_value = "row".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *trace.lock().unwrap() = new_val; };
+    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = table_1.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
 }
 
-pub fn pick_slot(i: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<slot_>>> {
-    { let new_val = { let __collection_holder = { let __append_target = trace.clone(); let __append_value = "slot".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *trace.borrow_mut() = new_val; };
-    Rc::new(RefCell::new(Some(slot_(Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()) as i64)))))))
+pub fn pick_slot(i: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<slot_>>> {
+    { let new_val = { let __collection_holder = { let __append_target = trace.clone(); let __append_value = "slot".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *trace.lock().unwrap() = new_val; };
+    Arc::new(Mutex::new(Some(slot_(Arc::new(Mutex::new(Some(({ let __v = (*i.lock().unwrap().as_ref().unwrap()); __v }) as i64)))))))
 }
 
 /// replace swaps in a new first row before it returns the column, as Go
 /// reads the row after both calls.
-pub fn replace(i: Rc<RefCell<Option<i64>>>) -> i64 {
-    { let new_val = { let __collection_holder = { let __append_target = trace.clone(); let __append_value = "replace".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *trace.borrow_mut() = new_val; };
-    { let __idx = (0) as usize; let __rhs = (*Rc::new(RefCell::new(Some(vec![Box::new(10i64) as Box<dyn Any>, Box::new("z".to_string()) as Box<dyn Any>]))).borrow().as_ref().unwrap()).clone(); (*swapped.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
-    (*i.borrow().as_ref().unwrap())
+pub fn replace(i: Arc<Mutex<Option<i64>>>) -> i64 {
+    { let new_val = { let __collection_holder = { let __append_target = trace.clone(); let __append_value = "replace".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *trace.lock().unwrap() = new_val; };
+    { let __idx = (0) as usize; let __rhs = (*Arc::new(Mutex::new(Some(vec![Box::new(10i64) as Box<dyn Any + Send + Sync>, Box::new("z".to_string()) as Box<dyn Any + Send + Sync>]))).lock().unwrap().as_ref().unwrap()).clone(); (*swapped.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    return { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v };
 }
 
 pub fn reset() {
-    { let new_val = { let __collection_holder = Rc::new(RefCell::new(Some(vec![vec![Box::new(1i64) as Box<dyn Any>, Box::new("a".to_string()) as Box<dyn Any>]]))).clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *swapped.borrow_mut() = new_val; };
+    { let new_val = { let __collection_holder = Arc::new(Mutex::new(Some(vec![vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("a".to_string()) as Box<dyn Any + Send + Sync>]]))).clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *swapped.lock().unwrap() = new_val; };
+}
+
+/// moveAt moves at before it returns the column; int(at) is a conversion,
+/// not a call, so the row is read with the moved at.
+pub fn move_at(i: Arc<Mutex<Option<i64>>>) -> i64 {
+    { let new_val = { let __collection_holder = { let __append_target = trace.clone(); let __append_value = "move".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *trace.lock().unwrap() = new_val; };
+    { let new_val = 1; *at_1.lock().unwrap() = Some(new_val); };
+    return { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v };
 }
 
 fn main() {
     go_install_panic_exit();
     __go_init_all();
-    let mut rows = Rc::new(RefCell::new(Some(vec![vec![Box::new(1i64) as Box<dyn Any>, Box::new("a".to_string()) as Box<dyn Any>], vec![Box::new(2i64) as Box<dyn Any>, Box::new("b".to_string()) as Box<dyn Any>]])));
-    let mut n = Rc::new(RefCell::new(Some(({
-        let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(1))));
-        let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize;
-        let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone())));
-        let __seq_guard = __seq_holder.borrow();
+    let mut rows = Arc::new(Mutex::new(Some(vec![vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("a".to_string()) as Box<dyn Any + Send + Sync>], vec![Box::new(2i64) as Box<dyn Any + Send + Sync>, Box::new("b".to_string()) as Box<dyn Any + Send + Sync>]])));
+    let mut n = Arc::new(Mutex::new(Some(({
+        let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(1))));
+        let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
     }))));
-    println!("{}", format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }));
-    flush(Rc::new(RefCell::new(Some("assert".to_string()))));
+    println!("{}", format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    flush(Arc::new(Mutex::new(Some("assert".to_string()))));
 
     let (mut s, mut ok) = ({
-        let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0))));
-        let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(1))))) as usize;
-        let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone())));
-        let __seq_guard = __seq_holder.borrow();
+        let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0))));
+        let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(1))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
-            (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
+            (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
         } else {
-            (Rc::new(RefCell::new(Some(std::string::String::new()))), false)
+            (Arc::new(Mutex::new(Some(std::string::String::new()))), false)
         }
     });
-    println!("{} {}", format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", ok));
-    flush(Rc::new(RefCell::new(Some("comma-ok".to_string()))));
+    println!("{} {}", format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ok));
+    flush(Arc::new(Mutex::new(Some("comma-ok".to_string()))));
 
-    let mut p = Rc::new(RefCell::new(Some(point { x: Rc::new(RefCell::new(Some(7))), ..Default::default() })));
-    let mut ptrs = Rc::new(RefCell::new(Some(vec![vec![Box::new(p.clone()) as Box<dyn Any>]])));
+    let mut p = Arc::new(Mutex::new(Some(point { x: Arc::new(Mutex::new(Some(7))), ..Default::default() })));
+    let mut ptrs = Arc::new(Mutex::new(Some(vec![vec![Box::new(p.clone()) as Box<dyn Any + Send + Sync>]])));
     let mut q = ({
-        let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0))));
-        let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize;
-        let __seq_holder = Rc::new(RefCell::new(Some((*ptrs.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone())));
-        let __seq_guard = __seq_holder.borrow();
+        let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0))));
+        let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = ptrs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
-        any_val.downcast_ref::<Rc<RefCell<Option<point>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "*main.point")).clone()
+        any_val.downcast_ref::<Arc<Mutex<Option<point>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "*main.point")).clone()
     }).clone();
-    println!("{}", format!("{}", (*(*q.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())));
-    flush(Rc::new(RefCell::new(Some("pointer assert".to_string()))));
+    println!("{}", format!("{}", (*{ let __field = (*q.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap())));
+    flush(Arc::new(Mutex::new(Some("pointer assert".to_string()))));
 
     let (mut q2, mut ok2) = ({
-        let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0))));
-        let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize;
-        let __seq_holder = Rc::new(RefCell::new(Some((*ptrs.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone())));
-        let __seq_guard = __seq_holder.borrow();
-        match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Rc<RefCell<Option<point>>>>() {
+        let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0))));
+        let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = ptrs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
+        match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Arc<Mutex<Option<point>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
-            None => (Rc::new(RefCell::new(None::<point>)), false),
+            None => (Arc::new(Mutex::new(None::<point>)), false),
         }
     });
-    println!("{} {}", format!("{}", (*(*q2.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())), format!("{}", ok2));
-    flush(Rc::new(RefCell::new(Some("pointer comma-ok".to_string()))));
+    println!("{} {}", format!("{}", (*{ let __field = (*q2.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", ok2));
+    flush(Arc::new(Mutex::new(Some("pointer comma-ok".to_string()))));
 
-    let mut v: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(1)))); let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(1))))) as usize; let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone()))); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) })));
-    println!("{}", format!("{}", match v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
-    flush(Rc::new(RefCell::new(Some("element copy".to_string()))));
+    let mut v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({ let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(1)))); let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(1))))) as usize; let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone()))); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) })));
+    println!("{}", format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
+    flush(Arc::new(Mutex::new(Some("element copy".to_string()))));
 
-    show(Rc::new(RefCell::new(Some({ let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0)))); let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize; let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone()))); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }))));
-    flush(Rc::new(RefCell::new(Some("argument".to_string()))));
+    show(Arc::new(Mutex::new(Some({ let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0)))); let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize; let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone()))); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }))));
+    flush(Arc::new(Mutex::new(Some("argument".to_string()))));
 
-    let mut m = Rc::new(RefCell::new(Some(({
-        let __seq_holder = row(Rc::new(RefCell::new(Some(1)))).clone();
-        let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize;
-        let __seq_guard = __seq_holder.borrow();
+    let mut m = Arc::new(Mutex::new(Some(({
+        let __seq_holder = row(Arc::new(Mutex::new(Some(1)))).clone();
+        let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
     }))));
-    println!("{}", format!("{}", { let __v = (*m.borrow().as_ref().unwrap()).clone(); __v }));
-    flush(Rc::new(RefCell::new(Some("call assert".to_string()))));
+    println!("{}", format!("{}", { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    flush(Arc::new(Mutex::new(Some("call assert".to_string()))));
 
     let (mut w, mut ok3) = ({
-        let __seq_holder = row(Rc::new(RefCell::new(Some(0)))).clone();
-        let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(1))))) as usize;
-        let __seq_guard = __seq_holder.borrow();
+        let __seq_holder = row(Arc::new(Mutex::new(Some(0)))).clone();
+        let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(1))))) as usize;
+        let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
-            (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
+            (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
         } else {
-            (Rc::new(RefCell::new(Some(std::string::String::new()))), false)
+            (Arc::new(Mutex::new(Some(std::string::String::new()))), false)
         }
     });
-    println!("{} {}", format!("{}", { let __v = (*w.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", ok3));
-    flush(Rc::new(RefCell::new(Some("call comma-ok".to_string()))));
+    println!("{} {}", format!("{}", { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ok3));
+    flush(Arc::new(Mutex::new(Some("call comma-ok".to_string()))));
 
-    let mut u: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ let __seq_holder = row(Rc::new(RefCell::new(Some(1)))).clone(); let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(1))))) as usize; let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) })));
-    println!("{}", format!("{}", match u.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
-    flush(Rc::new(RefCell::new(Some("call element copy".to_string()))));
+    let mut u: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({ let __seq_holder = row(Arc::new(Mutex::new(Some(1)))).clone(); let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(1))))) as usize; let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) })));
+    println!("{}", format!("{}", { let __text = match u.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
+    flush(Arc::new(Mutex::new(Some("call element copy".to_string()))));
     reset();
-    let mut r = Rc::new(RefCell::new(Some(({
-        let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0))));
-        let __idx = (replace(Rc::new(RefCell::new(Some(0))))) as usize;
-        let __seq_holder = Rc::new(RefCell::new(Some((*swapped.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone())));
-        let __seq_guard = __seq_holder.borrow();
+    let mut r = Arc::new(Mutex::new(Some(({
+        let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0))));
+        let __idx = (replace(Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = swapped.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
     }))));
-    println!("{}", format!("{}", { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }));
-    flush(Rc::new(RefCell::new(Some("replaced assert".to_string()))));
+    println!("{}", format!("{}", { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    flush(Arc::new(Mutex::new(Some("replaced assert".to_string()))));
 
     reset();
     let (mut rs, mut rok) = ({
-        let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0))));
-        let __idx = (replace(Rc::new(RefCell::new(Some(1))))) as usize;
-        let __seq_holder = Rc::new(RefCell::new(Some((*swapped.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone())));
-        let __seq_guard = __seq_holder.borrow();
+        let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0))));
+        let __idx = (replace(Arc::new(Mutex::new(Some(1))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = swapped.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
-            (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
+            (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
         } else {
-            (Rc::new(RefCell::new(Some(std::string::String::new()))), false)
+            (Arc::new(Mutex::new(Some(std::string::String::new()))), false)
         }
     });
-    println!("{} {}", format!("{}", { let __v = (*rs.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", rok));
-    flush(Rc::new(RefCell::new(Some("replaced comma-ok".to_string()))));
+    println!("{} {}", format!("{}", { let __v = (*rs.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", rok));
+    flush(Arc::new(Mutex::new(Some("replaced comma-ok".to_string()))));
 
     reset();
-    let mut ru: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0)))); let __idx = (replace(Rc::new(RefCell::new(Some(1))))) as usize; let __seq_holder = Rc::new(RefCell::new(Some((*swapped.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone()))); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) })));
-    println!("{}", format!("{}", match ru.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
-    flush(Rc::new(RefCell::new(Some("replaced element copy".to_string()))));
+    let mut ru: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({ let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0)))); let __idx = (replace(Arc::new(Mutex::new(Some(1))))) as usize; let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = swapped.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone()))); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) })));
+    println!("{}", format!("{}", { let __text = match ru.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
+    flush(Arc::new(Mutex::new(Some("replaced element copy".to_string()))));
 
     reset();
-    show(Rc::new(RefCell::new(Some({ let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0)))); let __idx = (replace(Rc::new(RefCell::new(Some(0))))) as usize; let __seq_holder = Rc::new(RefCell::new(Some((*swapped.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone()))); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }))));
-    flush(Rc::new(RefCell::new(Some("replaced argument".to_string()))));
+    show(Arc::new(Mutex::new(Some({ let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0)))); let __idx = (replace(Arc::new(Mutex::new(Some(0))))) as usize; let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = swapped.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone()))); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }))));
+    flush(Arc::new(Mutex::new(Some("replaced argument".to_string()))));
 
     reset();
     println!("{}", format!("{}", ({
-        let __idx = (replace(Rc::new(RefCell::new(Some(0))))) as usize;
-        let __seq_holder = Rc::new(RefCell::new(Some((*swapped.borrow().as_ref().unwrap())[(0) as usize].clone().clone())));
-        let __seq_guard = __seq_holder.borrow();
+        let __idx = (replace(Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = swapped.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
     })));
-    flush(Rc::new(RefCell::new(Some("replaced constant row".to_string()))));
+    flush(Arc::new(Mutex::new(Some("replaced constant row".to_string()))));
 
-    let mut cube = Rc::new(RefCell::new(Some(vec![vec![vec![Box::new(1i64) as Box<dyn Any>, Box::new("a".to_string()) as Box<dyn Any>], vec![Box::new(2i64) as Box<dyn Any>, Box::new("b".to_string()) as Box<dyn Any>]]])));
+    let mut cube = Arc::new(Mutex::new(Some(vec![vec![vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("a".to_string()) as Box<dyn Any + Send + Sync>], vec![Box::new(2i64) as Box<dyn Any + Send + Sync>, Box::new("b".to_string()) as Box<dyn Any + Send + Sync>]]])));
     println!("{}", format!("{}", ({
-        let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("plane".to_string()))), Rc::new(RefCell::new(Some(0))));
-        let __seq_operand_1 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(1))));
-        let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(1))))) as usize;
-        let __seq_holder = Rc::new(RefCell::new(Some((*cube.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone()[(__seq_operand_1) as usize].clone().clone())));
-        let __seq_guard = __seq_holder.borrow();
+        let __seq_operand_0 = pick(Arc::new(Mutex::new(Some("plane".to_string()))), Arc::new(Mutex::new(Some(0))));
+        let __seq_operand_1 = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(1))));
+        let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(1))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some(({ let __seq = { let __seq_holder = cube.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() })[(__seq_operand_1) as usize].clone().clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "string")).clone()
     })));
-    flush(Rc::new(RefCell::new(Some("cube".to_string()))));
+    flush(Arc::new(Mutex::new(Some("cube".to_string()))));
 
     println!("{}", format!("{}", ({
-        let __seq_operand_0 = pick_slot(Rc::new(RefCell::new(Some(1))));
-        let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize;
-        let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(*(*__seq_operand_0.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as usize].clone().clone())));
-        let __seq_guard = __seq_holder.borrow();
+        let __seq_operand_0 = pick_slot(Arc::new(Mutex::new(Some(1))));
+        let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[{ let __named_value = (*(*__seq_operand_0.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()); __named_value } as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
     })));
-    flush(Rc::new(RefCell::new(Some("defined index".to_string()))));
+    flush(Arc::new(Mutex::new(Some("defined index".to_string()))));
 
     println!("{}", format!("{}", ({
-        let __seq_operand_0 = pick(Rc::new(RefCell::new(Some("row".to_string()))), Rc::new(RefCell::new(Some(0)))) + 1;
-        let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(1))))) as usize;
-        let __seq_holder = Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(__seq_operand_0) as usize].clone().clone())));
-        let __seq_guard = __seq_holder.borrow();
+        let __seq_operand_0 = { let __tmp_x = pick(Arc::new(Mutex::new(Some("row".to_string()))), Arc::new(Mutex::new(Some(0)))); let __tmp_y = 1; __tmp_x + __tmp_y };
+        let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(1))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "string")).clone()
     })));
-    flush(Rc::new(RefCell::new(Some("index expression".to_string()))));
+    flush(Arc::new(Mutex::new(Some("index expression".to_string()))));
 
-    let mut byName = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>>::from([("k".to_string(), Rc::new(RefCell::new(Some(vec![Box::new(5i64) as Box<dyn Any>, Box::new("e".to_string()) as Box<dyn Any>]))))]))));
+    let mut byName = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(vec![Box::new(5i64) as Box<dyn Any + Send + Sync>, Box::new("e".to_string()) as Box<dyn Any + Send + Sync>]))))]))));
     println!("{}", format!("{}", ({
-        let __seq_holder = { let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&format!("{}{}", (*Rc::new(RefCell::new(Some({ let __s = &((*Rc::new(RefCell::new(Some(format!("{}{}", format!("{}", pick(Rc::new(RefCell::new(Some("key".to_string()))), Rc::new(RefCell::new(Some(0))))), format!("{}", "".to_string()))))).borrow().as_ref().unwrap()).clone()); let __high = (0) as usize; __s[..__high].to_string() }))).borrow().as_ref().unwrap()), "k".to_string()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone();
-        let __idx = (pick(Rc::new(RefCell::new(Some("col".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize;
-        let __seq_guard = __seq_holder.borrow();
+        let __seq_holder = { let __map = { let __map_holder = byName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&format!("{}{}", (*Arc::new(Mutex::new(Some({ let __s = &((*Arc::new(Mutex::new(Some(format!("{}{}", format!("{}", pick(Arc::new(Mutex::new(Some("key".to_string()))), Arc::new(Mutex::new(Some(0))))), format!("{}", "".to_string()))))).lock().unwrap().as_ref().unwrap()).clone()); let __high = (0) as usize; __s[..__high].to_string() }))).lock().unwrap().as_ref().unwrap()), "k".to_string()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone();
+        let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
     })));
-    flush(Rc::new(RefCell::new(Some("map row".to_string()))));
+    flush(Arc::new(Mutex::new(Some("map row".to_string()))));
+
+    { let new_val = 0; *at_1.lock().unwrap() = Some(new_val); };
+    println!("{}", format!("{}", ({
+        let __idx = (move_at(Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(*Arc::new(Mutex::new(Some(({ let __v = (*at_1.lock().unwrap().as_ref().unwrap()); __v }) as i64))).lock().unwrap().as_ref().unwrap()) as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
+    })));
+    flush(Arc::new(Mutex::new(Some("conversion row".to_string()))));
+
+    let mut picks = GoChannel::<i64>::new_buffered(1 as usize);
+    picks.send(1);
+    println!("{}", format!("{}", ({
+        let __seq_operand_0 = picks.recv().unwrap_or_default();
+        let __idx = (pick(Arc::new(Mutex::new(Some("col".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize;
+        let __seq_holder = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(__seq_operand_0) as usize].clone() }.clone())));
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
+    })));
+    flush(Arc::new(Mutex::new(Some("received row".to_string()))));
 }
 
 pub(crate) fn __go_init_all() {
