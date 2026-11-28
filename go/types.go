@@ -1638,14 +1638,29 @@ func goCollectionElemTypeToRust(expr ast.Expr) string {
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "error" {
 		return GoTypeToRust(expr)
 	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		typ := typeInfo.GetType(expr)
+	typeInfo := GetTypeInfo()
+	var typ types.Type
+	if typeInfo != nil {
+		typ = typeInfo.GetType(expr)
 		if goTypeParamHasOrderedConstraint(typ) {
 			return goTypeToRustBase(expr)
 		}
 		if _, ok := types.Unalias(typ).(*types.TypeParam); ok {
 			return GoTypeToRust(expr)
 		}
+		// A map is a reference: an element of an unnamed map type is the
+		// map's handle, as a map value and a struct field of map type
+		// are, so the element and every copy of it share the map (#318).
+		// A defined map type is a newtype over the handle already.
+		if _, ok := types.Unalias(typ).(*types.Map); ok {
+			return GoTypeToRust(expr)
+		}
+	}
+	if _, ok := expr.(*ast.MapType); ok && typ == nil {
+		// Whether the element is the map's handle is decided from its type;
+		// a missing type is a loader bug, so the element type does not
+		// build rather than guess the representation.
+		return "/* ERROR: type info required for a map element */ GoTypeInfoRequiredForMapElement"
 	}
 	if _, ok := goTypeParamTraitConstraintNameFromExpr(expr); ok {
 		return GoTypeToRust(expr)
@@ -1655,12 +1670,6 @@ func goCollectionElemTypeToRust(expr ast.Expr) string {
 	// interface-typed slice elements can't represent Go's nil interface value).
 	// Wrapping mirrors the handling of `error` above.
 	if _, ok := transpiledNamedInterfaceTypeNameFromExpr(expr); ok {
-		return GoTypeToRust(expr)
-	}
-	// A map is a reference: an element of map type is the map's handle, as
-	// a map value and a struct field of map type are, so the element and
-	// every copy of it share the map (#318).
-	if _, ok := expr.(*ast.MapType); ok {
 		return GoTypeToRust(expr)
 	}
 	return goTypeToRustBase(expr)
