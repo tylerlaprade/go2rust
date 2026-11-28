@@ -8,6 +8,7 @@ import (
 	"go/types"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -1011,13 +1012,21 @@ var comparedAnonymousStructs []*types.Struct
 // markComparedAnonymousStruct records an anonymous struct type that is
 // compared, and marks the structs of this package that its fields hold.
 func (analysis *transpileFileAnalysis) markComparedAnonymousStruct(typ types.Type, typeInfo *TypeInfo) {
+	analysis.markComparedAnonymousStructOnce(typ, typeInfo, map[*types.Struct]bool{})
+}
+
+// markComparedAnonymousStructOnce is markComparedAnonymousStruct for one
+// walk: visited holds the unnamed struct types already marked, so a type
+// reached along several paths, as through aliases, is walked once.
+func (analysis *transpileFileAnalysis) markComparedAnonymousStructOnce(typ types.Type, typeInfo *TypeInfo, visited map[*types.Struct]bool) {
 	if typ == nil || typeInfo == nil {
 		return
 	}
 	structType, ok := types.Unalias(typ).(*types.Struct)
-	if !ok {
+	if !ok || visited[structType] {
 		return
 	}
+	visited[structType] = true
 	analysis.comparedAnonymousStructs = append(analysis.comparedAnonymousStructs, structType)
 	for i := 0; i < structType.NumFields(); i++ {
 		// An array field compares its elements.
@@ -1025,7 +1034,7 @@ func (analysis *transpileFileAnalysis) markComparedAnonymousStruct(typ types.Typ
 		// An unnamed struct field, as in struct{ p struct{ x int } }, is
 		// compared with the struct it is in.
 		if _, nested := fieldType.(*types.Struct); nested {
-			analysis.markComparedAnonymousStruct(fieldType, typeInfo)
+			analysis.markComparedAnonymousStructOnce(fieldType, typeInfo, visited)
 			continue
 		}
 		named, ok := fieldType.(*types.Named)
@@ -1151,12 +1160,24 @@ func markComparableStructWithFields(result map[string]bool, named *types.Named, 
 }
 
 func markMapKeyStructType(result map[string]bool, typ types.Type, typeInfo *TypeInfo) {
+	markMapKeyStructTypeOnce(result, typ, typeInfo, map[types.Type]bool{})
+}
+
+// markMapKeyStructTypeOnce is markMapKeyStructType for one walk of a key's
+// types: visited holds the struct types already marked, by identity, so a
+// type reached along several paths is walked once, and a function-local type
+// that shares a package-level type's name is still walked.
+func markMapKeyStructTypeOnce(result map[string]bool, typ types.Type, typeInfo *TypeInfo, visited map[types.Type]bool) {
 	if typ == nil {
 		return
 	}
 	// An unnamed struct type, as in map[struct{ x, y int }]bool, is written
 	// as the anonymous struct of its fields (#326).
 	if st, ok := types.Unalias(typ).(*types.Struct); ok {
+		if visited[st] {
+			return
+		}
+		visited[st] = true
 		result[mapKeyStructFieldsKey(st)] = true
 		// A package-level alias of the type is written as a struct of its
 		// own name.
@@ -1165,7 +1186,7 @@ func markMapKeyStructType(result map[string]bool, typ types.Type, typeInfo *Type
 				result[name] = true
 			}
 		}
-		markNestedMapKeyStructFields(result, st, typeInfo)
+		markNestedMapKeyStructFields(result, st, typeInfo, visited)
 		return
 	}
 	named, ok := types.Unalias(typ).(*types.Named)
@@ -1176,6 +1197,10 @@ func markMapKeyStructType(result map[string]bool, typ types.Type, typeInfo *Type
 		return
 	}
 	if st, ok := named.Underlying().(*types.Struct); ok {
+		if visited[named] {
+			return
+		}
+		visited[named] = true
 		result[named.Obj().Name()] = true
 		// A struct type declared in a function is written as the anonymous
 		// struct of its fields (#325): record those fields too, which
@@ -1183,24 +1208,23 @@ func markMapKeyStructType(result map[string]bool, typ types.Type, typeInfo *Type
 		if pkg := named.Obj().Pkg(); pkg != nil && named.Obj().Parent() != pkg.Scope() {
 			result[mapKeyStructFieldsKey(st)] = true
 		}
-		markNestedMapKeyStructFields(result, st, typeInfo)
+		markNestedMapKeyStructFields(result, st, typeInfo, visited)
 	}
 }
 
 // markNestedMapKeyStructFields marks the struct fields of the map key struct
 // st, an unnamed one as p in map[struct{ p struct{ x int } }]bool or one of
-// the package's named structs as P in map[struct{ P Point }]bool: the key's
-// Ord needs Ord on each of them.
-func markNestedMapKeyStructFields(result map[string]bool, st *types.Struct, typeInfo *TypeInfo) {
+// the package's named structs as P in map[struct{ P Point }]bool, through
+// array fields too: the key's Ord needs Ord on each of them.
+func markNestedMapKeyStructFields(result map[string]bool, st *types.Struct, typeInfo *TypeInfo, visited map[types.Type]bool) {
 	for i := 0; i < st.NumFields(); i++ {
 		fieldType := keyFieldElementType(st.Field(i).Type())
 		switch field := fieldType.(type) {
 		case *types.Struct:
-			markMapKeyStructType(result, field, typeInfo)
+			markMapKeyStructTypeOnce(result, field, typeInfo, visited)
 		case *types.Named:
-			// One already marked has had its fields marked too.
-			if _, isStruct := field.Underlying().(*types.Struct); isStruct && field.Obj() != nil && !result[field.Obj().Name()] {
-				markMapKeyStructType(result, field, typeInfo)
+			if _, isStruct := field.Underlying().(*types.Struct); isStruct {
+				markMapKeyStructTypeOnce(result, field, typeInfo, visited)
 			}
 		}
 	}
@@ -1303,6 +1327,11 @@ func packageStructAliasGoName(pkg *types.Package, st *types.Struct) string {
 		if !ok || !typeName.IsAlias() {
 			continue
 		}
+		// An alias the emitter prunes is never written, so its name cannot
+		// stand for the struct.
+		if sourceMappedDeclIsPruned(typeName) {
+			continue
+		}
 		if aliased, ok := types.Unalias(typeName.Type()).(*types.Struct); ok && types.Identical(aliased, st) {
 			return name
 		}
@@ -1314,7 +1343,77 @@ func packageStructAliasGoName(pkg *types.Package, st *types.Struct) string {
 // key, is recorded under in mapKeyStructTypes when it has no name of its
 // own in the Rust it is written as.
 func mapKeyStructFieldsKey(st *types.Struct) string {
-	return "struct-fields:" + types.TypeString(st, nil)
+	// Go's identity ignores alias names: struct{ X Count }, with
+	// type Count = int, is struct{ X int }, so the key is the struct's
+	// identity, not its spelling.
+	return "struct-fields:" + strconv.Itoa(typeIdentityID(st))
+}
+
+var (
+	// typeIdentityIDs holds the identity number of each type seen, by the
+	// type itself; typeIdentitySignatures holds it by signature.
+	typeIdentityIDs        = map[types.Type]int{}
+	typeIdentitySignatures = map[string]int{}
+)
+
+// typeIdentityID numbers typ so that two types have the same number when
+// Go's types.Identical holds for them. A type's signature names its parts
+// by their numbers, so a type reached through many aliases, as
+// type A2 = struct{ L, R A1 }, is numbered once and never spelled out.
+func typeIdentityID(typ types.Type) int {
+	if id, ok := typeIdentityIDs[typ]; ok {
+		return id
+	}
+	var signature string
+	switch t := typ.(type) {
+	case *types.Alias:
+		id := typeIdentityID(types.Unalias(t))
+		typeIdentityIDs[typ] = id
+		return id
+	case *types.Basic:
+		signature = fmt.Sprintf("basic %d", t.Kind())
+	case *types.Named:
+		// A defined type is its own; an instance is its origin's with its
+		// type arguments.
+		var b strings.Builder
+		fmt.Fprintf(&b, "named %p", t.Origin())
+		for i := 0; i < t.TypeArgs().Len(); i++ {
+			fmt.Fprintf(&b, " %d", typeIdentityID(t.TypeArgs().At(i)))
+		}
+		signature = b.String()
+	case *types.Struct:
+		var b strings.Builder
+		b.WriteString("struct")
+		for i := 0; i < t.NumFields(); i++ {
+			field := t.Field(i)
+			name := field.Name()
+			// An unexported field name is its package's.
+			if !field.Exported() && field.Pkg() != nil {
+				name = field.Pkg().Path() + "." + name
+			}
+			fmt.Fprintf(&b, " %q %t %q %d", name, field.Embedded(), t.Tag(i), typeIdentityID(field.Type()))
+		}
+		signature = b.String()
+	case *types.Array:
+		signature = fmt.Sprintf("array %d %d", t.Len(), typeIdentityID(t.Elem()))
+	case *types.Slice:
+		signature = fmt.Sprintf("slice %d", typeIdentityID(t.Elem()))
+	case *types.Pointer:
+		signature = fmt.Sprintf("pointer %d", typeIdentityID(t.Elem()))
+	case *types.Map:
+		signature = fmt.Sprintf("map %d %d", typeIdentityID(t.Key()), typeIdentityID(t.Elem()))
+	case *types.Chan:
+		signature = fmt.Sprintf("chan %d %d", t.Dir(), typeIdentityID(t.Elem()))
+	default:
+		signature = "type " + types.TypeString(typ, nil)
+	}
+	id, ok := typeIdentitySignatures[signature]
+	if !ok {
+		id = len(typeIdentitySignatures) + 1
+		typeIdentitySignatures[signature] = id
+	}
+	typeIdentityIDs[typ] = id
+	return id
 }
 
 func markComparableInterfaceImplementorStructs(typeDecls []struct {
@@ -3885,6 +3984,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 	session := NewTranspileSession(typeInfo, packageMapping)
 	packageState := NewPackageState()
+	// A file transpiled with no package of its own, as TranspileSource does,
+	// has no package-wide analysis to read.
+	standalonePackageState := parentCtx == nil || parentCtx.Package == nil
 	if parentCtx != nil {
 		if parentCtx.Session != nil {
 			session = parentCtx.Session
@@ -3948,6 +4050,12 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	// Transpile the body
 	var body strings.Builder
 	fileAnalysis := analyzeTranspileFile(file, typeInfo)
+	// Its own map keys are then the package's, which structNeedsOrd reads.
+	if standalonePackageState {
+		for name := range fileAnalysis.mapKeyStructTypes {
+			packageState.MapKeyStructTypes[name] = true
+		}
+	}
 	registerMapKeyAnonymousStructs(file)
 	packageGlobalNames = make(map[string]bool)
 	if currentContext != nil && currentContext.Package != nil {

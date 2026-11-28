@@ -17474,7 +17474,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							out.WriteString("::default()")
 							WriteWrapperSuffix(out)
 						} else {
-							out.WriteString("Default::default()")
+							// The struct's own Default gives the field Go's zero
+							// value, a zero-filled array or 0, where the field
+							// cell's Default would be empty: struct{ x, y int }{x: 1}
+							// must equal struct{ x, y int }{1, 0}, as a map key too.
+							out.WriteString(typeName)
+							out.WriteString("::default().")
+							out.WriteString(rustFieldName)
 						}
 						writeAnonymousStructFieldSuffix()
 					}

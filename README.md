@@ -306,7 +306,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Wrapped call results as map lookup keys | ✅ |
 | └ Handle-shaped map lookup values passed as call arguments | ✅ |
 | └ Pointer keys in map literals and lookups | ✅ |
-| └ Unnamed struct keys (`map[struct{ x, y int }]bool`), including nested unnamed struct fields and keys typed through a package-level struct alias; not yet a struct alias used in a typed `var` or mixed with the same struct written inline (#332) | ✅ |
+| └ Unnamed struct keys (`map[struct{ x, y int }]bool`), including nested unnamed struct fields and keys typed through a package-level struct alias; not yet a struct alias used in a typed `var` or mixed with the same struct written inline (#332), a float field (#349) or a field of a defined array type (#344) | ✅ |
 | └ Pointer keys and values in `make(map)`, address-of literal map writes, and slice-range pointer key lookups | ✅ |
 | └ Pointer map values assigned from selector fields preserve handle aliasing | ✅ |
 | └ Concrete values in named-interface map literals box into interface value slots | ✅ |

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"go/types"
 	"os"
 	"path/filepath"
 	"strings"
@@ -185,5 +187,70 @@ func main() {
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
 	if !strings.Contains(mainRS, "#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]\npub struct Point {") {
 		t.Fatalf("a struct in an array field of a map key should be ordered:\n%s", mainRS)
+	}
+}
+
+// A file transpiled on its own orders its unnamed struct map keys from its
+// own analysis.
+func TestStandaloneTranspileOrdersUnnamedStructMapKey(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func count() int {
+	m := map[struct{ X int }]bool{}
+	m[struct{ X int }{1}] = true
+	return len(m)
+}
+`)
+	if !strings.Contains(rust, "PartialOrd, Ord)]\npub struct AnonymousStruct1 {") {
+		t.Fatalf("a standalone file's map key should be ordered:\n%s", rust)
+	}
+}
+
+// A struct written with an alias-spelled field, struct{ X Count } for
+// type Count = int, is the key struct{ X int } names.
+func TestMapKeyStructFieldsKeyIgnoresAliasSpelling(t *testing.T) {
+	pkg := types.NewPackage("example.com/p", "p")
+	count := types.NewAlias(types.NewTypeName(0, pkg, "Count", nil), types.Typ[types.Int])
+	aliased := types.NewStruct([]*types.Var{types.NewField(0, pkg, "X", count, false)}, nil)
+	plain := types.NewStruct([]*types.Var{types.NewField(0, pkg, "X", types.Typ[types.Int], false)}, nil)
+	if mapKeyStructFieldsKey(aliased) != mapKeyStructFieldsKey(plain) {
+		t.Fatalf("keys differ: %q vs %q", mapKeyStructFieldsKey(aliased), mapKeyStructFieldsKey(plain))
+	}
+}
+
+// A chain of aliases that each use the previous one twice, as
+// type A1 = struct{ L, R A0 }, is walked once per type, not once per path.
+func TestMapKeyStructMarkingVisitsSharedTypesOnce(t *testing.T) {
+	pkg := types.NewPackage("example.com/p", "p")
+	var prev types.Type = types.NewAlias(types.NewTypeName(0, pkg, "A0", nil), types.NewStruct(nil, nil))
+	for i := 1; i <= 40; i++ {
+		st := types.NewStruct([]*types.Var{
+			types.NewField(0, pkg, "L", prev, false),
+			types.NewField(0, pkg, "R", prev, false),
+		}, nil)
+		prev = types.NewAlias(types.NewTypeName(0, pkg, fmt.Sprintf("A%d", i), nil), st)
+	}
+	result := map[string]bool{}
+	markMapKeyStructType(result, prev, nil)
+	if len(result) != 41 {
+		t.Fatalf("expected one entry per struct type, got %d", len(result))
+	}
+}
+
+// Two named struct types that share a name, a package-level Part and a
+// function-local one, are walked as the two types they are: the second one's
+// fields are marked although a Part was marked first.
+func TestMapKeyStructMarkingWalksSameNamedTypesSeparately(t *testing.T) {
+	pkg := types.NewPackage("example.com/p", "p")
+	outer := types.NewNamed(types.NewTypeName(0, pkg, "Part", nil), types.NewStruct([]*types.Var{types.NewField(0, pkg, "A", types.Typ[types.Int], false)}, nil), nil)
+	inner := types.NewStruct([]*types.Var{types.NewField(0, pkg, "Z", types.Typ[types.Int], false)}, nil)
+	local := types.NewNamed(types.NewTypeName(0, pkg, "Part", nil), types.NewStruct([]*types.Var{types.NewField(0, pkg, "S", inner, false)}, nil), nil)
+	result := map[string]bool{}
+	markMapKeyStructType(result, types.NewStruct([]*types.Var{
+		types.NewField(0, pkg, "P", outer, false),
+		types.NewField(0, pkg, "Q", local, false),
+	}, nil), nil)
+	if !result[mapKeyStructFieldsKey(inner)] {
+		t.Fatalf("the second Part's struct field should be marked: %v", result)
 	}
 }

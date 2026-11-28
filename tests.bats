@@ -5156,6 +5156,10 @@ run_xfail_test() {
     run_test "tests/unnamed_struct_map_key_across_files"
 }
 
+@test "unnamed_struct_map_key_alias_spelled_field" {
+    run_test "tests/unnamed_struct_map_key_alias_spelled_field"
+}
+
 @test "unnamed_struct_map_key_array_fields" {
     run_test "tests/unnamed_struct_map_key_array_fields"
 }
@@ -5170,6 +5174,10 @@ run_xfail_test() {
 
 @test "unnamed_struct_map_key_nested" {
     run_test "tests/unnamed_struct_map_key_nested"
+}
+
+@test "unnamed_struct_map_key_omitted_fields" {
+    run_test "tests/unnamed_struct_map_key_omitted_fields"
 }
 
 @test "unsafe_float_bits" {
