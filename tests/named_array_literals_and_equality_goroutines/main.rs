@@ -1633,21 +1633,21 @@ impl<T: Send + Sync + 'static> std::fmt::Debug for GoPtr<T> {
 }
 
 #[derive(Debug, Clone)]
-pub struct d(pub Arc<Mutex<Option<[i32; 3]>>>);
+pub struct d_(pub Arc<Mutex<Option<[i32; 3]>>>);
 
-impl Default for d {
+impl Default for d_ {
     fn default() -> Self {
-        d(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))))
+        d_(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))))
     }
 }
 
-impl d {
+impl d_ {
     pub fn __go_value_clone(&self) -> Self {
-        d(Arc::new(Mutex::new(self.0.lock().unwrap().as_ref().map(|__go_array| __go_array.clone()))))
+        d_(Arc::new(Mutex::new(self.0.lock().unwrap().as_ref().map(|__go_array| __go_array.clone()))))
     }
 }
 
-impl PartialEq for d {
+impl PartialEq for d_ {
     fn eq(&self, other: &Self) -> bool {
         let __left = self.0.lock().unwrap().clone();
         let __right = other.0.lock().unwrap().clone();
@@ -1655,7 +1655,7 @@ impl PartialEq for d {
     }
 }
 
-impl Display for d {
+impl Display for d_ {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "{}", format_slice(&self.0))
     }
@@ -1665,7 +1665,7 @@ impl Display for d {
 #[derive(Debug, Clone)]
 pub struct CR {
     pub lo: Arc<Mutex<Option<u32>>>,
-    pub delta: Arc<Mutex<Option<d>>>,
+    pub delta: Arc<Mutex<Option<d_>>>,
 }
 
 impl CR {
@@ -1683,7 +1683,7 @@ impl CR {
 impl Default for CR {
     fn default() -> Self {
         let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
-        let __go_default_1_0 = Arc::new(Mutex::new(Some(d(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(d_(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))))))));
         Self {
             lo: __go_default_0_0,
             delta: __go_default_1_0,
@@ -1707,8 +1707,8 @@ fn __go_init_globals() {
     *crs.lock().unwrap() = Some(Vec::nil());
     {
         let mut __go_slice = Vec::<CR>::with_capacity(2);
-        __go_slice.push(CR { lo: Arc::new(Mutex::new(Some(1 as u32))), delta: Arc::new(Mutex::new(Some(d(Arc::new(Mutex::new(Some([-32 as i32, 0 as i32, -32 as i32]))))))), ..Default::default() });
-        __go_slice.push(CR { lo: Arc::new(Mutex::new(Some(2 as u32))), delta: Arc::new(Mutex::new(Some(d(Arc::new(Mutex::new(Some([5 as i32, 6 as i32, 7 as i32]))))))), ..Default::default() });
+        __go_slice.push(CR { lo: Arc::new(Mutex::new(Some(1 as u32))), delta: Arc::new(Mutex::new(Some(d_(Arc::new(Mutex::new(Some([-32 as i32, 0 as i32, -32 as i32]))))))), ..Default::default() });
+        __go_slice.push(CR { lo: Arc::new(Mutex::new(Some(2 as u32))), delta: Arc::new(Mutex::new(Some(d_(Arc::new(Mutex::new(Some([5 as i32, 6 as i32, 7 as i32]))))))), ..Default::default() });
         let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());
         *crs.lock().unwrap() = Some(__go_slice);
     }
@@ -1751,14 +1751,14 @@ fn main() {
     GoPtr::slice_elem(GoSliceElemPtr::new(crs.clone(), (0) as usize)),
     Arc::new(Mutex::new(Some(0)))
 ); let __go_print_value = println!("{} {} {} {} {}", format!("{}", { let __seq_holder = { let __named_array = (*(*cr.as_ref().unwrap().borrow().as_ref().unwrap()).delta.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }), format!("{}", { let __seq_holder = { let __named_array = (*{ let __seq = { let __seq_holder = crs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.delta.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (2) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }), format!("{}", (*{ let __field = (*cr.as_ref().unwrap().borrow().as_ref().unwrap()).delta.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", __go_print_arg_1), format!("{}", __go_print_arg_2)); __go_print_value };
-    let mut local = Arc::new(Mutex::new(Some(CR { lo: Arc::new(Mutex::new(Some(3 as u32))), delta: Arc::new(Mutex::new(Some(d(Arc::new(Mutex::new(Some([9 as i32, 8 as i32, 7 as i32]))))))), ..Default::default() })));
+    let mut local = Arc::new(Mutex::new(Some(CR { lo: Arc::new(Mutex::new(Some(3 as u32))), delta: Arc::new(Mutex::new(Some(d_(Arc::new(Mutex::new(Some([9 as i32, 8 as i32, 7 as i32]))))))), ..Default::default() })));
     let mut p = local.clone();
     { let __go_print_arg_3 = get(GoPtr::local(p.clone()), Arc::new(Mutex::new(Some(2)))); let __go_print_value = println!("{} {} {}", format!("{}", { let __seq_holder = { let __named_array = (*(*p.lock().unwrap().as_ref().unwrap()).delta.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (1) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }), format!("{}", __go_print_arg_3), format!("{}", (*{ let __field = (*local.lock().unwrap().as_ref().unwrap()).delta.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())); __go_print_value };
-    let mut x = Arc::new(Mutex::new(Some(d(Arc::new(Mutex::new(Some([1 as i32, 2 as i32, 3 as i32])))))));
+    let mut x = Arc::new(Mutex::new(Some(d_(Arc::new(Mutex::new(Some([1 as i32, 2 as i32, 3 as i32])))))));
     { let __idx = (1) as usize; let __rhs = 20 as i32; (*{ let __named_array = (*x.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     let mut y = { let __owned = x.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
     { let __idx = (0) as usize; let __rhs = 10 as i32; (*{ let __named_array = (*y.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
-    println!("{} {} {} {}", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __v = (*y.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __tmp_x = ({ let __v = (*x.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }); let __tmp_y = d(Arc::new(Mutex::new(Some([1 as i32, 20 as i32, 3 as i32])))); __tmp_x == __tmp_y }), format!("{}", 3usize));
+    println!("{} {} {} {}", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __v = (*y.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __tmp_x = ({ let __v = (*x.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }); let __tmp_y = d_(Arc::new(Mutex::new(Some([1 as i32, 20 as i32, 3 as i32])))); __tmp_x == __tmp_y }), format!("{}", 3usize));
     let mut found: Option<GoSliceElemPtr<CR>> = lookup(Arc::new(Mutex::new(Some(1 as u32))));
     println!("{} {} {} {}", format!("{}", (lookup(Arc::new(Mutex::new(Some(2 as u32))))).is_some()), format!("{}", (lookup(Arc::new(Mutex::new(Some(9 as u32))))).is_none()), format!("{}", (*{ let __field = (*found.as_ref().unwrap().borrow().as_ref().unwrap()).delta.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", { let __seq_holder = { let __named_array = (*(*found.as_ref().unwrap().borrow().as_ref().unwrap()).delta.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }));
 }

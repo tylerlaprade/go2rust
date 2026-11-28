@@ -4143,10 +4143,10 @@ func main() {
 	}
 
 	methodsRS := mustReadFile(t, filepath.Join(tempDir, "methods.rs"))
-	if strings.Contains(methodsRS, "\nimpl flag {") {
+	if strings.Contains(methodsRS, "\nimpl flag_ {") {
 		t.Fatalf("cross-file method impl should not use the unqualified receiver type:\n%s", methodsRS)
 	}
-	if !strings.Contains(methodsRS, "impl crate::defs::flag {") {
+	if !strings.Contains(methodsRS, "impl crate::defs::flag_ {") {
 		t.Fatalf("cross-file method impl should qualify the receiver type's defining module:\n%s", methodsRS)
 	}
 }

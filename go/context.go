@@ -20,6 +20,12 @@ type TranspileSession struct {
 	SliceElemPtrSliceFields     map[string]sliceElemPtrSliceFieldInfo
 	GoPtrArrayFields            map[string]goPtrArrayFieldInfo
 	GeneratedGoPtrFields        map[string]bool
+	// HelperBindingTypeRenames maps a package path and a type name in that
+	// package to the Rust name the type is written under, for a type that
+	// would be a tuple struct named like a generated helper's binding (#335).
+	// The package loader shares one map across the program's packages, so a
+	// dependent writes a dependency's type under the dependency's name.
+	HelperBindingTypeRenames map[string]map[string]string
 }
 
 // PackageState holds package-scoped registries that should be shared across files.
@@ -157,6 +163,7 @@ func NewTranspileSession(typeInfo *TypeInfo, packageMapping map[string]string) *
 		SliceElemPtrSliceFields:     make(map[string]sliceElemPtrSliceFieldInfo),
 		GoPtrArrayFields:            make(map[string]goPtrArrayFieldInfo),
 		GeneratedGoPtrFields:        make(map[string]bool),
+		HelperBindingTypeRenames:    make(map[string]map[string]string),
 	}
 }
 

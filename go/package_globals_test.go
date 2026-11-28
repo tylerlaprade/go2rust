@@ -161,18 +161,18 @@ func main() {
 `)
 
 	for _, bad := range []string{
-		"Some(word(",
-		"Some(text(",
-		"Some(bytes(",
+		"Some(word_(",
+		"Some(text_(",
+		"Some(bytes_(",
 	} {
 		if strings.Contains(rust, bad) {
 			t.Fatalf("package-global any initializer should not store a concrete value directly in the Any slot (%q):\n%s", bad, rust)
 		}
 	}
 	for _, want := range []string{
-		"Some(Box::new(word(",
-		"Some(Box::new(text(",
-		"Some(Box::new(bytes(",
+		"Some(Box::new(word_(",
+		"Some(Box::new(text_(",
+		"Some(Box::new(bytes_(",
 		"as Box<dyn Any + Send + Sync>",
 	} {
 		if !strings.Contains(rust, want) {

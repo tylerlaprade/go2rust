@@ -24,9 +24,9 @@ func main() {
 }
 `)
 	for _, want := range []string{
-		"d(Rc::new(RefCell::new(Some([1 as i32, 2 as i32, 3 as i32]))))",
-		"delta: Rc::new(RefCell::new(Some(d(Rc::new(RefCell::new(Some([-32 as i32, 0 as i32, -32 as i32]))))))",
-		"impl PartialEq for d {",
+		"d_(Rc::new(RefCell::new(Some([1 as i32, 2 as i32, 3 as i32]))))",
+		"delta: Rc::new(RefCell::new(Some(d_(Rc::new(RefCell::new(Some([-32 as i32, 0 as i32, -32 as i32]))))))",
+		"impl PartialEq for d_ {",
 		"3usize",
 	} {
 		if !strings.Contains(rust, want) {
