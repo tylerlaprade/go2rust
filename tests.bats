@@ -3100,6 +3100,14 @@ run_xfail_test() {
     run_test "tests/negative_named_integer_conversions_goroutines"
 }
 
+@test "nested_any_slice_in_interface" {
+    run_test "tests/nested_any_slice_in_interface"
+}
+
+@test "nested_any_slice_in_interface_goroutines" {
+    run_test "tests/nested_any_slice_in_interface_goroutines"
+}
+
 @test "nested_any_slice_literals" {
     run_test "tests/nested_any_slice_literals"
 }
