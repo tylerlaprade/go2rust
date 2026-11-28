@@ -1760,9 +1760,9 @@ impl Default for Machine {
 
 impl std::fmt::Display for Machine {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", (*self.state.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_0 = format!("{}", { let __hidden = (*self.state.lock().unwrap().as_ref().unwrap()).0.clone(); let __hidden_value = (*__hidden.lock().unwrap().as_ref().unwrap()).clone(); format!("{}", __hidden_value) });
         let __go_fmt_1 = format!("{}", "<map>");
-        let __go_fmt_2 = format!("{}", format_slice(&self.history));
+        let __go_fmt_2 = format!("{}", { let __hidden_guard = self.history.lock().unwrap(); let __hidden_items: Vec<String> = __hidden_guard.as_ref().map(|__hidden_seq| __hidden_seq.iter().map(|__hidden_item| { let __hidden = __hidden_item.0.clone(); let __hidden_value = (*__hidden.lock().unwrap().as_ref().unwrap()).clone(); format!("{}", __hidden_value) }).collect()).unwrap_or_default(); format!("[{}]", __hidden_items.join(" ")) });
         let __go_fmt_3 = format!("{}", "<map>");
         let __go_fmt_4 = format!("{}", { let __guard = self.log.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)

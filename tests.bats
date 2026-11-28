@@ -5292,6 +5292,14 @@ run_xfail_test() {
     run_test "tests/unary_plus_bitwise_not"
 }
 
+@test "unexported_field_string_methods" {
+    run_test "tests/unexported_field_string_methods"
+}
+
+@test "unexported_field_string_methods_goroutines" {
+    run_test "tests/unexported_field_string_methods_goroutines"
+}
+
 @test "unicode_classification" {
     run_test "tests/unicode_classification"
 }

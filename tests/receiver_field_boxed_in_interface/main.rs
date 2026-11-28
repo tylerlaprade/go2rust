@@ -2478,7 +2478,7 @@ impl Default for M {
 
 impl std::fmt::Display for M {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", (*self.state.borrow().as_ref().unwrap()));
+        let __go_fmt_0 = format!("{}", { let __hidden = (*self.state.borrow().as_ref().unwrap()).0.clone(); let __hidden_value = (*__hidden.borrow().as_ref().unwrap()).clone(); format!("{}", __hidden_value) });
         let __go_fmt_1 = format!("{}", (*self.plain.borrow().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)

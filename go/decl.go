@@ -120,6 +120,14 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		// floatKind is 64 or 32 for a float64 or float32 field, which
 		// fmt prints as %v does, and 0 otherwise.
 		floatKind int
+		// methodsHidden is set for an unexported field of a defined basic
+		// type with a String or Error method, or a slice or an array of
+		// one: fmt cannot reach the methods of a value through an
+		// unexported field, so it prints the underlying value (#355).
+		// hiddenKind is the underlying float kind, as floatKind.
+		methodsHidden  bool
+		hiddenSequence bool
+		hiddenKind     int
 	}
 	var fields []fieldEntry
 	for fieldIndex, field := range structType.Fields.List {
@@ -164,7 +172,11 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				_, goPtrField := sliceElemPtrFieldInfoForStructField(nil, structType, structName, name.Name)
 				_, goPtrSliceField := sliceElemPtrSliceFieldInfoForStructField(nil, structType, structName, name.Name)
 				_, goPtrArrayField := goPtrArrayFieldInfoForStructField(nil, structType, structName, name.Name)
+				hiddenSequence, hiddenKind, methodsHidden := structDisplayFieldHidesMethods(name, field.Type)
 				fields = append(fields, fieldEntry{
+					methodsHidden:             methodsHidden,
+					hiddenSequence:            hiddenSequence,
+					hiddenKind:                hiddenKind,
 					name:                      rustStructFieldName(name, fieldIndex, nameIndex),
 					goName:                    name.Name,
 					isEmbedded:                false,
@@ -233,6 +245,10 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	}
 
 	writeDisplayFieldValue := func(f fieldEntry) {
+		if f.methodsHidden {
+			writeStructDisplayHiddenMethodsField(out, ToSnakeCase(f.name), f.hiddenSequence, f.hiddenKind)
+			return
+		}
 		if f.isInterface {
 			// A nil interface field prints as <nil>. The zero value of a
 			// struct has one, so this is the common case, not a corner.
@@ -354,7 +370,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		return !f.isInterface && !f.isError && !f.isFunction && !f.funcSlice && !f.isMap && !f.zeroLenArray &&
 			!f.nestedSliceWrapped && !f.nestedPointerSlice && !f.nestedPointerSliceWrapped && !f.nestedSlice &&
 			!f.goPtr && !f.goPtrSlice && !f.goPtrArray && !f.ptrToPtrSlice && !f.ptrToSlice && !f.ptrSlice &&
-			!f.anySlice && !f.interfaceSlice && !f.isPointer && !f.isSlice
+			!f.anySlice && !f.interfaceSlice && !f.isPointer && !f.isSlice && !f.methodsHidden
 	}
 	if plusV {
 		out.WriteString("        let __go_plus = f.alternate();\n")
@@ -10707,6 +10723,101 @@ func setCurrentReceiverFromIdent(ident *ast.Ident) {
 
 // structDisplayFieldFloatKind is 64 or 32 for a struct field of type float64
 // or float32, not of a named type, and 0 otherwise.
+// structDisplayFieldHidesMethods reports whether fmt prints the field name
+// of type fieldType without calling a String or Error method: name is
+// unexported, and the field's type, or its slice's or array's element type,
+// is a defined basic type of this package with one of those methods. fmt
+// cannot call a method of a value it reached through an unexported field,
+// so it prints the underlying value (#355). It returns whether the field is
+// a slice or an array, and the underlying float kind, 64, 32 or 0.
+func structDisplayFieldHidesMethods(name *ast.Ident, fieldType ast.Expr) (bool, int, bool) {
+	typeInfo := GetTypeInfo()
+	if name == nil || name.IsExported() || typeInfo == nil || typeInfo.pkg == nil {
+		return false, 0, false
+	}
+	typ := types.Unalias(typeInfo.GetType(fieldType))
+	sequence := false
+	switch seq := typ.(type) {
+	case *types.Slice:
+		typ, sequence = types.Unalias(seq.Elem()), true
+	case *types.Array:
+		typ, sequence = types.Unalias(seq.Elem()), true
+	}
+	named, ok := typ.(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() != typeInfo.pkg || named.TypeArgs().Len() > 0 {
+		return false, 0, false
+	}
+	basic, ok := named.Underlying().(*types.Basic)
+	if !ok || basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) == 0 {
+		return false, 0, false
+	}
+	if !typeHasGoStringMethod(named) && !typeHasGoErrorMethod(named) {
+		return false, 0, false
+	}
+	kind := 0
+	switch basic.Kind() {
+	case types.Float64:
+		kind = 64
+	case types.Float32:
+		kind = 32
+	}
+	return sequence, kind, true
+}
+
+// typeHasGoErrorMethod reports whether typ's method set has Error() string.
+func typeHasGoErrorMethod(typ types.Type) bool {
+	selection := types.NewMethodSet(typ).Lookup(nil, "Error")
+	if selection == nil {
+		return false
+	}
+	sig, ok := selection.Obj().Type().(*types.Signature)
+	if !ok || sig.Params().Len() != 0 || sig.Results().Len() != 1 {
+		return false
+	}
+	basic, ok := types.Unalias(sig.Results().At(0).Type()).Underlying().(*types.Basic)
+	return ok && basic.Kind() == types.String
+}
+
+// writeStructDisplayHiddenMethodsField writes the text of a field
+// structDisplayFieldHidesMethods accepts: the value inside the defined
+// type's newtype, or each element's, in brackets, for a slice or an array.
+func writeStructDisplayHiddenMethodsField(out *strings.Builder, field string, sequence bool, kind int) {
+	value := func(newtype string) string {
+		var inner strings.Builder
+		inner.WriteString("{ let __hidden = ")
+		inner.WriteString(newtype)
+		inner.WriteString(".0.clone(); let __hidden_value = (*__hidden")
+		WriteBorrowMethod(&inner, false)
+		inner.WriteString(".as_ref().unwrap()).clone(); ")
+		switch kind {
+		case 64:
+			NeedGoFloatString()
+			inner.WriteString("go_float_string(__hidden_value as f64, false) }")
+		case 32:
+			NeedGoFloatString()
+			inner.WriteString("go_float_string(__hidden_value as f64, true) }")
+		default:
+			inner.WriteString("format!(\"{}\", __hidden_value) }")
+		}
+		return inner.String()
+	}
+	if !sequence {
+		var cell strings.Builder
+		cell.WriteString("(*self.")
+		cell.WriteString(field)
+		WriteBorrowMethod(&cell, false)
+		cell.WriteString(".as_ref().unwrap())")
+		out.WriteString(value(cell.String()))
+		return
+	}
+	out.WriteString("{ let __hidden_guard = self.")
+	out.WriteString(field)
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __hidden_items: Vec<String> = __hidden_guard.as_ref().map(|__hidden_seq| __hidden_seq.iter().map(|__hidden_item| ")
+	out.WriteString(value("__hidden_item"))
+	out.WriteString(").collect()).unwrap_or_default(); format!(\"[{}]\", __hidden_items.join(\" \")) }")
+}
+
 func structDisplayFieldFloatKind(fieldType ast.Expr) int {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
