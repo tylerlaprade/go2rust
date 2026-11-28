@@ -1110,7 +1110,15 @@ func writeStructComparableFieldTypeInfoRequired(out *strings.Builder, operation 
 	out.WriteString(")")
 }
 
-func structComparableBareSyncPointerHelper(typ types.Type) (string, bool) {
+// structComparableBareSyncPointerHelper names the runtime type of a
+// *sync.Mutex field that is written as a bare GoMutex, which compares by
+// its shared state. The field's declaration decides that, as isSyncParam
+// does for the field's type: a *M, where M aliases sync.Mutex, is written
+// as a pointer cell and compares as other pointers do.
+func structComparableBareSyncPointerHelper(field structComparableField, typ types.Type) (string, bool) {
+	if !isSyncParam(field.expr) {
+		return "", false
+	}
 	ptr, ok := types.Unalias(typ).(*types.Pointer)
 	if !ok {
 		return "", false
@@ -1128,7 +1136,7 @@ func structComparableBareSyncPointerHelper(typ types.Type) (string, bool) {
 }
 
 func writeStructComparablePointerFieldEq(out *strings.Builder, field structComparableField, typ types.Type) {
-	if helper, ok := structComparableBareSyncPointerHelper(typ); ok {
+	if helper, ok := structComparableBareSyncPointerHelper(field, typ); ok {
 		out.WriteString(helper)
 		out.WriteString("::go_ptr_eq(&self.")
 		out.WriteString(field.name)
@@ -1308,7 +1316,7 @@ func writeStructComparableFieldOrd(out *strings.Builder, structName string, fiel
 	if isPointerType(typ) {
 		if structComparableFieldIsGeneratedGoPtr(structName, field) {
 			writeStructComparableGoPtrFieldOrd(out, field)
-		} else if _, ok := structComparableBareSyncPointerHelper(typ); ok {
+		} else if _, ok := structComparableBareSyncPointerHelper(field, typ); ok {
 			writeStructComparableBareMutexFieldOrd(out, field)
 		} else {
 			writeStructComparablePointerFieldOrd(out, field)
@@ -1365,7 +1373,7 @@ func generateStructPartialEq(out *strings.Builder, structName string, structType
 	}
 
 	rustStructName := RustTypeNameForUse(structName)
-	writeRustTraitImplHeader(out, generics, "PartialEq", rustStructName)
+	writeRustTraitImplHeader(out, rustTypeGenericsBounded(generics, "PartialEq + Clone"), "PartialEq", rustStructName)
 	out.WriteString("    fn eq(&self, other: &Self) -> bool {\n")
 
 	fields := structComparableFields(structType)
@@ -1420,22 +1428,27 @@ func generateStructOrd(out *strings.Builder, structName string, structType *ast.
 	}
 
 	rustStructName := RustTypeNameForUse(structName)
+	eqGenerics := rustTypeGenericsBounded(generics, "PartialEq + Clone")
 	out.WriteString("\nimpl")
-	out.WriteString(generics.Decl)
+	out.WriteString(eqGenerics.Decl)
 	out.WriteString(" Eq for ")
 	out.WriteString(rustStructName)
-	out.WriteString(generics.Use)
+	out.WriteString(eqGenerics.Use)
+	out.WriteString(eqGenerics.Where)
 	out.WriteString(" {}\n")
 
+	// The comparator reads each type-parameter field as a copy, and
+	// compares the copies with cmp, as a derive would bound them.
+	ordGenerics := rustTypeGenericsBounded(generics, "Ord + Clone")
 	out.WriteString("\n")
-	writeRustTraitImplHeader(out, generics, "PartialOrd", rustStructName)
+	writeRustTraitImplHeader(out, ordGenerics, "PartialOrd", rustStructName)
 	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n")
 	out.WriteString("        Some(std::cmp::Ord::cmp(self, other))\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 
 	out.WriteString("\n")
-	writeRustTraitImplHeader(out, generics, "Ord", rustStructName)
+	writeRustTraitImplHeader(out, ordGenerics, "Ord", rustStructName)
 	out.WriteString("    fn cmp(&self, other: &Self) -> std::cmp::Ordering {\n")
 
 	fields := structComparableFields(structType)
@@ -2452,6 +2465,27 @@ func collectGoTypeParamFieldCloneParams(typ types.Type, params map[string]bool, 
 	case *types.Array:
 		collectGoTypeParamFieldCloneParams(t.Elem(), params, visiting)
 	}
+}
+
+// rustTypeGenericsBounded adds bound to every type parameter of generics in
+// its where clause: a hand-written PartialEq or Ord compares the
+// parameters' fields with == or cmp on copies of them, which a derive would
+// have bounded (#354).
+func rustTypeGenericsBounded(generics rustTypeGenerics, bound string) rustTypeGenerics {
+	params := strings.TrimSuffix(strings.TrimPrefix(generics.Use, "<"), ">")
+	if params == "" {
+		return generics
+	}
+	clauses := []string{}
+	for _, param := range strings.Split(params, ", ") {
+		clauses = append(clauses, param+": "+bound)
+	}
+	if generics.Where == "" {
+		generics.Where = " where " + strings.Join(clauses, ", ")
+	} else {
+		generics.Where += ", " + strings.Join(clauses, ", ")
+	}
+	return generics
 }
 
 func rustStructDisplayGenerics(generics rustTypeGenerics, typeSpec *ast.TypeSpec, structType *ast.StructType) (rustTypeGenerics, bool) {
