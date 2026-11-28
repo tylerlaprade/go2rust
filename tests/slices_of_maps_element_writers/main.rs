@@ -1039,7 +1039,7 @@ fn main() {
 
     let mut n1 = take(Rc::new(RefCell::new(Some(vec![{ let __map_handle = make_map().clone(); __map_handle }]))));
     let mut n2 = take(Rc::new(RefCell::new(Some(vec![m.clone(), { let __map_handle = make_map().clone(); __map_handle }]))));
-    let mut n3 = take(Rc::new(RefCell::new(Some(vec![]))));
+    let mut n3 = take(Rc::new(RefCell::new(None)));
     println!("{} {} {} {}", format!("{}", n1), format!("{}", n2), format!("{}", n3), format!("{}", { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"seen".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 
     let mut h = Rc::new(RefCell::new(Some(holder { m: Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(1i64))))])))), ..Default::default() })));

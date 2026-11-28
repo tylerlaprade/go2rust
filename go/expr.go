@@ -26438,11 +26438,10 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(", ")
 		}
 		if variadicStart > 0 && variadicStart == len(call.Args) {
-			// No variadic args provided, pass empty vec
+			// No variadic arguments: the parameter is a nil slice, as Go's
+			// spec says (#369).
 			out.WriteString(", ")
-			WriteWrapperPrefix(out)
-			out.WriteString("vec![]")
-			WriteWrapperSuffix(out)
+			WriteWrappedNone(out)
 		} else if call.Ellipsis.IsValid() {
 			// Slice expansion: sum(slice...) — pass the slice directly
 			// The last arg is already a slice, just clone it
@@ -26474,10 +26473,8 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString("]")
 			WriteWrapperSuffix(out)
 		} else {
-			// No variadic args at all — pass empty vec
-			WriteWrapperPrefix(out)
-			out.WriteString("vec![]")
-			WriteWrapperSuffix(out)
+			// No variadic arguments at all: a nil slice (#369).
+			WriteWrappedNone(out)
 		}
 
 		closeFunctionCall()
@@ -27312,6 +27309,11 @@ func writeVariadicCallArgumentsFromTypes(out *strings.Builder, call *ast.CallExp
 		variadicElemType = slice.Elem()
 	}
 	variadicElemIsAny := isEmptyInterfaceType(variadicElemType)
+	if variadicStart >= len(call.Args) {
+		// No variadic arguments: a nil slice (#369).
+		WriteWrappedNone(out)
+		return
+	}
 	WriteWrapperPrefix(out)
 	out.WriteString("vec![")
 	for i := variadicStart; i < len(call.Args); i++ {

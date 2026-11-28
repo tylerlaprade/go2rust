@@ -5444,6 +5444,14 @@ run_xfail_test() {
     run_test "tests/variadic_any_arguments"
 }
 
+@test "variadic_call_without_arguments_is_nil" {
+    run_test "tests/variadic_call_without_arguments_is_nil"
+}
+
+@test "variadic_call_without_arguments_is_nil_goroutines" {
+    run_test "tests/variadic_call_without_arguments_is_nil_goroutines"
+}
+
 @test "variadic_existing_any_argument" {
     run_test "tests/variadic_existing_any_argument"
 }

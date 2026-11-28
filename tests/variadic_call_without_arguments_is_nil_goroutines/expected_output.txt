@@ -1,0 +1,6 @@
+true false 0 3
+0 true
+[z] 1 true [3]
+0 2
+a 
+true

@@ -1274,7 +1274,7 @@ fn main() {
 
     let mut n1 = take(Arc::new(Mutex::new(Some(vec![{ let __map_handle = make_map().clone(); __map_handle }]))));
     let mut n2 = take(Arc::new(Mutex::new(Some(vec![m.clone(), { let __map_handle = make_map().clone(); __map_handle }]))));
-    let mut n3 = take(Arc::new(Mutex::new(Some(vec![]))));
+    let mut n3 = take(Arc::new(Mutex::new(None)));
     println!("{} {} {} {}", format!("{}", n1), format!("{}", n2), format!("{}", n3), format!("{}", { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"seen".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 
     let mut h = Arc::new(Mutex::new(Some(holder { m: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64))))])))), ..Default::default() })));
