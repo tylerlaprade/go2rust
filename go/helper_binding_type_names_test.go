@@ -52,3 +52,19 @@ func run() (count, count_) {
 		t.Fatalf("type count_ should keep its name once:\n%s", rust)
 	}
 }
+
+// The renamed type also avoids a parameter's name and the snake-case Rust
+// name of a function: a parameter or a function count_ would clash with a
+// tuple struct count_.
+func TestTypeNamedLikeHelperBindingAvoidsLocalAndFunctionNames(t *testing.T) {
+	for _, src := range []string{
+		"package main\n\ntype count int\n\nfunc add(count_ int) count { return count(count_) }\n",
+		"package main\n\ntype count int\n\nfunc Count_() count { return 4 }\n",
+		"package main\n\ntype count int\n\ntype Pair[count, count_ any] struct {\n\tA count\n\tB count_\n}\n",
+	} {
+		rust := transpileTypedRegression(t, src)
+		if !strings.Contains(rust, "pub struct count__(") || strings.Contains(rust, "pub struct count_(") {
+			t.Fatalf("type count should be written as count__:\n%s\n%s", src, rust)
+		}
+	}
+}

@@ -4313,50 +4313,89 @@ func registerPackageStructDefsFromFiles(files []*ast.File) {
 // store what the first one stores.
 var packageTypeDefinitionTypeExprs = map[*types.TypeName]ast.Expr{}
 
-// recordHelperBindingTypeName records a defined type that is written as a
-// tuple struct, anything but a struct or an interface, and is named like a
-// binding in a generated helper, as type count int against the WaitGroup
-// helper's let count: a let binding cannot shadow a tuple struct in scope, so
-// the type takes another Rust name (#335).
-func recordHelperBindingTypeName(obj types.Object) {
-	if currentContext == nil || currentContext.Session == nil {
+// recordHelperBindingTypeRenames records the package-level defined types in
+// files that are written as tuple structs, anything but a struct or an
+// interface, and are named like a binding in a generated helper, as type
+// count int against the WaitGroup helper's let count: a let binding cannot
+// shadow a tuple struct in scope, so the type takes another Rust name
+// (#335). The name is recorded under the package's path, so a dependent
+// writes the type under the same name.
+func recordHelperBindingTypeRenames(renames map[string]map[string]string, files []*ast.File, info *types.Info) {
+	if renames == nil || info == nil {
 		return
 	}
-	recordHelperBindingTypeRename(currentContext.Session.HelperBindingTypeRenames, obj)
+	var used map[string]bool
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok || genDecl.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range genDecl.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if !ok || typeSpec.Assign != 0 {
+					continue
+				}
+				typeName, ok := info.Defs[typeSpec.Name].(*types.TypeName)
+				if !ok || !helperBindingTypeNeedsRename(typeName) {
+					continue
+				}
+				if used == nil {
+					used = helperBindingRenameUsedNames(info)
+				}
+				recordHelperBindingTypeRename(renames, typeName, used)
+			}
+		}
+	}
 }
 
-// recordHelperBindingTypeRename records the Rust name of such a type under its
-// package's path, a name nothing else in the package or the helpers uses:
-// count_ for type count int, or count__ when the package also declares
-// count_.
-func recordHelperBindingTypeRename(renames map[string]map[string]string, obj types.Object) {
-	typeName, ok := obj.(*types.TypeName)
-	if !ok || renames == nil || typeName.Pkg() == nil || !helperBindingNames[typeName.Name()] {
-		return
+func helperBindingTypeNeedsRename(typeName *types.TypeName) bool {
+	if typeName.Pkg() == nil || !helperBindingNames[typeName.Name()] {
+		return false
 	}
 	named, ok := typeName.Type().(*types.Named)
 	if !ok {
-		return
+		return false
 	}
 	switch named.Underlying().(type) {
 	case *types.Struct, *types.Interface:
-		return
+		return false
 	}
-	pkg := typeName.Pkg()
-	pkgRenames := renames[pkg.Path()]
+	return true
+}
+
+// helperBindingRenameUsedNames returns the names a renamed type must not
+// take: every name the package defines, a parameter, a local or a type
+// parameter as much as a package-level one, as Go spells it and as a
+// function's snake-case Rust name spells it (func Count_ is fn count_).
+func helperBindingRenameUsedNames(info *types.Info) map[string]bool {
+	used := make(map[string]bool, len(info.Defs))
+	for ident := range info.Defs {
+		used[ident.Name] = true
+		used[RustFunctionName(ident.Name)] = true
+	}
+	return used
+}
+
+// recordHelperBindingTypeRename records the Rust name of typeName: the first
+// of count_, count__, ... that nothing in used, no helper binding and no
+// other renamed type in the package takes.
+func recordHelperBindingTypeRename(renames map[string]map[string]string, typeName *types.TypeName, used map[string]bool) {
+	pkgPath := typeName.Pkg().Path()
+	pkgRenames := renames[pkgPath]
 	if _, done := pkgRenames[typeName.Name()]; done {
 		return
 	}
 	if pkgRenames == nil {
 		pkgRenames = make(map[string]string)
-		renames[pkg.Path()] = pkgRenames
+		renames[pkgPath] = pkgRenames
 	}
 	taken := func(candidate string) bool {
-		if pkg.Scope().Lookup(candidate) != nil || helperBindingNames[candidate] {
+		if used[candidate] || helperBindingNames[candidate] {
 			return true
 		}
-		for _, used := range pkgRenames {
-			if used == candidate {
+		for _, other := range pkgRenames {
+			if other == candidate {
 				return true
 			}
 		}
@@ -4369,30 +4408,12 @@ func recordHelperBindingTypeRename(renames map[string]map[string]string, obj typ
 	pkgRenames[typeName.Name()] = candidate
 }
 
-// recordHelperBindingTypeRenames records the renamed types among the
-// package-level type definitions in files.
-func recordHelperBindingTypeRenames(renames map[string]map[string]string, files []*ast.File, info *types.Info) {
-	if info == nil {
-		return
-	}
-	for _, file := range files {
-		for _, decl := range file.Decls {
-			genDecl, ok := decl.(*ast.GenDecl)
-			if !ok || genDecl.Tok != token.TYPE {
-				continue
-			}
-			for _, spec := range genDecl.Specs {
-				if typeSpec, ok := spec.(*ast.TypeSpec); ok && typeSpec.Assign == 0 {
-					recordHelperBindingTypeRename(renames, info.Defs[typeSpec.Name])
-				}
-			}
-		}
-	}
-}
-
 func registerPackageTypeDefinitionTypeExprs(files []*ast.File, typeInfo *TypeInfo) {
 	if typeInfo == nil || typeInfo.info == nil {
 		return
+	}
+	if currentContext != nil && currentContext.Session != nil {
+		recordHelperBindingTypeRenames(currentContext.Session.HelperBindingTypeRenames, files, typeInfo.info)
 	}
 	for _, file := range files {
 		for _, decl := range file.Decls {
@@ -4405,7 +4426,6 @@ func registerPackageTypeDefinitionTypeExprs(files []*ast.File, typeInfo *TypeInf
 				if !ok || typeSpec.Assign != 0 {
 					continue
 				}
-				recordHelperBindingTypeName(typeInfo.info.Defs[typeSpec.Name])
 				if typeSpec.TypeParams != nil {
 					continue
 				}

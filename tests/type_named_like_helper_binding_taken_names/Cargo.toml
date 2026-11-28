@@ -1,0 +1,11 @@
+[package]
+name = "type_named_like_helper_binding_taken_names"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "type_named_like_helper_binding_taken_names"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
