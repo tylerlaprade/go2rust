@@ -1,0 +1,11 @@
+[package]
+name = "map_values_of_defined_integer_types_from_other_values"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_values_of_defined_integer_types_from_other_values"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
