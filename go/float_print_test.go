@@ -38,3 +38,24 @@ func main() {
 		}
 	}
 }
+
+// A []float64 held as a map value prints its elements through
+// go_float_string, as a []float64 printed by itself does (#339).
+func TestFloatSliceMapValuesPrintAsGoPercentV(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	fmt.Println(map[string][]float64{"y": {1e21, 2}})
+}
+`)
+	for _, want := range []string{
+		`if __name.ends_with("GoSlice<f64>") || __name.ends_with("GoSlice<f32>") {`,
+		"go_float_string(*__item, false)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("missing %q:\n%s", want, rust)
+		}
+	}
+}

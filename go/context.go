@@ -1378,6 +1378,26 @@ func NeedGoFloatString() {
 
 // NeedGoDisplayValue records that the code being written calls
 // go_display_value, so a module other than the crate root imports it.
+// NoteMapValueType marks that go_display_value prints a []float64 or
+// []float32 held as a map value with Go's float formatting, when value is
+// one (#339).
+func NoteMapValueType(value types.Type) {
+	if value == nil {
+		return
+	}
+	slice, ok := types.Unalias(value).(*types.Slice)
+	if !ok {
+		return
+	}
+	basic, ok := types.Unalias(slice.Elem()).(*types.Basic)
+	if !ok || basic.Info()&types.IsFloat == 0 {
+		return
+	}
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoFloatSliceDisplay = true
+	}
+}
+
 func NeedGoDisplayValue() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoDisplayValue = true
