@@ -155,3 +155,35 @@ func main() {
 		t.Fatalf("a named struct field of a map key should be ordered:\n%s", mainRS)
 	}
 }
+
+// A struct in an array field of an unnamed struct map key, Point in
+// map[struct{ P [1]Point }]bool, gets the equality and order the key's
+// derives need.
+func TestUnnamedStructMapKeyArrayFieldElementIsOrdered(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "fmt"
+
+type Point struct{ X int }
+
+func main() {
+	m := map[struct{ P [1]Point }]bool{}
+	m[struct{ P [1]Point }{[1]Point{{1}}}] = true
+	fmt.Println(len(m))
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]\npub struct Point {") {
+		t.Fatalf("a struct in an array field of a map key should be ordered:\n%s", mainRS)
+	}
+}

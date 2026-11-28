@@ -1020,7 +1020,8 @@ func (analysis *transpileFileAnalysis) markComparedAnonymousStruct(typ types.Typ
 	}
 	analysis.comparedAnonymousStructs = append(analysis.comparedAnonymousStructs, structType)
 	for i := 0; i < structType.NumFields(); i++ {
-		fieldType := types.Unalias(structType.Field(i).Type())
+		// An array field compares its elements.
+		fieldType := keyFieldElementType(structType.Field(i).Type())
 		// An unnamed struct field, as in struct{ p struct{ x int } }, is
 		// compared with the struct it is in.
 		if _, nested := fieldType.(*types.Struct); nested {
@@ -1192,7 +1193,7 @@ func markMapKeyStructType(result map[string]bool, typ types.Type, typeInfo *Type
 // Ord needs Ord on each of them.
 func markNestedMapKeyStructFields(result map[string]bool, st *types.Struct, typeInfo *TypeInfo) {
 	for i := 0; i < st.NumFields(); i++ {
-		fieldType := types.Unalias(st.Field(i).Type())
+		fieldType := keyFieldElementType(st.Field(i).Type())
 		switch field := fieldType.(type) {
 		case *types.Struct:
 			markMapKeyStructType(result, field, typeInfo)
@@ -1202,6 +1203,26 @@ func markNestedMapKeyStructFields(result map[string]bool, st *types.Struct, type
 				markMapKeyStructType(result, field, typeInfo)
 			}
 		}
+	}
+}
+
+// keyFieldElementType is the type a comparison of a field of type typ
+// compares element by element: the element of an array, [2]Point or a
+// defined array type, through every array layer, and typ itself otherwise.
+func keyFieldElementType(typ types.Type) types.Type {
+	for {
+		typ = types.Unalias(typ)
+		if array, ok := typ.(*types.Array); ok {
+			typ = array.Elem()
+			continue
+		}
+		if named, ok := typ.(*types.Named); ok {
+			if array, ok := named.Underlying().(*types.Array); ok {
+				typ = array.Elem()
+				continue
+			}
+		}
+		return typ
 	}
 }
 
