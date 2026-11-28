@@ -21163,7 +21163,7 @@ func writeUnsafePointerTypeDefinitionConversion(out *strings.Builder, call *ast.
 	if typeInfo == nil || !isNamedUnsafePointerTypeDefinition(typeInfo.GetType(call)) {
 		return false
 	}
-	out.WriteString(targetType)
+	out.WriteString(RustTypeNameForUse(targetType))
 	out.WriteString("(")
 	WriteWrapperPrefix(out)
 	writeUnsafePointerConversionValue(out, call.Args[0])

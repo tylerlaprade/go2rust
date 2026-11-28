@@ -24,6 +24,7 @@ type PackageLoader struct {
 	sourceStdlibDepsExpanded    map[string]bool              // selected stdlib packages whose imports were traversed as source deps
 	sourceStdlibReachable       map[types.Object]bool        // reachable source-stdlib objects computed for pruning
 	packageTypeModules          map[string]map[string]string // import path -> Go type name -> Rust module name
+	helperBindingTypeRenames    map[string]map[string]string // import path -> Go type name -> Rust type name (#335)
 	packageStates               map[string]*PackageState
 	sliceElemPtrReturnFuncNames map[string]sliceElemPtrReturnInfo
 	goPtrParamFuncNames         map[string]map[int]string
@@ -104,6 +105,7 @@ func NewPackageLoader(workDir string) *PackageLoader {
 		sourceStdlibPackages:        make(map[string]bool),
 		sourceStdlibDepsExpanded:    make(map[string]bool),
 		packageTypeModules:          make(map[string]map[string]string),
+		helperBindingTypeRenames:    make(map[string]map[string]string),
 		packageStates:               make(map[string]*PackageState),
 		sliceElemPtrReturnFuncNames: make(map[string]sliceElemPtrReturnInfo),
 		goPtrParamFuncNames:         make(map[string]map[int]string),
@@ -849,6 +851,7 @@ func (pl *PackageLoader) TranspileAll() error {
 	SetSourceStdlibReachable(pl.sourceStdlibReachable)
 	defer SetSourceStdlibReachable(prevSourceStdlibReachable)
 	pl.packageTypeModules = pl.collectPackageTypeModuleNames()
+	pl.collectHelperBindingTypeRenames()
 	SetSourceFunctionDeclsByFunc(pl.collectSourceFunctionDeclsByFunc())
 	pl.collectSliceElemPtrFacts()
 
@@ -1162,6 +1165,20 @@ func (pl *PackageLoader) collectPackageTypeModuleNames() map[string]map[string]s
 	return typeModules
 }
 
+// collectHelperBindingTypeRenames records, before any package is written, the
+// renamed types of every package, so a dependent that infers a dependency's
+// type, as var saved = dep.New() for func New() count, writes it under the
+// name its declaration takes (#335).
+func (pl *PackageLoader) collectHelperBindingTypeRenames() {
+	for _, pkgPath := range pl.orderedAllPackagePaths() {
+		pkg := pl.allPackages[pkgPath]
+		if pkg == nil || len(pkg.Syntax) == 0 || pkg.TypesInfo == nil || pkg.Types == nil {
+			continue
+		}
+		recordHelperBindingTypeRenames(pl.helperBindingTypeRenames, pkg.Syntax, pkg.TypesInfo)
+	}
+}
+
 func (pl *PackageLoader) collectSliceElemPtrFacts() {
 	pl.withEachPackageTypeContext(func(pkg *packages.Package) {
 		registerSliceElemPtrFactsFromFiles(pkg.Syntax)
@@ -1186,6 +1203,7 @@ func (pl *PackageLoader) withEachPackageTypeContext(fn func(*packages.Package)) 
 		pkgState := NewPackageState()
 		session := NewTranspileSession(pkgTypeInfo, pl.packageMapping)
 		session.PackageTypeModuleNames = pl.packageTypeModules
+		session.HelperBindingTypeRenames = pl.helperBindingTypeRenames
 		session.SliceElemPtrReturnFuncNames = pl.sliceElemPtrReturnFuncNames
 		session.GoPtrParamFuncNames = pl.goPtrParamFuncNames
 		session.GoPtrSlotParamFuncNames = pl.goPtrSlotParamFuncNames
@@ -1258,6 +1276,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	pkgState.JsonDecodeSupportNeeded = packageNeedsJsonDecodeSupport(pkg.Syntax, pkgTypeInfo)
 	session := NewTranspileSession(pkgTypeInfo, pl.packageMapping)
 	session.PackageTypeModuleNames = pl.packageTypeModules
+	session.HelperBindingTypeRenames = pl.helperBindingTypeRenames
 	session.SliceElemPtrReturnFuncNames = pl.sliceElemPtrReturnFuncNames
 	session.GoPtrParamFuncNames = pl.goPtrParamFuncNames
 	session.GoPtrSlotParamFuncNames = pl.goPtrSlotParamFuncNames
@@ -1552,6 +1571,10 @@ func (pl *PackageLoader) GetPackageMapping() map[string]string {
 
 func (pl *PackageLoader) GetPackageTypeModuleNames() map[string]map[string]string {
 	return pl.packageTypeModules
+}
+
+func (pl *PackageLoader) GetHelperBindingTypeRenames() map[string]map[string]string {
+	return pl.helperBindingTypeRenames
 }
 
 func (pl *PackageLoader) GetSourceStdlibReachable() map[types.Object]bool {
