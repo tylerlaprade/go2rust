@@ -1492,7 +1492,7 @@ func zeroValueForTypesType(typ types.Type) string {
 			out.WriteString("(")
 			WriteWrapperPrefix(&out)
 			out.WriteString("std::array::from_fn(|_| ")
-			out.WriteString(zeroValueForTypesType(array.Elem()))
+			out.WriteString(collectionElementZeroValue(array.Elem()))
 			out.WriteString(")")
 			WriteWrapperSuffix(&out)
 			out.WriteString(")")

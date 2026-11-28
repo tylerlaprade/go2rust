@@ -1,0 +1,11 @@
+[package]
+name = "slices_of_maps_package_globals_and_named_arrays"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "slices_of_maps_package_globals_and_named_arrays"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -4424,6 +4424,10 @@ run_xfail_test() {
     run_test "tests/slices_of_maps_handle_boundaries_goroutines"
 }
 
+@test "slices_of_maps_package_globals_and_named_arrays" {
+    run_test "tests/slices_of_maps_package_globals_and_named_arrays"
+}
+
 @test "slices_of_maps_review_cases" {
     run_test "tests/slices_of_maps_review_cases"
 }

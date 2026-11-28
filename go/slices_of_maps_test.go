@@ -158,3 +158,25 @@ func main() {
 		}
 	}
 }
+
+// An omitted element of a package-level slice or array of maps, and an
+// element of a defined array of maps, is a nil map handle
+// (slices_of_maps_package_globals_and_named_arrays).
+func TestSliceOfMapsPackageGlobalAndNamedArrayZeroElements(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Tables [2]map[string]int
+
+var s = []map[string]int{1: {"x": 1}}
+var a = [2]map[string]int{}
+var tables Tables
+
+func main() {}
+`)
+	if strings.Contains(rust, "push(BTreeMap::new())") || strings.Contains(rust, "from_fn(|_| BTreeMap::new())") {
+		t.Fatalf("an element of map type should be a nil map handle, not a bare map:\n%s", rust)
+	}
+	if !strings.Contains(rust, "push(Rc::new(RefCell::new(None::<BTreeMap<String, Rc<RefCell<Option<i64>>>>>)))") {
+		t.Fatalf("an omitted element should be a nil map handle:\n%s", rust)
+	}
+}

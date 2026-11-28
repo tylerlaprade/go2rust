@@ -1412,7 +1412,7 @@ func writePackageGlobalMapSliceValueInsert(out *strings.Builder, indent string, 
 		out.WriteString(valueName)
 		out.WriteString(".push(")
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(sliceType.Elem()))
+			out.WriteString(collectionElementZeroValue(sliceType.Elem()))
 		} else if !writeOwnedExpressionValue(out, elt) {
 			TranspileExpression(out, elt)
 		}
@@ -1459,7 +1459,7 @@ func writePackageGlobalNestedSliceLiteralElement(out *strings.Builder, indent st
 		out.WriteString(elemName)
 		out.WriteString(".push(")
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(sliceType.Elem()))
+			out.WriteString(collectionElementZeroValue(sliceType.Elem()))
 		} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
 			TranspileExpression(out, elt)
 		}
@@ -1527,7 +1527,7 @@ func writePackageGlobalSliceLiteralInit(out *strings.Builder, name string, globa
 		}
 		out.WriteString("        __go_slice.push(")
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(sliceType.Elem()))
+			out.WriteString(collectionElementZeroValue(sliceType.Elem()))
 		} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
 			TranspileExpression(out, elt)
 		}
@@ -1581,7 +1581,7 @@ func writePackageGlobalArrayLiteralInit(out *strings.Builder, name string, globa
 	for _, elt := range values {
 		out.WriteString("        __go_array.push(")
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(arrayType.Elem()))
+			out.WriteString(collectionElementZeroValue(arrayType.Elem()))
 		} else if !writeArraySliceLiteralElementValue(out, elt, arrayType.Elem()) && !writeOwnedExpressionValue(out, elt) {
 			TranspileExpression(out, elt)
 		}
