@@ -16365,6 +16365,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		var mapValueGoType types.Type
 		mapKeyNeedsValueBinding := false
 		mapKeyNeedsWrappedBinding := false
+		// A struct key shares its field cells with the key the map holds, so
+		// the loop binds Go's copy of it, as a range value is (#356).
+		mapKeyCopyCall := ""
 
 		if isMap {
 			keyType = "String"
@@ -16393,6 +16396,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else if isStdlibNamedInterfaceValueType(mapKeyType) {
 						keyRangeVarType = goTypesTypeToRustWrapped(mapKeyType)
 						mapKeyNeedsWrappedBinding = true
+					} else if copyCall := goValueCopyCallForType(mapKeyType); copyCall != ".clone()" {
+						mapKeyCopyCall = copyCall
 					}
 				}
 				valueType = goTypesMapValueToRust(mapValueType)
@@ -16629,7 +16634,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(keyBindingTemp)
 				return
 			}
-			if (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding) && keyName != "" && keyName != "_" {
+			if (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding || mapKeyCopyCall != "") && keyName != "" && keyName != "_" {
 				out.WriteString("__range_key")
 				return
 			}
@@ -16646,7 +16651,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			writeRangeValueBinding()
 		}
-		if !rangeAssignsExisting && (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding) && keyName != "" && keyName != "_" {
+		if !rangeAssignsExisting && (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding || mapKeyCopyCall != "") && keyName != "" && keyName != "_" {
 			var prelude strings.Builder
 			prelude.WriteString("        let ")
 			if keyAssigned {
@@ -16656,6 +16661,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			prelude.WriteString(" = ")
 			if mapKeyNeedsValueBinding {
 				prelude.WriteString("__range_key.value()")
+			} else if mapKeyCopyCall != "" {
+				prelude.WriteString("__range_key")
+				prelude.WriteString(mapKeyCopyCall)
 			} else {
 				WriteWrapperPrefix(&prelude)
 				prelude.WriteString("__range_key.clone()")

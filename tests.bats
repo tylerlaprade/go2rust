@@ -2664,6 +2664,14 @@ run_xfail_test() {
     run_test "tests/map_range_string_value_compare"
 }
 
+@test "map_range_struct_key_copy" {
+    run_test "tests/map_range_struct_key_copy"
+}
+
+@test "map_range_struct_key_copy_goroutines" {
+    run_test "tests/map_range_struct_key_copy_goroutines"
+}
+
 @test "map_range_value_delete_key" {
     run_test "tests/map_range_value_delete_key"
 }

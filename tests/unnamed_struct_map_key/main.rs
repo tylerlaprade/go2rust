@@ -861,7 +861,8 @@ fn main() {
     } }
     }
     println!("{} {}", format!("{}", ({ let __len = (*dist.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __map_holder = dist.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&AnonymousStruct1 { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(1))) })).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
-    for (k, v) in { let __range_holder = dist.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
+    for (__range_key, v) in { let __range_holder = dist.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
+        let k = __range_key.__go_value_clone();
         if (*v.borrow_mut().as_mut().unwrap()) == 2 {
         println!("{} {}", format!("{}", (*k.x.borrow().as_ref().unwrap()) + (*k.y.borrow().as_ref().unwrap())), format!("{}", (*v.borrow_mut().as_mut().unwrap())));
     }
