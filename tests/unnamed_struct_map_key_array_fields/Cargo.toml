@@ -1,0 +1,11 @@
+[package]
+name = "unnamed_struct_map_key_array_fields"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "unnamed_struct_map_key_array_fields"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

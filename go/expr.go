@@ -17609,26 +17609,38 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 			}
 
-			// Add default values for uninitialized fields
+			// The fields the literal leaves out take their values from the
+			// struct's own Default, Go's zero values: a zero-filled array or 0
+			// where a field cell's Default would be empty, so
+			// struct{ x, y int }{x: 1} equals struct{ x, y int }{1, 0}, as a map
+			// key too. The update syntax builds that Default once.
+			omitsFields := false
 			for fieldIndex, field := range structType.Fields.List {
-				for nameIndex, name := range field.Names {
-					rustFieldName := rustStructFieldName(name, fieldIndex, nameIndex)
-					if !initializedFields[rustFieldName] {
-						writeAnonymousStructFieldPrefix()
-						out.WriteString(rustFieldName)
-						out.WriteString(": ")
-						if nestedStruct, ok := field.Type.(*ast.StructType); ok {
-							// Nested struct field needs Some(StructName::default())
-							nestedName := generateAnonymousStructType(nestedStruct)
-							WriteWrapperPrefix(out)
-							out.WriteString(nestedName)
-							out.WriteString("::default()")
-							WriteWrapperSuffix(out)
-						} else {
-							out.WriteString("Default::default()")
-						}
-						writeAnonymousStructFieldSuffix()
+				if len(field.Names) == 0 {
+					if !initializedFields[ToSnakeCase(getEmbeddedFieldName(field.Type))] {
+						omitsFields = true
 					}
+					continue
+				}
+				for nameIndex, name := range field.Names {
+					if !initializedFields[rustStructFieldName(name, fieldIndex, nameIndex)] {
+						omitsFields = true
+					}
+				}
+			}
+			if omitsFields {
+				if multilineStructLiteral {
+					out.WriteString(structLiteralIndent)
+					out.WriteString("    ..")
+					out.WriteString(typeName)
+					out.WriteString("::default()\n")
+				} else {
+					if needComma {
+						out.WriteString(", ")
+					}
+					out.WriteString("..")
+					out.WriteString(typeName)
+					out.WriteString("::default()")
 				}
 			}
 

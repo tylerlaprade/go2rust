@@ -1032,6 +1032,9 @@ func structNeedsOrd(structName string) bool {
 		if st, ok := types.Unalias(anonymousStructGoTypes[node]).(*types.Struct); ok {
 			return keys[mapKeyStructFieldsKey(st)]
 		}
+		// An unnamed struct type another file of the package uses as a map
+		// key is looked up by its own type.
+		return anonymousStructIsPackageMapKey(node)
 	}
 	return false
 }

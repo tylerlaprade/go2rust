@@ -1841,6 +1841,9 @@ func goTypesTypeToRust(t types.Type) string {
 		if anonName := lookupAnonymousStructName(ut); anonName != "" {
 			return anonName
 		}
+		if aliasName := packageStructAliasName(ut); aliasName != "" {
+			return aliasName
+		}
 		return "/* unknown struct */"
 	case *types.Interface:
 		if ut.NumMethods() == 0 {
