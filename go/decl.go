@@ -1193,6 +1193,23 @@ func writeStructComparablePointerFieldOrd(out *strings.Builder, field structComp
 	out.WriteString("            }\n")
 }
 
+// writeStructComparableBareMutexFieldOrd orders a *sync.Mutex field held as
+// a bare GoMutex the way GoMutex::go_ptr_eq tells two apart: nil first,
+// then by the address of the mutex's shared state.
+func writeStructComparableBareMutexFieldOrd(out *strings.Builder, field structComparableField) {
+	key := func(side string) string {
+		return "(!" + side + "." + field.name + ".is_nil, if " + side + "." + field.name + ".is_nil { 0 } else { std::sync::Arc::as_ptr(&" + side + "." + field.name + ".inner) as *const () as usize })"
+	}
+	out.WriteString("            match ")
+	out.WriteString(key("self"))
+	out.WriteString(".cmp(&")
+	out.WriteString(key("other"))
+	out.WriteString(") {\n")
+	out.WriteString("                std::cmp::Ordering::Equal => {}\n")
+	out.WriteString("                __ord => return __ord,\n")
+	out.WriteString("            }\n")
+}
+
 func writeStructComparableGoPtrFieldOrd(out *strings.Builder, field structComparableField) {
 	out.WriteString("            match self.")
 	out.WriteString(field.name)
@@ -1291,6 +1308,8 @@ func writeStructComparableFieldOrd(out *strings.Builder, structName string, fiel
 	if isPointerType(typ) {
 		if structComparableFieldIsGeneratedGoPtr(structName, field) {
 			writeStructComparableGoPtrFieldOrd(out, field)
+		} else if _, ok := structComparableBareSyncPointerHelper(typ); ok {
+			writeStructComparableBareMutexFieldOrd(out, field)
 		} else {
 			writeStructComparablePointerFieldOrd(out, field)
 		}

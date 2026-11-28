@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"sort"
+	"sync"
 )
 
 type K struct{ P *int }
@@ -33,12 +33,24 @@ func main() {
 	fmt.Println(Node{"a", n1} == Node{"a", n1}, Node{"a", n1} == Node{"a", n2})
 	s1, s2 := "s", "s"
 	seen := map[Pair]bool{{1, &s1}: true, {1, &s2}: true, {2, nil}: true}
-	ids := []int{}
+	byID := map[int]int{}
 	for k := range seen {
-		ids = append(ids, k.ID)
+		byID[k.ID]++
 	}
-	sort.Ints(ids)
-	fmt.Println(len(seen), ids, seen[Pair{1, &s1}], seen[Pair{2, nil}], seen[Pair{1, nil}])
+	fmt.Println(len(seen), byID, seen[Pair{1, &s1}], seen[Pair{2, nil}], seen[Pair{1, nil}])
 	u := map[struct{ p *int }]string{{&a}: "a", {&b}: "b"}
 	fmt.Println(len(u), u[struct{ p *int }{&a}])
+
+	// A *sync.Mutex field is compared, and ordered, by the mutex it points to.
+	mu1, mu2 := &sync.Mutex{}, &sync.Mutex{}
+	locks := map[Guarded]int{}
+	locks[Guarded{"x", mu1}]++
+	locks[Guarded{"x", mu2}]++
+	locks[Guarded{"x", mu1}]++
+	fmt.Println(len(locks), locks[Guarded{"x", mu1}], Guarded{"x", mu1} == Guarded{"x", mu2})
+}
+
+type Guarded struct {
+	Name string
+	Mu   *sync.Mutex
 }
