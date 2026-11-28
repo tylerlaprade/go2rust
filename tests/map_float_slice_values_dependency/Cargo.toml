@@ -1,0 +1,37 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_mapfloatslices_dep",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_bytealg",
+    "vendor/internal_stringslite",
+    "vendor/io",
+    "vendor/math_bits",
+    "vendor/strings",
+    "vendor/unicode",
+    "vendor/unicode_utf8",
+]
+
+[package]
+name = "map_float_slice_values_dependency"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_float_slice_values_dependency"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+example_com_mapfloatslices_dep = { path = "vendor/example_com_mapfloatslices_dep" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_bytealg = { path = "vendor/internal_bytealg" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
+io = { path = "vendor/io" }
+math_bits = { path = "vendor/math_bits" }
+strings = { path = "vendor/strings" }
+unicode = { path = "vendor/unicode" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }

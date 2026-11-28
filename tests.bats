@@ -2560,6 +2560,14 @@ run_xfail_test() {
     run_test "tests/map_field_local_alias"
 }
 
+@test "map_float_slice_values" {
+    run_test "tests/map_float_slice_values"
+}
+
+@test "map_float_slice_values_dependency" {
+    run_test "tests/map_float_slice_values_dependency"
+}
+
 @test "map_len_integer_key" {
     run_test "tests/map_len_integer_key"
 }
