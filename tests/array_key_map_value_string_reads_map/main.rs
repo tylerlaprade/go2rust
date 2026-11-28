@@ -696,13 +696,12 @@ fn format_map_nil<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K
 where
     V: Display,
 {
-    let guard = map.lock().unwrap();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-
+    // The entries are copied out first, in key order, so a value's String
+    // method that reads this map does not wait on the lock printing holds.
+    let items: Option<Vec<(K, Arc<Mutex<Option<V>>>)>> = { let guard = map.lock().unwrap(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()) };
+    if let Some(items) = items {
         let formatted: Vec<String> = items
-            .into_iter()
+            .iter()
             .map(|(k, v)| {
                 let v_guard = v.lock().unwrap();
                 if let Some(ref val) = *v_guard {
@@ -1556,9 +1555,46 @@ impl Ord for tally {
 }
 
 
-pub(crate) static m_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<BTreeMap<[i64; 1], Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) struct GoGlobalMapSync<T> {
+    slot: std::sync::Mutex<std::sync::Arc<std::sync::Mutex<Option<T>>>>,
+}
+// A lock of the map, which keeps the map's handle while it is held.
+pub(crate) struct GoGlobalMapGuard<T: 'static> {
+    guard: std::sync::MutexGuard<'static, Option<T>>,
+    _handle: std::sync::Arc<std::sync::Mutex<Option<T>>>,
+}
+impl<T: 'static> std::ops::Deref for GoGlobalMapGuard<T> {
+    type Target = Option<T>;
+    fn deref(&self) -> &Option<T> { &self.guard }
+}
+impl<T: 'static> std::ops::DerefMut for GoGlobalMapGuard<T> {
+    fn deref_mut(&mut self) -> &mut Option<T> { &mut self.guard }
+}
+impl<T: 'static> GoGlobalMapSync<T> {
+    pub(crate) fn new() -> Self {
+        Self { slot: std::sync::Mutex::new(std::sync::Arc::new(std::sync::Mutex::new(None))) }
+    }
+    pub(crate) fn clone(&self) -> std::sync::Arc<std::sync::Mutex<Option<T>>> {
+        self.slot.lock().unwrap().clone()
+    }
+    // Assigning a map to the variable makes it that map's handle.
+    pub(crate) fn set(&self, handle: std::sync::Arc<std::sync::Mutex<Option<T>>>) {
+        *self.slot.lock().unwrap() = handle;
+    }
+    pub(crate) fn lock(&self) -> std::sync::LockResult<GoGlobalMapGuard<T>> {
+        let handle = self.clone();
+        // The guard keeps the handle, and is dropped before it.
+        let mutex: &'static std::sync::Mutex<Option<T>> = unsafe { &*std::sync::Arc::as_ptr(&handle) };
+        match mutex.lock() {
+            Ok(guard) => Ok(GoGlobalMapGuard { guard, _handle: handle }),
+            Err(poisoned) => Err(std::sync::PoisonError::new(GoGlobalMapGuard { guard: poisoned.into_inner(), _handle: handle })),
+        }
+    }
+}
 
-pub(crate) static byKey: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<BTreeMap<[String; 2], Arc<Mutex<Option<tally>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static m_1: std::sync::LazyLock<GoGlobalMapSync<BTreeMap<[i64; 1], Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>>> = std::sync::LazyLock::new(GoGlobalMapSync::new);
+
+pub(crate) static byKey: std::sync::LazyLock<GoGlobalMapSync<BTreeMap<[String; 2], Arc<Mutex<Option<tally>>>>>> = std::sync::LazyLock::new(GoGlobalMapSync::new);
 
 
 fn __go_init_globals() {

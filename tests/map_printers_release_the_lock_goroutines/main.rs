@@ -1165,9 +1165,46 @@ impl std::ops::Add<&str> for key {
 }
 
 
-pub(crate) static shared_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<BTreeMap<String, Arc<Mutex<Option<Vec<item>>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) struct GoGlobalMapSync<T> {
+    slot: std::sync::Mutex<std::sync::Arc<std::sync::Mutex<Option<T>>>>,
+}
+// A lock of the map, which keeps the map's handle while it is held.
+pub(crate) struct GoGlobalMapGuard<T: 'static> {
+    guard: std::sync::MutexGuard<'static, Option<T>>,
+    _handle: std::sync::Arc<std::sync::Mutex<Option<T>>>,
+}
+impl<T: 'static> std::ops::Deref for GoGlobalMapGuard<T> {
+    type Target = Option<T>;
+    fn deref(&self) -> &Option<T> { &self.guard }
+}
+impl<T: 'static> std::ops::DerefMut for GoGlobalMapGuard<T> {
+    fn deref_mut(&mut self) -> &mut Option<T> { &mut self.guard }
+}
+impl<T: 'static> GoGlobalMapSync<T> {
+    pub(crate) fn new() -> Self {
+        Self { slot: std::sync::Mutex::new(std::sync::Arc::new(std::sync::Mutex::new(None))) }
+    }
+    pub(crate) fn clone(&self) -> std::sync::Arc<std::sync::Mutex<Option<T>>> {
+        self.slot.lock().unwrap().clone()
+    }
+    // Assigning a map to the variable makes it that map's handle.
+    pub(crate) fn set(&self, handle: std::sync::Arc<std::sync::Mutex<Option<T>>>) {
+        *self.slot.lock().unwrap() = handle;
+    }
+    pub(crate) fn lock(&self) -> std::sync::LockResult<GoGlobalMapGuard<T>> {
+        let handle = self.clone();
+        // The guard keeps the handle, and is dropped before it.
+        let mutex: &'static std::sync::Mutex<Option<T>> = unsafe { &*std::sync::Arc::as_ptr(&handle) };
+        match mutex.lock() {
+            Ok(guard) => Ok(GoGlobalMapGuard { guard, _handle: handle }),
+            Err(poisoned) => Err(std::sync::PoisonError::new(GoGlobalMapGuard { guard: poisoned.into_inner(), _handle: handle })),
+        }
+    }
+}
 
-pub(crate) static nested_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<BTreeMap<key, Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static shared_1: std::sync::LazyLock<GoGlobalMapSync<BTreeMap<String, Arc<Mutex<Option<Vec<item>>>>>>> = std::sync::LazyLock::new(GoGlobalMapSync::new);
+
+pub(crate) static nested_1: std::sync::LazyLock<GoGlobalMapSync<BTreeMap<key, Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>>> = std::sync::LazyLock::new(GoGlobalMapSync::new);
 
 
 fn __go_init_globals() {
@@ -1205,7 +1242,7 @@ let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(||
 let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
-        { let new_val = { let __collection_holder = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<item>>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(vec![item { n: Arc::new(Mutex::new(Some(1))), ..Default::default() }, item { n: Arc::new(Mutex::new(Some(2))), ..Default::default() }]))))])))).clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *shared_1.lock().unwrap() = new_val; };;
+        { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<item>>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(vec![item { n: Arc::new(Mutex::new(Some(1))), ..Default::default() }, item { n: Arc::new(Mutex::new(Some(2))), ..Default::default() }]))))])))).clone(); shared_1.set(new_val); };;
         { let __map_key = key(Arc::new(Mutex::new(Some("k".to_string())))); let __map_value = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("x".to_string(), Arc::new(Mutex::new(Some(1i64))))])))); (*nested_1.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
         while let Some(f) = __defer_stack.pop() {
             f();

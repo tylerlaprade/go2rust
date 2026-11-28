@@ -702,13 +702,12 @@ fn format_map_nil<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<
 where
     V: Display,
 {
-    let guard = map.borrow();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-
+    // The entries are copied out first, in key order, so a value's String
+    // method that reads this map does not wait on the lock printing holds.
+    let items: Option<Vec<(K, Rc<RefCell<Option<V>>>)>> = { let guard = map.borrow(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()) };
+    if let Some(items) = items {
         let formatted: Vec<String> = items
-            .into_iter()
+            .iter()
             .map(|(k, v)| {
                 let v_guard = v.borrow();
                 if let Some(ref val) = *v_guard {
@@ -933,14 +932,14 @@ fn main() {
         { let __map_key = "n".to_string(); let __map_value = { let __slice = { let __map_holder = { let __map_holder = groups.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(k)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&"n".to_string()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = i as i64; let mut __appended = (*__slice.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }; (*{ let __map_holder = groups.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(k)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
     { let __map_key = "c".to_string(); let __map_value = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<i64>>>>>::from([("empty".to_string(), Rc::new(RefCell::new(None)))])))); (*groups.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    println!("{}", format!("{}", { let __map_holder = groups.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map_nil(__v, "[]"))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
+    println!("{}", format!("{}", { let __map_holder = groups.clone(); let __map_entries = { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map_nil(__v, "[]"))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
 
     let mut byID = Rc::new(RefCell::new(Some(BTreeMap::<i64, Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Vec<String>>>>>>>>>::from([(2i64, Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<String>>>>>::from([("tags".to_string(), Rc::new(RefCell::new(Some(vec!["x".to_string(), "y".to_string()]))))]))))), (1i64, Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<String>>>>>::from([])))))]))));
     let mut flags = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<bool>>>>>>>>::from([("t".to_string(), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<bool>>>>::from([("ok".to_string(), Rc::new(RefCell::new(Some(true)))), ("bad".to_string(), Rc::new(RefCell::new(Some(false))))])))))]))));
-    println!("{} {}", format!("{}", { let __map_holder = byID.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map_nil(__v, "[]"))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }), format!("{}", { let __map_holder = flags.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map(__v))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
+    println!("{} {}", format!("{}", { let __map_holder = byID.clone(); let __map_entries = { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map_nil(__v, "[]"))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }), format!("{}", { let __map_holder = flags.clone(); let __map_entries = { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map(__v))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
 
     let mut grid = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Point>>>>>>>>::from([("row".to_string(), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Point>>>>::from([("b".to_string(), Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(3))), y: Rc::new(RefCell::new(Some(4))), ..Default::default() })))), ("a".to_string(), Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }))))])))))]))));
-    println!("{}", format!("{}", { let __map_holder = grid.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map(__v))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
+    println!("{}", format!("{}", { let __map_holder = grid.clone(); let __map_entries = { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map(__v))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
     print!("{}|{}\n", format_map(&{ let __map_holder = grid.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"row".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }), format_map_nil(&{ let __map_holder = groups.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }, "[]"));
 
     let mut rows = Rc::new(RefCell::new(Some(vec![BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("x".to_string(), Rc::new(RefCell::new(Some(1i64))))]), BTreeMap::new(), BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([])])));

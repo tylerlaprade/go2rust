@@ -702,13 +702,12 @@ fn format_map_nil<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<
 where
     V: Display,
 {
-    let guard = map.borrow();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-
+    // The entries are copied out first, in key order, so a value's String
+    // method that reads this map does not wait on the lock printing holds.
+    let items: Option<Vec<(K, Rc<RefCell<Option<V>>>)>> = { let guard = map.borrow(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()) };
+    if let Some(items) = items {
         let formatted: Vec<String> = items
-            .into_iter()
+            .iter()
             .map(|(k, v)| {
                 let v_guard = v.borrow();
                 if let Some(ref val) = *v_guard {
@@ -967,7 +966,7 @@ pub struct Pairs(pub Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<[i64; 
 
 impl Display for Pairs {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "{}", { let __map_holder = self.0.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_slice_values(&__v.borrow().as_ref().unwrap()[..]))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } })
+        write!(f, "{}", { let __map_holder = self.0.clone(); let __map_entries = { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_slice_values(&__v.borrow().as_ref().unwrap()[..]))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } })
     }
 }
 
@@ -1126,7 +1125,7 @@ fn main() {
     let mut places = Rc::new(RefCell::new(Some(Places(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Point>>>>::from([("p".to_string(), Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }))))]))))))));
 
         // Directly, and as slice elements, struct fields and map values.
-    println!("{} {} {}", format!("{}", format_map_nil(&{ let __named_map = (*lists.borrow().as_ref().unwrap()).0.clone(); __named_map }, "[]")), format!("{}", { let __map_holder = { let __named_map = (*pairs.borrow().as_ref().unwrap()).0.clone(); __named_map }.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_slice_values(&__v.borrow().as_ref().unwrap()[..]))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }), format!("{}", format_map(&{ let __named_map = (*places.borrow().as_ref().unwrap()).0.clone(); __named_map })));
+    println!("{} {} {}", format!("{}", format_map_nil(&{ let __named_map = (*lists.borrow().as_ref().unwrap()).0.clone(); __named_map }, "[]")), format!("{}", { let __map_holder = { let __named_map = (*pairs.borrow().as_ref().unwrap()).0.clone(); __named_map }.clone(); let __map_entries = { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_slice_values(&__v.borrow().as_ref().unwrap()[..]))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }), format!("{}", format_map(&{ let __named_map = (*places.borrow().as_ref().unwrap()).0.clone(); __named_map })));
     println!("{} {} {}", format!("{}", format_slice(&Rc::new(RefCell::new(Some(vec![(*lists.borrow().as_ref().unwrap()).clone()]))))), format!("{}", format_slice(&Rc::new(RefCell::new(Some(vec![(*pairs.borrow().as_ref().unwrap()).clone()]))))), format!("{}", format_slice(&Rc::new(RefCell::new(Some(vec![(*places.borrow().as_ref().unwrap()).clone()]))))));
     println!("{}", format!("{}", Holder { l: lists.clone(), p: places.clone(), ..Default::default() }));
     println!("{} {}", format!("{}", format_map(&Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Lists>>>>::from([("x".to_string(), Rc::new(RefCell::new(Some((*lists.borrow().as_ref().unwrap()).clone()))))])))))), format!("{}", format_map(&Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Places>>>>::from([("y".to_string(), Rc::new(RefCell::new(Some((*places.borrow().as_ref().unwrap()).clone()))))])))))));
