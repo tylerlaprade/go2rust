@@ -305,6 +305,21 @@ func transpileFmtSprintln(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func writeSprintVariadicSlice(out *strings.Builder, arg ast.Expr) {
+	writeAnySliceHandleArg(out, arg)
+}
+
+// writeAnySliceHandleArg writes a []any as the handle the []any formatters
+// take. A slice held bare, as rows[0] of a [][]any or a range value over one,
+// goes in a handle of its own.
+func writeAnySliceHandleArg(out *strings.Builder, arg ast.Expr) {
+	arg = unwrapParens(arg)
+	if formatSliceArgumentIsBareValue(arg) {
+		WriteWrapperPrefix(out)
+		TranspileExpression(out, arg)
+		out.WriteString(".clone()")
+		WriteWrapperSuffix(out)
+		return
+	}
 	if ident, ok := arg.(*ast.Ident); ok {
 		out.WriteString(RustIdentForUse(ident))
 		return
@@ -496,11 +511,7 @@ func writeFmtPrintlnVariadicAny(out *strings.Builder, call *ast.CallExpr) bool {
 	NeedFormatAnySlice()
 	TrackImport("Any")
 	out.WriteString("println!(\"{}\", format_any_variadic(&")
-	if ident, ok := call.Args[0].(*ast.Ident); ok {
-		out.WriteString(RustIdentForUse(ident))
-	} else {
-		TranspileExpression(out, call.Args[0])
-	}
+	writeAnySliceHandleArg(out, call.Args[0])
 	out.WriteString("))")
 	return true
 }
@@ -942,6 +953,10 @@ func writeMapDisplayForType(out *strings.Builder, mapType types.Type, writeHandl
 		writeMapOfMapsDisplay(out, writeHandle, innerSlices)
 		return
 	}
+	if mapValuesAreAnySlices(mapType) {
+		writeMapOfAnySlicesDisplay(out, writeHandle, mapKeysAreBasicArrays(mapType))
+		return
+	}
 	if mapKeysAreBasicArrays(mapType) {
 		writeMapWithArrayKeysDisplayOf(out, writeHandle, mapValuesAreEmptyInterfaces(mapType))
 		return
@@ -1000,6 +1015,9 @@ func mapDisplayHasOwnForm(mapType types.Type) bool {
 		return true
 	}
 	if _, ok := mapValuesAreSlicesOfMaps(mapType); ok {
+		return true
+	}
+	if mapValuesAreAnySlices(mapType) {
 		return true
 	}
 	if m, ok := types.Unalias(mapType).Underlying().(*types.Map); ok {
@@ -1167,6 +1185,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			if writeNestedBasicSlicePrintArg(out, arg, argType) {
 				return
 			}
+			if writeNestedAnySlicePrintArg(out, arg, argType) {
+				return
+			}
 			// Check if it's a slice of interface{}
 			elemType := typeInfo.GetSliceElemType(arg)
 			if elemType != nil {
@@ -1175,11 +1196,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 					NeedFormatAnySlice()
 					TrackImport("Any")
 					out.WriteString("format_any_slice(&")
-					if ident, ok := arg.(*ast.Ident); ok {
-						out.WriteString(RustIdentForUse(ident))
-					} else {
-						TranspileExpression(out, arg)
-					}
+					writeAnySliceHandleArg(out, arg)
 					out.WriteString(")")
 					return
 				}
@@ -3070,6 +3087,60 @@ func writeNestedBasicSlicePrintArg(out *strings.Builder, arg ast.Expr, argType t
 	return true
 }
 
+// writeNestedAnySlicePrintArg prints a slice or array of []any, as
+// [][]any{{1, "a"}} for rows of a table, the way fmt does: each []any as
+// format_any_slice prints it, in brackets of the outer collection's own
+// (#343).
+func writeNestedAnySlicePrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
+	depth := 0
+	typ := argType
+	for {
+		var elem types.Type
+		switch seq := types.Unalias(typ).(type) {
+		case *types.Slice:
+			elem = seq.Elem()
+		case *types.Array:
+			elem = seq.Elem()
+		default:
+			return false
+		}
+		depth++
+		if inner, ok := types.Unalias(elem).(*types.Slice); ok && isEmptyInterfaceType(inner.Elem()) {
+			break
+		}
+		typ = elem
+	}
+	NeedFormatAnySlice()
+	TrackImport("Any")
+	var rows func(value string, level int) string
+	rows = func(value string, level int) string {
+		row := "__any_row_" + strconv.Itoa(level)
+		var cell string
+		if level == depth {
+			var handle strings.Builder
+			WriteWrapperPrefix(&handle)
+			handle.WriteString(row)
+			handle.WriteString(".clone()")
+			WriteWrapperSuffix(&handle)
+			cell = "{ let __any_row_handle = " + handle.String() + "; format_any_slice(&__any_row_handle) }"
+		} else {
+			cell = rows(row, level+1)
+		}
+		return "format!(\"[{}]\", " + value + ".iter().map(|" + row + "| " + cell + ").collect::<Vec<String>>().join(\" \"))"
+	}
+	// The rows are copied out of the outer handle first, so a String method
+	// that reads the outer collection does not wait on the lock printing
+	// would hold, as writeMapEntriesCopyMatch does for a map.
+	out.WriteString("{ let __any_rows_holder = ")
+	writeAnySliceHandleArg(out, arg)
+	out.WriteString(".clone(); let __any_rows_copy = { let __any_rows_guard = __any_rows_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __any_rows_guard.as_ref().cloned() }; match __any_rows_copy { Some(__any_rows) => ")
+	out.WriteString(rows("__any_rows", 1))
+	out.WriteString(", None => \"[]\".to_string() } }")
+	return true
+}
+
 func writeTrackedRangeSlicePrintArg(out *strings.Builder, arg ast.Expr) bool {
 	ident, ok := arg.(*ast.Ident)
 	if !ok {
@@ -3374,6 +3445,41 @@ func writeMapOfSlicesOfMapsDisplay(out *strings.Builder, writeHandle func(), nil
 	out.WriteString(").clone().unwrap_or_default(); format!(\"{}:[{}]\", go_display_value(__k), __maps.iter().map(|__m| ")
 	writeBareMapInSliceFormat(out, nilText)
 	out.WriteString(").collect::<Vec<_>>().join(\" \")) }).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
+}
+
+// mapValuesAreAnySlices reports whether mapType is a map of an unnamed []any,
+// map[string][]any for a row of values under each key.
+func mapValuesAreAnySlices(mapType types.Type) bool {
+	m, ok := types.Unalias(mapType).Underlying().(*types.Map)
+	if !ok {
+		return false
+	}
+	slice, ok := types.Unalias(m.Elem()).(*types.Slice)
+	return ok && isEmptyInterfaceType(slice.Elem())
+}
+
+// writeMapOfAnySlicesDisplay prints a map of []any as fmt does,
+// map[k:[1 x]], in key order: each value is the handle of its []any, which
+// format_any_slice takes (#343).
+func writeMapOfAnySlicesDisplay(out *strings.Builder, writeHandle func(), arrayKeys bool) {
+	NeedGoDisplayValue()
+	NeedFormatMap()
+	// An array key, map[[1]int][]any, prints as the array does.
+	keyText := "go_display_value(__k)"
+	if arrayKeys {
+		NeedFormatSlice()
+		keyText = "format_slice_values(&__k[..])"
+	}
+	NeedFormatAnySlice()
+	TrackImport("Any")
+	TrackImport("Display")
+	TrackImport("Ord")
+	out.WriteString("{ let __map_holder = ")
+	writeHandle()
+	writeMapEntriesCopyMatch(out)
+	out.WriteString("format!(\"map[{}]\", __map.iter().map(|(__k, __v)| format!(\"{}:{}\", ")
+	out.WriteString(keyText)
+	out.WriteString(", format_any_slice(__v))).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
 }
 
 func writeCollectionFormatHandleIdent(out *strings.Builder, ident *ast.Ident) {
