@@ -43,3 +43,39 @@ func main() {
 		t.Fatalf("a range value over a slice of maps is already the map's handle:\n%s", rust)
 	}
 }
+
+// A var declaration, a return and an assignment of a slice-of-maps element
+// take the element's handle as it is, and an element of a slice of maps
+// inside another slice is a handle too.
+func TestSliceOfMapsElementHandleAtDeclarationsReturnsAndNestedSlices(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func first(s []map[string]int) map[string]int {
+	return s[0]
+}
+
+func main() {
+	s := []map[string]int{{"x": 1}}
+	var m = s[0]
+	var p map[string]int
+	p = s[0]
+	n := [][]map[string]int{{{"x": 1}}}
+	fmt.Println(len(m), len(p), len(first(s)), n[0][0]["x"])
+}
+`)
+	for _, want := range []string{
+		"-> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> {\n    (*s.borrow().as_ref().unwrap())[(0) as usize].clone()\n}",
+		"let mut m = (*s.borrow().as_ref().unwrap())[(0) as usize].clone();",
+		"let new_val = (*s.borrow().as_ref().unwrap())[(0) as usize].clone(); p = new_val;",
+		"let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&\"x\".to_string()))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap())[(0) as usize].clone())))") {
+		t.Fatalf("a slice-of-maps element should not be wrapped in another handle:\n%s", rust)
+	}
+}

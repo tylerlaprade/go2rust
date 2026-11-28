@@ -7348,7 +7348,7 @@ func isAssignmentSelfWrappingExpression(expr ast.Expr) bool {
 	case *ast.CallExpr:
 		return isBuiltinCallNamed(e, "make") && !isMakeChannelCall(e)
 	case *ast.IndexExpr:
-		return mapIndexExpressionKeepsHandle(e) || mapElementIndexExpression(e)
+		return mapIndexExpressionKeepsHandle(e)
 	default:
 		return false
 	}
@@ -7361,13 +7361,24 @@ func isTypedAssignmentSelfWrappingExpression(expr ast.Expr) bool {
 	return isAssignmentSelfWrappingExpression(expr)
 }
 
+// mapIndexExpressionKeepsHandle reports whether expr reads a handle out of
+// a collection: a map value that is a map, slice, pointer or the like, or an
+// element of an array or slice of an unnamed map type, which is the map's
+// handle (#318). A declaration, assignment or return takes the handle as it
+// is.
 func mapIndexExpressionKeepsHandle(expr ast.Expr) bool {
 	indexExpr, ok := expr.(*ast.IndexExpr)
 	if !ok {
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	return typeInfo != nil && typeInfo.IsMap(indexExpr.X) && mapValueTypeKeepsHandle(typeInfo.GetType(indexExpr))
+	if typeInfo == nil {
+		return false
+	}
+	if typeInfo.IsMap(indexExpr.X) {
+		return mapValueTypeKeepsHandle(typeInfo.GetType(indexExpr))
+	}
+	return mapElementIndexExpression(indexExpr)
 }
 
 // mapElementIndexExpression reports whether expr reads an element of an
@@ -15264,10 +15275,6 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												// Untyped string constants default to owned Go strings in local variables.
 											} else if writeNamedIntegerWrappedInitializer(out, rhs) {
 												// Named integer arithmetic returns the underlying scalar; short declarations store the named value.
-											} else if index, ok := rhs.(*ast.IndexExpr); ok && mapElementIndexExpression(index) {
-												// m := s[i] of a []map: the variable is the element's
-												// map handle, which it shares (#318).
-												TranspileExpression(out, rhs)
 											} else {
 												// Wrap new variables
 												WriteWrapperPrefix(out)

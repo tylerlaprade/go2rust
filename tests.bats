@@ -4404,6 +4404,14 @@ run_xfail_test() {
     run_test "tests/slices_maps_cmp_from_source_goroutines"
 }
 
+@test "slices_of_maps_handle_boundaries" {
+    run_test "tests/slices_of_maps_handle_boundaries"
+}
+
+@test "slices_of_maps_handle_boundaries_goroutines" {
+    run_test "tests/slices_of_maps_handle_boundaries_goroutines"
+}
+
 @test "slices_of_maps_share" {
     run_test "tests/slices_of_maps_share"
 }

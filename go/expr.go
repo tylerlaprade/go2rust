@@ -1224,10 +1224,15 @@ func indexExpressionResultKeepsHandle(expr *ast.IndexExpr, typeInfo *TypeInfo) b
 	if typeInfo.IsMap(expr.X) {
 		return mapValueTypeKeepsHandle(typeInfo.GetType(expr))
 	}
+	elemType, ok := sequenceElementTypeForIndexExpr(expr.X, typeInfo)
+	// An element of an unnamed map type is the map's handle in every array
+	// or slice, bare ones included, as s[0][0] of a [][]map (#318).
+	if ok && isUnnamedMapType(elemType) {
+		return true
+	}
 	if isExpressionResultBare(expr.X) {
 		return false
 	}
-	elemType, ok := sequenceElementTypeForIndexExpr(expr.X, typeInfo)
 	if !ok {
 		return mapValueTypeKeepsHandle(typeInfo.GetType(expr))
 	}
