@@ -509,7 +509,7 @@ func (x items) order() {
 		t.Fatalf("sort.Sort on a named-slice receiver should lower without using the bridge:\n%s", rust)
 	}
 	for _, want := range []string{
-		"let mut __sort_data = items(self.0.clone())",
+		"let mut __sort_data = items_(self.0.clone())",
 		"let __sort_len = __sort_data.len()",
 		"__sort_data.less(",
 		"__sort_data.swap(",
@@ -1052,12 +1052,12 @@ func log(p uintptr) {
 }
 `)
 
-	if strings.Contains(rust, "hex(") &&
+	if strings.Contains(rust, "hex_(") &&
 		(strings.Contains(rust, ")).borrow().as_ref().unwrap()") ||
 			strings.Contains(rust, ")).lock().unwrap().as_ref().unwrap()")) {
 		t.Fatalf("builtin println should not unwrap a named integer conversion as a handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, `format!("{}", hex(`) {
+	if !strings.Contains(rust, `format!("{}", hex_(`) {
 		t.Fatalf("builtin println should format the named integer conversion directly:\n%s", rust)
 	}
 }

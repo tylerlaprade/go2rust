@@ -4316,9 +4316,107 @@ func registerPackageStructDefsFromFiles(files []*ast.File) {
 // store what the first one stores.
 var packageTypeDefinitionTypeExprs = map[*types.TypeName]ast.Expr{}
 
+// recordHelperBindingTypeRenames records the package-level defined types in
+// files that are written as tuple structs, anything but a struct or an
+// interface, and are named like a binding in a generated helper, as type
+// count int against the WaitGroup helper's let count: a let binding cannot
+// shadow a tuple struct in scope, so the type takes another Rust name
+// (#335). The name is recorded under the package's path, so a dependent
+// writes the type under the same name.
+func recordHelperBindingTypeRenames(renames map[string]map[string]string, files []*ast.File, info *types.Info) {
+	if renames == nil || info == nil {
+		return
+	}
+	var used map[string]bool
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok || genDecl.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range genDecl.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if !ok || typeSpec.Assign != 0 {
+					continue
+				}
+				typeName, ok := info.Defs[typeSpec.Name].(*types.TypeName)
+				if !ok || !helperBindingTypeNeedsRename(typeName) {
+					continue
+				}
+				if used == nil {
+					used = helperBindingRenameUsedNames(info)
+				}
+				recordHelperBindingTypeRename(renames, typeName, used)
+			}
+		}
+	}
+}
+
+func helperBindingTypeNeedsRename(typeName *types.TypeName) bool {
+	if typeName.Pkg() == nil || !helperBindingNames[typeName.Name()] {
+		return false
+	}
+	named, ok := typeName.Type().(*types.Named)
+	if !ok {
+		return false
+	}
+	switch named.Underlying().(type) {
+	case *types.Struct, *types.Interface:
+		return false
+	}
+	return true
+}
+
+// helperBindingRenameUsedNames returns the names a renamed type must not
+// take: every name the package defines, a parameter, a local or a type
+// parameter as much as a package-level one, as Go spells it and as a
+// function's snake-case Rust name spells it (func Count_ is fn count_).
+func helperBindingRenameUsedNames(info *types.Info) map[string]bool {
+	used := make(map[string]bool, len(info.Defs))
+	for ident := range info.Defs {
+		used[ident.Name] = true
+		used[RustFunctionName(ident.Name)] = true
+	}
+	return used
+}
+
+// recordHelperBindingTypeRename records the Rust name of typeName: the first
+// of count_, count__, ... that nothing in used, no helper binding and no
+// other renamed type in the package takes.
+func recordHelperBindingTypeRename(renames map[string]map[string]string, typeName *types.TypeName, used map[string]bool) {
+	pkgPath := typeName.Pkg().Path()
+	pkgRenames := renames[pkgPath]
+	if _, done := pkgRenames[typeName.Name()]; done {
+		return
+	}
+	if pkgRenames == nil {
+		pkgRenames = make(map[string]string)
+		renames[pkgPath] = pkgRenames
+	}
+	taken := func(candidate string) bool {
+		if used[candidate] || helperBindingNames[candidate] {
+			return true
+		}
+		for _, other := range pkgRenames {
+			if other == candidate {
+				return true
+			}
+		}
+		return false
+	}
+	candidate := typeName.Name() + "_"
+	for taken(candidate) {
+		candidate += "_"
+	}
+	pkgRenames[typeName.Name()] = candidate
+}
+
 func registerPackageTypeDefinitionTypeExprs(files []*ast.File, typeInfo *TypeInfo) {
 	if typeInfo == nil || typeInfo.info == nil {
 		return
+	}
+	if currentContext != nil && currentContext.Session != nil {
+		recordHelperBindingTypeRenames(currentContext.Session.HelperBindingTypeRenames, files, typeInfo.info)
 	}
 	for _, file := range files {
 		for _, decl := range file.Decls {
@@ -4328,7 +4426,10 @@ func registerPackageTypeDefinitionTypeExprs(files []*ast.File, typeInfo *TypeInf
 			}
 			for _, spec := range genDecl.Specs {
 				typeSpec, ok := spec.(*ast.TypeSpec)
-				if !ok || typeSpec.Assign != 0 || typeSpec.TypeParams != nil {
+				if !ok || typeSpec.Assign != 0 {
+					continue
+				}
+				if typeSpec.TypeParams != nil {
 					continue
 				}
 				if obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName); ok {

@@ -4078,6 +4078,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 	SetTranspileContext(ctx)
 	defer SetTranspileContext(parentCtx)
+	// A file transpiled on its own records its type names in its own
+	// session; a package's files were recorded before they were written.
+	if parentCtx == nil && typeInfo != nil {
+		recordHelperBindingTypeRenames(ctx.Session.HelperBindingTypeRenames, []*ast.File{file}, typeInfo.info)
+	}
 	reserveSiblingRustTypeNames(imports)
 	preexistingAnonymousStructs := snapshotAnonymousStructNames()
 	preexistingAnonymousStructAliases := snapshotAnonymousStructAliasNames()

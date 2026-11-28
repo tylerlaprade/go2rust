@@ -15736,7 +15736,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													// A float, string or bool of a type the package defines.
 												} else if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
 													WriteWrapperPrefix(out)
-													out.WriteString(typeIdent.Name)
+													out.WriteString(RustTypeNameForUse(typeIdent.Name))
 													out.WriteString("(")
 													WriteWrapperPrefix(out)
 													isFloatType := underlyingType == "float64" || underlyingType == "float32"
@@ -15790,7 +15790,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												// A float, string or bool of a type the package defines.
 											} else if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
 												WriteWrapperPrefix(out)
-												out.WriteString(typeIdent.Name)
+												out.WriteString(RustTypeNameForUse(typeIdent.Name))
 												out.WriteString("(")
 												WriteWrapperPrefix(out)
 												// Check if int literal needs float conversion

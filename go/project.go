@@ -26,6 +26,7 @@ type ProjectGenerator struct {
 	goImports                map[string][]string // package path -> list of imports
 	packageMapping           map[string]string   // Go import path -> Rust crate name
 	packageTypeModules       map[string]map[string]string
+	helperBindingTypeRenames map[string]map[string]string
 	goPtrParamFuncNames      map[string]map[int]string
 	goPtrSlotParamFuncNames  map[string]map[int]string
 	goPtrReturnFuncNames     map[string]map[int]goPtrResultInfo
@@ -230,6 +231,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		pg.typeInfo = loader.GetTypeInfo()
 		pg.packageMapping = loader.GetPackageMapping()
 		pg.packageTypeModules = loader.GetPackageTypeModuleNames()
+		pg.helperBindingTypeRenames = loader.GetHelperBindingTypeRenames()
 		pg.goPtrParamFuncNames = loader.GetGoPtrParamFuncNames()
 		pg.goPtrSlotParamFuncNames = loader.GetGoPtrSlotParamFuncNames()
 		pg.goPtrReturnFuncNames = loader.GetGoPtrReturnFuncNames()
@@ -384,6 +386,9 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	pg.usePackageHelpers = len(astFiles) > 1
 	session := NewTranspileSession(pg.typeInfo, pg.packageMapping)
 	session.PackageTypeModuleNames = pg.packageTypeModules
+	if pg.helperBindingTypeRenames != nil {
+		session.HelperBindingTypeRenames = pg.helperBindingTypeRenames
+	}
 	session.GoPtrParamFuncNames = pg.goPtrParamFuncNames
 	session.GoPtrSlotParamFuncNames = pg.goPtrSlotParamFuncNames
 	session.GoPtrReturnFuncNames = pg.goPtrReturnFuncNames
